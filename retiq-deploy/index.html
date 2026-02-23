@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#020617">
+  <title>RetIQ — Retirement Planning That Actually Works</title>
+  <meta name="description" content="Professional retirement planning software. Monte Carlo simulation, Roth optimizer, Social Security modeling. Private, offline, one-time purchase.">
+  <link rel="icon" href="/app/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/app/icons/icon-180.png">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:     #020617;
+      --panel:  #0b1220;
+      --card:   #0f172a;
+      --border: rgba(255,255,255,.08);
+      --text:   #e2e8f0;
+      --dim:    #94a3b8;
+      --muted:  #475569;
+      --blue:   #3b82f6;
+      --cyan:   #06b6d4;
+      --green:  #10b981;
+      --amber:  #f59e0b;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      line-height: 1.6; min-height: 100vh; overflow-x: hidden;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(59,130,246,.12), transparent),
+        radial-gradient(ellipse 60% 40% at 80% 60%, rgba(6,182,212,.06), transparent);
+    }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(2,6,23,.85); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border); padding: 0 24px;
+    }
+    .nav-inner {
+      max-width: 860px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 52px;
+    }
+    .nav-logo {
+      font-weight: 800; font-size: 17px; letter-spacing: -.02em;
+      text-decoration: none; color: var(--text); display: flex; align-items: center; gap: 6px;
+    }
+    .nav-badge {
+      font-size: 10px; font-weight: 600; color: var(--muted);
+      background: rgba(255,255,255,.06); border: 1px solid var(--border);
+      border-radius: 4px; padding: 1px 5px;
+    }
+    .nav-links { display: flex; gap: 20px; }
+    .nav-links a { font-size: 13px; color: var(--dim); text-decoration: none; }
+    .nav-links a:hover { color: var(--text); }
+
+    /* ── Hero ── */
+    .hero { padding: 80px 0 60px; text-align: center; }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase;
+      color: var(--cyan); background: rgba(6,182,212,.08);
+      border: 1px solid rgba(6,182,212,.2); border-radius: 20px;
+      padding: 5px 12px; margin-bottom: 22px;
+    }
+    .hero h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(34px, 5.5vw, 54px);
+      line-height: 1.1; letter-spacing: -.02em; margin-bottom: 18px;
+      background: linear-gradient(135deg, #e2e8f0 30%, #7dd3fc);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-sub {
+      font-size: clamp(15px, 2vw, 17px); color: var(--dim);
+      max-width: 500px; margin: 0 auto 40px; line-height: 1.65;
+    }
+
+    /* ── CTA card ── */
+    .cta-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px; max-width: 480px;
+      margin: 0 auto 20px; text-align: center;
+    }
+    .cta-pricing {
+      display: flex; align-items: stretch; gap: 10px;
+      margin-bottom: 24px;
+    }
+    .price-box {
+      flex: 1; border-radius: 12px; padding: 16px 12px;
+      border: 1px solid var(--border); background: var(--panel);
+      text-align: center;
+    }
+    .price-box.featured {
+      border-color: rgba(59,130,246,.4);
+      background: rgba(59,130,246,.06);
+    }
+    .price-label {
+      font-size: 11px; font-weight: 600; letter-spacing: .05em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+    }
+    .price-box.featured .price-label { color: var(--blue); }
+    .price-amount {
+      font-size: 28px; font-weight: 800; color: var(--text); line-height: 1;
+    }
+    .price-period { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .price-box.featured .price-period { color: var(--dim); }
+    .price-note {
+      font-size: 11px; color: var(--amber); margin-top: 6px; font-weight: 500;
+    }
+    .price-divider {
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: var(--muted); padding: 0 4px;
+    }
+
+    .btn-trial {
+      width: 100%; padding: 14px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      color: #fff; font-size: 16px; font-weight: 700;
+      border: none; cursor: pointer; font-family: inherit;
+      box-shadow: 0 4px 24px rgba(59,130,246,.3);
+      transition: opacity .2s, transform .15s;
+      margin-bottom: 10px;
+    }
+    .btn-trial:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+    .btn-trial:disabled { opacity: .6; cursor: default; transform: none; }
+
+    .btn-buy {
+      width: 100%; padding: 11px; border-radius: 10px;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--dim); font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: border-color .2s, color .2s;
+    }
+    .btn-buy:hover:not(:disabled) { border-color: rgba(59,130,246,.4); color: var(--text); }
+    .btn-buy:disabled { opacity: .6; cursor: default; }
+
+    .cta-note {
+      font-size: 11px; color: var(--muted); margin-top: 12px;
+      display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;
+    }
+    .cta-note span::before { content: '✓ '; color: var(--green); }
+
+    /* ── Features ── */
+    .features { padding: 56px 0 72px; }
+    .features-label {
+      text-align: center; font-size: 11px; font-weight: 600;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 36px;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 10px;
+    }
+    .feat {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px;
+      transition: border-color .2s;
+    }
+    .feat:hover { border-color: rgba(59,130,246,.2); }
+    .feat-icon { font-size: 20px; margin-bottom: 8px; }
+    .feat-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .feat-desc  { font-size: 12px; color: var(--dim); line-height: 1.5; }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border); padding: 24px;
+      text-align: center; font-size: 12px; color: var(--muted);
+    }
+    .footer-inner {
+      max-width: 860px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px;
+    }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--dim); }
+
+    /* ── Reveal ── */
+    .reveal { opacity: 0; transform: translateY(18px); transition: opacity .5s, transform .5s; }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    /* ── Status message ── */
+    #statusMsg {
+      font-size: 13px; color: var(--dim); margin-top: 8px;
+      min-height: 20px; text-align: center;
+    }
+    #statusMsg.error { color: #f87171; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="/">
+      RetIQ <span class="nav-badge">v1</span>
+    </a>
+    <div class="nav-links">
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+      <a href="mailto:support@retiqstudio.com">Support</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- ── Hero ── -->
+  <section class="hero">
+    <div class="hero-eyebrow">🔒 Private · Offline · No account required</div>
+    <h1>Retirement planning<br>under your control</h1>
+    <p class="hero-sub">
+      Professional-grade financial modeling that runs entirely on your device.
+      No subscription, no cloud, no advisor needed.
+    </p>
+
+    <!-- ── CTA Card ── -->
+    <div class="cta-card reveal">
+      <!-- Pricing comparison -->
+      <div class="cta-pricing">
+        <div class="price-box featured">
+          <div class="price-label">During trial</div>
+          <div class="price-amount">$29</div>
+          <div class="price-period">one-time · all features</div>
+          <div class="price-note">⏱ First 7 days only</div>
+        </div>
+        <div class="price-divider">→</div>
+        <div class="price-box">
+          <div class="price-label">After trial</div>
+          <div class="price-amount">$49</div>
+          <div class="price-period">one-time · all features</div>
+          <div class="price-period" style="margin-top:6px;">&nbsp;</div>
+        </div>
+      </div>
+
+      <!-- Primary CTA: Start trial -->
+      <button class="btn-trial" id="trialBtn" onclick="handleStartTrial()">
+        Start 7-Day Free Trial →
+      </button>
+
+      <!-- Secondary: Buy now at $49 (no trial needed) -->
+      <button class="btn-buy" id="buyNowBtn" onclick="handleBuyNow()">
+        Skip trial — Buy now at $49
+      </button>
+
+      <div id="statusMsg"></div>
+
+      <div class="cta-note">
+        <span>No credit card for trial</span>
+        <span>One-time purchase</span>
+        <span>All future updates</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Features ── -->
+  <section class="features reveal">
+    <div class="features-label">What's included</div>
+    <div class="features-grid">
+
+      <div class="feat">
+        <div class="feat-icon">📊</div>
+        <div class="feat-title">Monte Carlo Simulation</div>
+        <div class="feat-desc">2,000 randomized scenarios with year-by-year market variation. Know your real probability of success.</div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-icon">🔄</div>
+        <div class="feat-title">Roth Conversion Optimizer</div>
+        <div class="feat-desc">Hundreds of conversion strategies scored by lifetime taxes, RMD reduction, and final net worth.</div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-icon">🏛️</div>
+        <div class="feat-title">Social Security Modeling</div>
+        <div class="feat-desc">Claim timing, spousal benefits, survivor benefits, and SSDI integration — including delayed-to-70 strategies.</div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-icon">💊</div>
+        <div class="feat-title">Medicare & IRMAA</div>
+        <div class="feat-desc">2025 IRMAA surcharge brackets modeled year by year so income spikes don't blindside your healthcare costs.</div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-icon">📋</div>
+        <div class="feat-title">RMD Calculations</div>
+        <div class="feat-desc">SECURE 2.0 compliant required minimum distributions, year by year, across all account types.</div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-icon">🎯</div>
+        <div class="feat-title">Scenario Comparison</div>
+        <div class="feat-desc">Test any retirement strategy side by side — retire earlier, spend more, move states, change asset allocation.</div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-icon">♿</div>
+        <div class="feat-title">SSDI Modeling</div>
+        <div class="feat-desc">Disability income bridge with SSA integration — models the transition from SSDI to retirement benefits.</div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-icon">🕊️</div>
+        <div class="feat-title">Survivor Planning</div>
+        <div class="feat-desc">Spousal death scenarios with survivor benefit recalculation, expense adjustment, and tax filing status change.</div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-icon">🏦</div>
+        <div class="feat-title">Legacy & Estate Goals</div>
+        <div class="feat-desc">Set a target amount to leave behind and track whether your plan gets you there across all scenarios.</div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-icon">💾</div>
+        <div class="feat-title">Save & Export</div>
+        <div class="feat-desc">Export a self-contained HTML snapshot of your full plan — charts, projections, and all — that works offline without the app.</div>
+      </div>
+
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <span>© 2026 RetIQ · Not financial advice</span>
+    <span>
+      <a href="/privacy.html">Privacy</a> ·
+      <a href="/terms.html">Terms</a> ·
+      <a href="mailto:support@retiqstudio.com">support@retiqstudio.com</a>
+    </span>
+  </div>
+</footer>
+
+<script>
+const RETIQ_API = "https://retiq-worker.bortvin.workers.dev";
+const K_TRIAL_TOKEN = "retiq_trial_token";
+const K_TRIAL_START = "retiq_trial_start";
+const K_PRO         = "retiq_pro";
+
+// If already has active trial or pro license, go straight to app
+(function() {
+  if (localStorage.getItem(K_PRO) === "true") {
+    window.location.href = "/app/";
+    return;
+  }
+  const start = parseInt(localStorage.getItem(K_TRIAL_START) || "0", 10);
+  if (start > 0) {
+    const elapsed = (Date.now() - start) / (1000 * 60 * 60 * 24);
+    if (elapsed < 7) {
+      window.location.href = "/app/";
+      return;
+    }
+  }
+})();
+
+function setStatus(msg, isError) {
+  const el = document.getElementById("statusMsg");
+  el.textContent = msg;
+  el.className = isError ? "error" : "";
+}
+
+async function handleStartTrial() {
+  const btn = document.getElementById("trialBtn");
+  btn.textContent = "Starting your trial…";
+  btn.disabled = true;
+  document.getElementById("buyNowBtn").disabled = true;
+  setStatus("");
+
+  try {
+    const r = await fetch(RETIQ_API + "/start-trial", { method: "POST" });
+    const d = await r.json();
+
+    if (r.status === 429) {
+      // Trial limit hit — offer to buy instead
+      btn.textContent = "Start 7-Day Free Trial →";
+      btn.disabled = false;
+      document.getElementById("buyNowBtn").disabled = false;
+      setStatus("You've already used a free trial. Purchase to continue.", true);
+      return;
+    }
+
+    if (!d.token) throw new Error("No token");
+
+    localStorage.setItem(K_TRIAL_TOKEN, d.token);
+    localStorage.setItem(K_TRIAL_START, String(d.issuedAt));
+
+    setStatus("Trial started! Taking you to the app…");
+    setTimeout(() => { window.location.href = "/app/"; }, 600);
+
+  } catch (err) {
+    // Network error — start local trial and go anyway
+    localStorage.setItem(K_TRIAL_START, String(Date.now()));
+    setStatus("Taking you to the app…");
+    setTimeout(() => { window.location.href = "/app/"; }, 600);
+  }
+}
+
+async function handleBuyNow() {
+  const btn = document.getElementById("buyNowBtn");
+  btn.textContent = "Redirecting to checkout…";
+  btn.disabled = true;
+  document.getElementById("trialBtn").disabled = true;
+  setStatus("");
+
+  try {
+    const r = await fetch(RETIQ_API + "/create-checkout-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: null }) // no trial token = $49 price
+    });
+    const d = await r.json();
+    if (d.url) { window.location.href = d.url; return; }
+    throw new Error("No URL");
+  } catch {
+    btn.textContent = "Skip trial — Buy now at $49";
+    btn.disabled = false;
+    document.getElementById("trialBtn").disabled = false;
+    setStatus("Could not start checkout. Please try again.", true);
+  }
+}
+
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("visible"); });
+}, { threshold: 0.1, rootMargin: "0px 0px -40px 0px" });
+document.querySelectorAll(".reveal").forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>
