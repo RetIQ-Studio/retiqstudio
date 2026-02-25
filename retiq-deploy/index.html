@@ -229,34 +229,34 @@
       <!-- Pricing comparison -->
       <div class="cta-pricing">
         <div class="price-box featured">
-          <div class="price-label">During trial</div>
+          <div class="price-label">Launch Price</div>
           <div class="price-amount">$29</div>
-          <div class="price-period">one-time · all features</div>
-          <div class="price-note">⏱ First 7 days only</div>
+          <div class="price-period">one-time &middot; all features</div>
+          <div class="price-note">&#127942; Yours for 7 days after first visit</div>
         </div>
-        <div class="price-divider">→</div>
+        <div class="price-divider">&rarr;</div>
         <div class="price-box">
-          <div class="price-label">After trial</div>
+          <div class="price-label">After launch</div>
           <div class="price-amount">$49</div>
-          <div class="price-period">one-time · all features</div>
+          <div class="price-period">one-time &middot; all features</div>
           <div class="price-period" style="margin-top:6px;">&nbsp;</div>
         </div>
       </div>
 
-      <!-- Primary CTA: Start trial -->
+      <!-- Primary CTA: Explore demo -->
       <button class="btn-trial" id="trialBtn" onclick="handleStartTrial()">
-        Start 7-Day Free Trial →
+        Explore Demo &rarr;
       </button>
 
-      <!-- Secondary: Buy now at $49 (no trial needed) -->
+      <!-- Secondary: Buy now -->
       <button class="btn-buy" id="buyNowBtn" onclick="handleBuyNow()">
-        Skip trial — Buy now at $49
+        Buy now at launch price &mdash; $29
       </button>
 
       <div id="statusMsg"></div>
 
       <div class="cta-note">
-        <span>No credit card for trial</span>
+        <span>Explore free &mdash; no sign-up needed</span>
         <span>One-time purchase</span>
         <span>All future updates</span>
       </div>
@@ -325,7 +325,7 @@
       <div class="feat">
         <div class="feat-icon">💾</div>
         <div class="feat-title">Save & Export</div>
-        <div class="feat-desc">Export a self-contained HTML snapshot of your full plan — charts, projections, and all — that works offline without the app.</div>
+        <div class="feat-desc">Export a self-contained HTML snapshot of your full plan — charts, projections, and all — that works offline without the app. Export projection tables as CSV for analysis in Excel or Google Sheets.</div>
       </div>
 
     </div>
@@ -350,21 +350,24 @@ const K_TRIAL_TOKEN = "retiq_trial_token";
 const K_TRIAL_START = "retiq_trial_start";
 const K_PRO         = "retiq_pro";
 
-// If already has active trial or pro license, go straight to app
-(function() {
-  if (localStorage.getItem(K_PRO) === "true") {
-    window.location.href = "/app/";
-    return;
-  }
-  const start = parseInt(localStorage.getItem(K_TRIAL_START) || "0", 10);
-  if (start > 0) {
-    const elapsed = (Date.now() - start) / (1000 * 60 * 60 * 24);
-    if (elapsed < 7) {
+// Allow ?landing or ?noskip to force showing the landing page (for testing/admin)
+const urlParams = new URLSearchParams(window.location.search);
+const forceShow = urlParams.has('landing') || urlParams.has('noskip');
+
+// If already has pro license or active launch-price window, go straight to app
+if (!forceShow) {
+  (function() {
+    if (localStorage.getItem(K_PRO) === "true") {
       window.location.href = "/app/";
       return;
     }
-  }
-})();
+    const start = parseInt(localStorage.getItem(K_TRIAL_START) || "0", 10);
+    if (start > 0 && (Date.now() - start) / (1000 * 60 * 60 * 24) < 7) {
+      window.location.href = "/app/";
+      return;
+    }
+  })();
+}
 
 function setStatus(msg, isError) {
   const el = document.getElementById("statusMsg");
@@ -374,7 +377,7 @@ function setStatus(msg, isError) {
 
 async function handleStartTrial() {
   const btn = document.getElementById("trialBtn");
-  btn.textContent = "Starting your trial…";
+  btn.textContent = "Loading demo…";
   btn.disabled = true;
   document.getElementById("buyNowBtn").disabled = true;
   setStatus("");
@@ -384,11 +387,10 @@ async function handleStartTrial() {
     const d = await r.json();
 
     if (r.status === 429) {
-      // Trial limit hit — offer to buy instead
-      btn.textContent = "Start 7-Day Free Trial →";
+      btn.textContent = "Explore Demo →";
       btn.disabled = false;
       document.getElementById("buyNowBtn").disabled = false;
-      setStatus("You've already used a free trial. Purchase to continue.", true);
+      setStatus("Launch pricing is no longer available. You can still purchase at $49.", true);
       return;
     }
 
@@ -397,14 +399,14 @@ async function handleStartTrial() {
     localStorage.setItem(K_TRIAL_TOKEN, d.token);
     localStorage.setItem(K_TRIAL_START, String(d.issuedAt));
 
-    setStatus("Trial started! Taking you to the app…");
-    setTimeout(() => { window.location.href = "/app/"; }, 600);
+    setStatus("Taking you to the app…");
+    setTimeout(() => { window.location.href = "/app/"; }, 400);
 
   } catch (err) {
-    // Network error — start local trial and go anyway
+    // Network error — start local-only and go anyway
     localStorage.setItem(K_TRIAL_START, String(Date.now()));
     setStatus("Taking you to the app…");
-    setTimeout(() => { window.location.href = "/app/"; }, 600);
+    setTimeout(() => { window.location.href = "/app/"; }, 400);
   }
 }
 
@@ -419,13 +421,13 @@ async function handleBuyNow() {
     const r = await fetch(RETIQ_API + "/create-checkout-session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: null }) // no trial token = $49 price
+      body: JSON.stringify({ token: localStorage.getItem(K_TRIAL_TOKEN) || null }) // send token if exists for launch pricing
     });
     const d = await r.json();
     if (d.url) { window.location.href = d.url; return; }
     throw new Error("No URL");
   } catch {
-    btn.textContent = "Skip trial — Buy now at $49";
+    btn.textContent = "Buy now at launch price — $29";
     btn.disabled = false;
     document.getElementById("trialBtn").disabled = false;
     setStatus("Could not start checkout. Please try again.", true);
@@ -433,11 +435,11 @@ async function handleBuyNow() {
 }
 
 // Scroll reveal
+const reveals = document.querySelectorAll('.reveal');
 const observer = new IntersectionObserver((entries) => {
-  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("visible"); });
-}, { threshold: 0.1, rootMargin: "0px 0px -40px 0px" });
-document.querySelectorAll(".reveal").forEach(el => observer.observe(el));
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+}, { threshold: 0.15 });
+reveals.forEach(el => observer.observe(el));
 </script>
-
 </body>
 </html>

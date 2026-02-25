@@ -1,0 +1,9 @@
+/app/*
+  X-Robots-Tag: noindex
+  Cache-Control: no-cache
+
+/features.html
+  X-Robots-Tag: noindex
+
+/manual.html
+  X-Robots-Tag: noindex

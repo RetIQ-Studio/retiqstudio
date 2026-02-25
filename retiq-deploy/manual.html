@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>RetIQ — User Manual</title>
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--text:#e2e8f0;--dim:#94a3b8;--faint:#64748b;--border:#334155;--blue:#3b82f6;--green:#10b981;--cyan:#06b6d4;--amber:#f59e0b;--pink:#ec4899;--purple:#8b5cf6;--red:#ef4444}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.75}
+.wrap{max-width:820px;margin:0 auto;padding:32px 24px}
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px}
+.top-bar a{color:var(--blue);text-decoration:none;font-size:13px}
+.top-bar a:hover{text-decoration:underline}
+.btn{background:var(--blue);color:#fff;border:none;padding:8px 18px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600}
+.btn:hover{opacity:0.9}
+h1{font-size:26px;font-weight:800;margin-bottom:4px}
+.sub{color:var(--dim);font-size:14px;margin-bottom:28px}
+.toc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px 22px;margin-bottom:32px}
+.toc-title{font-weight:700;font-size:14px;margin-bottom:10px}
+.toc ol{margin-left:18px}
+.toc li{font-size:13px;margin-bottom:4px}
+.toc a{color:var(--blue);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+.sec{margin-bottom:36px;page-break-inside:avoid}
+.sec h2{font-size:19px;font-weight:700;margin-bottom:14px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.sec h3{font-size:15px;font-weight:700;margin:18px 0 8px;color:var(--cyan)}
+.sec p{font-size:13.5px;color:var(--dim);margin-bottom:10px}
+.sec ul,.sec ol{font-size:13.5px;color:var(--dim);margin:0 0 12px 20px}
+.sec li{margin-bottom:4px}
+.tip{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:12px 14px;font-size:13px;margin:12px 0;color:var(--green)}
+.tip strong{color:var(--green)}
+.warn{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:12px 14px;font-size:13px;margin:12px 0;color:var(--amber)}
+.warn strong{color:var(--amber)}
+.key{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:'SF Mono',Consolas,monospace;font-size:12px;color:var(--text)}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+th{text-align:left;padding:8px 10px;background:var(--card);border:1px solid var(--border);color:var(--text);font-weight:600;font-size:12px}
+td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
+.footer{text-align:center;color:var(--faint);font-size:11px;margin-top:36px;padding-top:18px;border-top:1px solid var(--border)}
+@media print{
+  body{background:#fff;color:#1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .top-bar{display:none!important}
+  h1,h2,h3{color:#1a1a1a}
+  .sub,.sec p,.sec li,.footer,td{color:#444}
+  .tip{background:#e8f5e9;border-color:#a5d6a7;color:#2e7d32}
+  .warn{background:#fff8e1;border-color:#ffe082;color:#f57f17}
+  th{background:#f5f5f5}
+  td,th{border-color:#ddd}
+  .sec{page-break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top-bar">
+    <div><a href="./app/">&#8592; Back to RetIQ App</a> &middot; <a href="./features.html">Features</a></div>
+    <button class="btn" onclick="window.print()">&#11015; Download PDF</button>
+  </div>
+
+  <h1>RetIQ User Manual</h1>
+  <p class="sub">Step-by-step guide to setting up and using RetIQ for retirement planning.</p>
+
+  <div class="toc">
+    <div class="toc-title">Contents</div>
+    <ol>
+      <li><a href="#quickstart">Quick Start</a></li>
+      <li><a href="#navigation">Navigation &amp; Layout</a></li>
+      <li><a href="#personal">Personal Tab</a></li>
+      <li><a href="#income">Income Tab</a></li>
+      <li><a href="#expenses">Expenses Tab</a></li>
+      <li><a href="#accounts">Accounts Tab</a></li>
+      <li><a href="#pension">Pension Tab</a></li>
+      <li><a href="#ss">Social Security Tab</a></li>
+      <li><a href="#ssdi">SSDI Tab</a></li>
+      <li><a href="#healthcare">Healthcare Tab</a></li>
+      <li><a href="#medicare">Medicare Tab</a></li>
+      <li><a href="#rothconv">Roth Conversion Tab</a></li>
+      <li><a href="#charity">Charity / QCD Tab</a></li>
+      <li><a href="#legacy">Legacy Tab</a></li>
+      <li><a href="#liabilities">Liabilities Tab</a></li>
+      <li><a href="#assumptions">Assumptions Tab</a></li>
+      <li><a href="#dashboard">Dashboard</a></li>
+      <li><a href="#projection">Projection Table</a></li>
+      <li><a href="#montecarlo">Monte Carlo Simulation</a></li>
+      <li><a href="#scenarios">Scenario Comparison</a></li>
+      <li><a href="#saveload">Save &amp; Load</a></li>
+      <li><a href="#install">Install &amp; Licensing</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ol>
+  </div>
+
+  <!-- 1 -->
+  <div class="sec" id="quickstart">
+    <h2>1. Quick Start</h2>
+    <p>RetIQ runs entirely in your browser. There is no account to create and no data is sent to any server. To get started:</p>
+    <ol>
+      <li>Open <strong>retiqstudio.com/app</strong> in any modern browser (Chrome, Safari, Edge, Firefox).</li>
+      <li>Go to the <strong>Personal</strong> tab and enter your current age, retirement age, and birth year.</li>
+      <li>Switch to <strong>Income</strong> and enter your current gross income and annual savings.</li>
+      <li>In <strong>Expenses</strong>, enter your estimated annual spending.</li>
+      <li>Under <strong>Accounts</strong>, add your investment accounts with current balances and types (Pre-Tax, Roth, Taxable).</li>
+      <li>Click <strong>Dashboard</strong> in the top navigation to see your projection immediately.</li>
+    </ol>
+    <div class="tip"><strong>Tip:</strong> RetIQ auto-saves to your browser's local storage. Your data persists between sessions automatically. Use Save/Load for backup or to transfer between devices.</div>
+  </div>
+
+  <!-- 2 -->
+  <div class="sec" id="navigation">
+    <h2>2. Navigation &amp; Layout</h2>
+    <p>The app has two rows of navigation:</p>
+    <p><strong>Top row (main nav):</strong> Switches between major views &mdash; Inputs, Dashboard, Projection, Monte Carlo, and Scenarios.</p>
+    <p><strong>Sub-nav (inside Inputs):</strong> Switches between input categories &mdash; Personal, Income, Expenses, Accounts, Pension, Social Security, SSDI, Liabilities, Healthcare, Medicare, Roth Conv., Charity/QCD, Legacy, and Assumptions. The sub-nav sticks to the top of the screen when you scroll.</p>
+    <p>The <strong>header bar</strong> also contains:</p>
+    <ul>
+      <li><strong>Today's $ / Future $</strong> toggle &mdash; switches all dollar values between inflation-adjusted and nominal.</li>
+      <li><strong>Light / Dark</strong> theme toggle.</li>
+      <li><strong>Save HTML / Load</strong> buttons for data portability.</li>
+      <li><strong>Features / Manual</strong> links to documentation (opens on website).</li>
+    </ul>
+  </div>
+
+  <!-- 3 -->
+  <div class="sec" id="personal">
+    <h2>3. Personal Tab</h2>
+    <p>Core demographic inputs that drive the entire projection.</p>
+    <table>
+      <tr><th>Field</th><th>Description</th></tr>
+      <tr><td>Current Age</td><td>Your age today. This is the starting point for the projection.</td></tr>
+      <tr><td>Retirement Age</td><td>Age you plan to stop working. Can be fractional (e.g., 62.5 for mid-year). Income stops and withdrawals begin at this age.</td></tr>
+      <tr><td>Plan End Age</td><td>Age at which the projection ends. Default 95. Set higher for conservative planning.</td></tr>
+      <tr><td>Birth Year</td><td>Used to determine FRA for Social Security and RMD start age.</td></tr>
+      <tr><td>Filing Status</td><td>Tax filing status. Married Filing Jointly (MFJ) is used for household projections. Changes to Single after a spouse passes in survivor scenarios.</td></tr>
+      <tr><td>State Tax Rate</td><td>Flat-rate approximation for state income tax. Enter 0% for states with no income tax (FL, TX, NV, etc.).</td></tr>
+    </table>
+    <h3>Spouse Section</h3>
+    <p>Check "Include Spouse" to enable dual-household modeling. Enter the spouse's age, retirement age, birth year, and life expectancy independently. The spouse's income, savings, SS, pension, and SSDI all have their own inputs in their respective tabs.</p>
+    <h3>Survivor Analysis</h3>
+    <p>When spouse is enabled, you can set "Your Death Age" and "Spouse Death Age" to model what happens when one spouse passes. Expenses adjust by the survivor ratio, filing status changes, and survivor SS benefits kick in.</p>
+  </div>
+
+  <!-- 4 -->
+  <div class="sec" id="income">
+    <h2>4. Income Tab</h2>
+    <table>
+      <tr><th>Field</th><th>Description</th></tr>
+      <tr><td>Annual Gross Income</td><td>Your current pre-tax annual income. Grows by the income growth rate until retirement.</td></tr>
+      <tr><td>Annual Savings</td><td>How much you save per year into investment accounts (401k, IRA, etc.). Grows by the savings growth rate.</td></tr>
+      <tr><td>Spouse Income / Savings</td><td>Same fields for spouse if enabled.</td></tr>
+      <tr><td>Income Growth Rate</td><td>Annual raise percentage. Applied to both spouses. Typical: 2-5%.</td></tr>
+      <tr><td>Savings Growth Rate</td><td>Annual increase in savings amount. Match income growth or set higher to model increasing savings rate.</td></tr>
+      <tr><td>Other Annual Income</td><td>Additional retirement income (rental, part-time, annuities) that starts at retirement age. Separate from pensions which have their own tab.</td></tr>
+    </table>
+    <p>The tab shows a preview of projected income at retirement age based on current values and growth rates.</p>
+  </div>
+
+  <!-- 5 -->
+  <div class="sec" id="expenses">
+    <h2>5. Expenses Tab</h2>
+    <p>Two expense modes:</p>
+    <p><strong>Fixed Amount:</strong> Enter today's annual expenses. They grow with inflation each year. This is the most common approach.</p>
+    <p><strong>% of Portfolio:</strong> Withdraw a fixed percentage of your total portfolio each year in retirement (the "4% rule" approach). You also enter pre-retirement expenses as a fixed amount.</p>
+    <div class="tip"><strong>Tip:</strong> Start with your actual annual spending. Include housing, food, transportation, travel, insurance, and discretionary spending. Don't include savings contributions or taxes &mdash; those are handled separately.</div>
+  </div>
+
+  <!-- 6 -->
+  <div class="sec" id="accounts">
+    <h2>6. Accounts Tab</h2>
+    <p>Add each investment account with:</p>
+    <ul>
+      <li><strong>Name:</strong> Label for identification (e.g., "Vanguard 401k", "Fidelity Roth").</li>
+      <li><strong>Type:</strong> Pre-Tax (traditional 401k/IRA), Roth (Roth 401k/IRA), or Taxable (brokerage).</li>
+      <li><strong>Balance:</strong> Current balance.</li>
+    </ul>
+    <p>RetIQ enforces annual contribution limits: $23,500 for 401k (2025), plus $7,500 catch-up at 50+, plus the enhanced $11,250 catch-up for ages 60-63. Savings are allocated to accounts in order: pre-tax up to limit, then Roth up to limit, then overflow to taxable.</p>
+    <p>In retirement, withdrawals come from taxable first, then pre-tax (including RMDs), then Roth last &mdash; the tax-efficient ordering.</p>
+  </div>
+
+  <!-- 7 -->
+  <div class="sec" id="pension">
+    <h2>7. Pension Tab</h2>
+    <p>Model guaranteed income streams for either or both spouses:</p>
+    <ul>
+      <li><strong>Enable:</strong> Check to activate.</li>
+      <li><strong>Name:</strong> Label (e.g., "Federal FERS", "Military Retirement").</li>
+      <li><strong>Annual Amount:</strong> Starting annual benefit.</li>
+      <li><strong>Start Age:</strong> When payments begin.</li>
+      <li><strong>COLA:</strong> Annual cost-of-living adjustment, shared between both pensions. Set 0% for fixed pensions, 2-3% for COLA-adjusted.</li>
+    </ul>
+    <p>Pension income is included in taxable income each year it is received.</p>
+  </div>
+
+  <!-- 8 -->
+  <div class="sec" id="ss">
+    <h2>8. Social Security Tab</h2>
+    <h3>Claim Age</h3>
+    <p>Set the age you plan to start collecting SS (62-70). Earlier means smaller monthly checks; later means larger. The comparison table below shows monthly and annual amounts at each claiming age, the percentage of FRA benefit, and the breakeven age vs. claiming at 62.</p>
+    <h3>Benefit Estimation</h3>
+    <p>Two methods:</p>
+    <p><strong>Income-based estimate:</strong> Enter your average annual income and RetIQ estimates your PIA using 2025 SSA bend points ($1,226 / $7,391).</p>
+    <p><strong>Manual SSA entry:</strong> Check "Use your SSA statement amount" and enter the monthly benefit at FRA shown on your Social Security statement (ssa.gov). RetIQ then applies the exact SSA early/late adjustment to that amount.</p>
+    <div class="tip"><strong>Tip:</strong> For the most accurate results, log into ssa.gov, find your "Estimated Benefits" statement, and enter the monthly amount shown at your Full Retirement Age. RetIQ will handle the rest.</div>
+    <h3>Survivor Benefits</h3>
+    <p>Set a Survivor SS Claim Age for when the surviving spouse would begin collecting the deceased spouse's benefit. The higher of the survivor's own benefit or the deceased's benefit is used (per SSA rules).</p>
+    <h3>SSA Calculation Precision</h3>
+    <p>RetIQ matches SSA calculations exactly: FRA is computed in integer months per birth year, early reduction uses the exact 5/9% (first 36 months) and 5/12% (beyond 36 months) rates, delayed credits use the exact 2/3% per month rate, and the final benefit is rounded down to the whole dollar per SSA rules.</p>
+  </div>
+
+  <!-- 9 -->
+  <div class="sec" id="ssdi">
+    <h2>9. SSDI Tab</h2>
+    <p>Model Social Security Disability Insurance for either or both spouses. Enter:</p>
+    <ul>
+      <li><strong>Monthly SSDI Amount:</strong> From your award letter or SSA.</li>
+      <li><strong>Start / End Age:</strong> SSDI active period. At FRA, SSDI automatically converts to regular SS retirement benefits.</li>
+    </ul>
+    <p>SSDI income is taxable (up to 85% depending on total income, same as regular SS). After SSDI ends, the SS tab's claiming age and benefit calculations take over. Post-SSDI claiming comparison tables are shown for each SSDI recipient.</p>
+  </div>
+
+  <!-- 10 -->
+  <div class="sec" id="healthcare">
+    <h2>10. Healthcare Tab</h2>
+    <p>If you retire before Medicare eligibility at 65, you need to bridge the healthcare gap:</p>
+    <ul>
+      <li><strong>Annual Premium:</strong> Estimated annual cost for ACA marketplace, COBRA, or private insurance.</li>
+      <li><strong>Medical Inflation:</strong> Annual increase in healthcare costs. Default: 5% (healthcare historically inflates faster than general CPI).</li>
+    </ul>
+    <p>The tab shows the cumulative healthcare cost during the gap years and the final-year premium to help you plan.</p>
+  </div>
+
+  <!-- 11 -->
+  <div class="sec" id="medicare">
+    <h2>11. Medicare Tab</h2>
+    <p>Medicare modeling begins at age 65 with:</p>
+    <ul>
+      <li><strong>Base Part B premium:</strong> $185/month (2025).</li>
+      <li><strong>IRMAA surcharges:</strong> Additional premiums triggered when your MAGI (from 2 years prior) exceeds income thresholds. Roth conversions count toward MAGI and can trigger IRMAA.</li>
+      <li><strong>Medical inflation:</strong> Medicare costs grow at 5% annually (configurable).</li>
+    </ul>
+    <p>The Medicare tab shows a year-by-year breakdown of premiums, IRMAA surcharges, and total Medicare costs. This feeds into the projection as a healthcare expense line.</p>
+    <div class="warn"><strong>Note:</strong> Roth conversions increase your MAGI and can push you into higher IRMAA brackets. The Roth Conversion Optimizer accounts for this when scoring strategies.</div>
+  </div>
+
+  <!-- 12 -->
+  <div class="sec" id="rothconv">
+    <h2>12. Roth Conversion Tab</h2>
+    <p>Three sub-sections, top to bottom:</p>
+    <h3>Strategy Input</h3>
+    <p>Configure your conversion approach:</p>
+    <ul>
+      <li><strong>Strategy type:</strong> Fixed Amount (convert a set dollar amount each year) or Fill Bracket (convert up to the top of a target tax bracket).</li>
+      <li><strong>Start / End Age:</strong> The window during which conversions occur.</li>
+      <li><strong>Fixed Amount:</strong> Annual conversion amount (for fixed strategy).</li>
+      <li><strong>Target Bracket:</strong> Tax bracket to fill to (for fill-bracket strategy).</li>
+      <li><strong>MAGI Ceiling:</strong> Optional cap to avoid triggering IRMAA.</li>
+    </ul>
+    <h3>Impact Analysis</h3>
+    <p>Shows a side-by-side comparison of your plan with and without the current conversion strategy: annual conversions, tax impact, and net benefit.</p>
+    <h3>Optimizer</h3>
+    <p>Click "Find Optimal Strategy" to test hundreds of combinations. The optimizer varies amounts ($5K-$200K), bracket targets (12%/22%/24%), and timing windows, then ranks the top 8 strategies by a composite score. Two charts show the lifetime tax burden comparison and account composition shift. Click "Apply" on any strategy to load it into your plan.</p>
+  </div>
+
+  <!-- 13 -->
+  <div class="sec" id="charity">
+    <h2>13. Charity / QCD Tab</h2>
+    <ul>
+      <li><strong>Annual Charitable Giving:</strong> Total planned charitable donations per year.</li>
+      <li><strong>Use QCD:</strong> Enable Qualified Charitable Distributions from IRAs. QCDs satisfy RMDs without being included in taxable income. 2025 limit: $108,000/year.</li>
+    </ul>
+    <p>If QCD is enabled, charitable giving is sourced from RMD amounts first, reducing taxable income. Any giving beyond RMDs is treated as a standard charitable deduction.</p>
+  </div>
+
+  <!-- 14 -->
+  <div class="sec" id="legacy">
+    <h2>14. Legacy Tab</h2>
+    <p>Set a target inheritance amount (today's dollars). The dashboard and projection track whether your plan achieves this goal at end-of-plan. The legacy target is inflation-adjusted in projections.</p>
+  </div>
+
+  <!-- 15 -->
+  <div class="sec" id="liabilities">
+    <h2>15. Liabilities Tab</h2>
+    <p>Track debts that affect your annual expenses:</p>
+    <ul>
+      <li><strong>Name:</strong> Label (e.g., "Mortgage", "Car Loan").</li>
+      <li><strong>Monthly Payment:</strong> Current payment amount.</li>
+      <li><strong>Interest Rate:</strong> Annual interest rate.</li>
+      <li><strong>Remaining Balance:</strong> Current balance. Used to calculate payoff date.</li>
+    </ul>
+    <p>The annual total of all debt payments is shown and factored into the projection. After payoff, the expense disappears from the projection.</p>
+  </div>
+
+  <!-- 16 -->
+  <div class="sec" id="assumptions">
+    <h2>16. Assumptions Tab</h2>
+    <table>
+      <tr><th>Field</th><th>Description</th><th>Typical</th></tr>
+      <tr><td>Nominal Return</td><td>Expected average annual investment return before inflation</td><td>6-8%</td></tr>
+      <tr><td>Inflation</td><td>Expected average annual inflation rate</td><td>2-3%</td></tr>
+      <tr><td>SS COLA</td><td>Annual Social Security cost-of-living adjustment</td><td>2%</td></tr>
+    </table>
+    <p>The real (after-inflation) return is computed as: (1 + nominal) / (1 + inflation) - 1. For example, 7% nominal with 3% inflation gives approximately 3.9% real return.</p>
+  </div>
+
+  <!-- 17 -->
+  <div class="sec" id="dashboard">
+    <h2>17. Dashboard</h2>
+    <p>The dashboard provides a high-level summary of your plan:</p>
+    <ul>
+      <li><strong>Key metrics:</strong> Final net worth, years funded, total taxes, total SS income, legacy achievement.</li>
+      <li><strong>Alert cards:</strong> Warnings about portfolio depletion, high tax years, or RMD spikes.</li>
+      <li><strong>Summary chart:</strong> Net worth trajectory with retirement age marker.</li>
+    </ul>
+    <p>The dashboard updates instantly when any input changes.</p>
+  </div>
+
+  <!-- 18 -->
+  <div class="sec" id="projection">
+    <h2>18. Projection Table</h2>
+    <p>The year-by-year projection table is the core output. Each row is one year of your plan. Columns include:</p>
+    <p>Age, Year, Earned Income, Social Security, Pension, Expenses, Tax, RMD, Roth Conversion, Pre-Tax Balance, Roth Balance, Taxable Balance, Net Worth, Medicare, IRMAA, QCD, and more depending on what features are enabled.</p>
+    <p>The header row is sticky so column labels remain visible while scrolling. A totals row at the bottom sums lifetime values. The table scrolls both horizontally and vertically.</p>
+    <p>Use the <strong>Today's $ / Future $</strong> toggle in the header to view values in inflation-adjusted or nominal terms.</p>
+    <div class="tip"><strong>Tip:</strong> Use the CSV Export button (in the Projection view) to download the table for analysis in Excel or Google Sheets.</div>
+  </div>
+
+  <!-- 19 -->
+  <div class="sec" id="montecarlo">
+    <h2>19. Monte Carlo Simulation</h2>
+    <p>The Monte Carlo engine runs 2,000 randomized projections, varying both investment returns and inflation each year based on configurable standard deviations.</p>
+    <h3>Configuration</h3>
+    <ul>
+      <li><strong>Number of Simulations:</strong> Default 2,000. Higher means more precise but slower.</li>
+      <li><strong>Return Std Dev:</strong> Year-to-year volatility of investment returns. Default: 12% (typical for a stock-heavy portfolio).</li>
+      <li><strong>Inflation Std Dev:</strong> Year-to-year inflation volatility. Default: 1.5%.</li>
+    </ul>
+    <h3>Results</h3>
+    <ul>
+      <li><strong>Success Rate:</strong> Percentage of simulations where money lasts through end-of-plan.</li>
+      <li><strong>Percentile Chart:</strong> Shows 10th, 25th, 50th, 75th, and 90th percentile net worth trajectories.</li>
+      <li><strong>Worst Case:</strong> The worst outcome across all simulations.</li>
+    </ul>
+    <div class="warn"><strong>Interpretation:</strong> A 90%+ success rate is generally considered strong. Below 80% suggests your plan may need adjustment &mdash; reduce expenses, delay retirement, or increase savings.</div>
+  </div>
+
+  <!-- 20 -->
+  <div class="sec" id="scenarios">
+    <h2>20. Scenario Comparison</h2>
+    <p>Test how changes to key assumptions affect your plan. RetIQ includes 16 built-in scenarios:</p>
+    <p><strong>Single-variable:</strong> Retire at 60, Retire at 67, Higher expenses (+20%), Lower return (5%), Higher inflation (5%), SS at 62, SS at 70, and more.</p>
+    <p><strong>Combinations:</strong> "Low Return + High Inflation," "Early Retire + Lower Return," "SS at 70 + Roth Conv," "+20% Expenses + High Inflation."</p>
+    <p>Results are shown as a comparison table and multi-category chart. The selected scenario categories (SS Income, Net Worth, Tax, etc.) can be toggled to compare any metric across all scenarios simultaneously.</p>
+  </div>
+
+  <!-- 21 -->
+  <div class="sec" id="saveload">
+    <h2>21. Save &amp; Load</h2>
+    <h3>Auto-Save</h3>
+    <p>RetIQ automatically saves your plan to the browser's local storage after every change. If you close and reopen the app, your data is still there.</p>
+    <h3>HTML Snapshot</h3>
+    <p>Click "HTML" in the header to export a self-contained HTML file of your entire plan. This file includes all inputs, charts, and projections and can be opened in any browser without the app. Great for archiving, printing, or sharing with an advisor.</p>
+    <h3>Load</h3>
+    <p>Click "Load" to import a previously saved JSON or HTML snapshot file. This replaces your current plan data.</p>
+    <h3>CSV Export</h3>
+    <p>In the Projection view, use the CSV export button to download the projection table for analysis in Excel or Google Sheets.</p>
+    <div class="warn"><strong>Important:</strong> Browser local storage is per-device. To transfer your plan to another device, export an HTML or JSON file and import it on the other device.</div>
+  </div>
+
+  <!-- 22 -->
+  <div class="sec" id="install">
+    <h2>22. Install &amp; Licensing</h2>
+    <h3>Installing the PWA</h3>
+    <p>Click the "Install" button in the header (when available) to add RetIQ to your home screen or desktop. The installed app works offline and launches like a native application.</p>
+    <h3>Free vs. Pro</h3>
+    <p>The free demo lets you explore every feature with sample data. Pro ($29 launch price, $49 after launch) unlocks full customization, data saving, and exports. Your license is tied to your email and can be activated on multiple devices.</p>
+    <h3>Activating a License</h3>
+    <p>After purchase, click "Activate" in the header and enter your license key (sent to your email). The app verifies the key and unlocks Pro features. License verification requires an internet connection the first time; after that, the status is cached locally.</p>
+  </div>
+
+  <!-- 23 -->
+  <div class="sec" id="faq">
+    <h2>23. FAQ</h2>
+
+    <h3>Is my data secure?</h3>
+    <p>Yes. RetIQ runs entirely in your browser. No financial data is ever sent to any server. The only network calls are for license verification (your email and key only) and optional PWA updates.</p>
+
+    <h3>Which tax brackets does RetIQ use?</h3>
+    <p>2025 Married Filing Jointly federal brackets. State tax is modeled as a configurable flat rate. The brackets are applied to computed taxable income each year.</p>
+
+    <h3>How accurate are the Social Security estimates?</h3>
+    <p>RetIQ matches SSA calculations exactly when using the manual entry mode (entering your FRA benefit from ssa.gov). The income-based estimate uses 2025 bend points and is a good approximation but may differ from SSA's indexed earnings calculation.</p>
+
+    <h3>Does RetIQ account for Required Minimum Distributions?</h3>
+    <p>Yes. RMDs are computed per the Uniform Lifetime Table with SECURE Act 2.0 start ages. They are sourced from pre-tax accounts and included in taxable income. QCDs can offset RMDs if enabled.</p>
+
+    <h3>Can I model my spouse dying before me?</h3>
+    <p>Yes. Set "Spouse Death Age" in the Personal tab. The projection will switch to single filing status, adjust expenses by the survivor ratio, and calculate survivor SS benefits from that age forward.</p>
+
+    <h3>What does the Monte Carlo success rate mean?</h3>
+    <p>It is the percentage of randomized simulations where your money lasts through end-of-plan. A 95% success rate means that in 950 out of 1,000 random market scenarios, your plan survived. Generally, 90%+ is considered strong.</p>
+
+    <h3>Can I use RetIQ on my phone?</h3>
+    <p>Yes. RetIQ is fully responsive. Install it as a PWA on iOS or Android for the best mobile experience.</p>
+
+    <h3>How do I reset all my data?</h3>
+    <p>Clear your browser's local storage for retiqstudio.com, or use your browser's developer tools (Application &gt; Local Storage &gt; Clear). A fresh reload will start with default values.</p>
+  </div>
+
+  <div class="footer">RetIQ v1 &middot; retiqstudio.com &middot; Not financial advice &middot; All computation runs locally in your browser</div>
+</div>
+</body>
+</html>

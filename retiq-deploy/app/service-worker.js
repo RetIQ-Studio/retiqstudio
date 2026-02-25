@@ -1,5 +1,5 @@
 /* RetIQ PWA Service Worker (v1) */
-const CACHE_NAME = "retiq-v1-cache-2026-02-21b";
+const CACHE_NAME = "retiq-v1-cache-2026-02-20";
 const ASSETS = [
   "./",
   "./index.html",
