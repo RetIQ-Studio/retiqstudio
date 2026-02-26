@@ -58,7 +58,7 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
       <div class="feat"><h3><span class="tag t1">Core</span> Year-by-Year Projection</h3>
         <p>Full financial projection from current age through end of plan. Tracks earned income, savings contributions, investment growth, expenses, withdrawals, taxes, and net worth every year individually.</p></div>
       <div class="feat"><h3><span class="tag t1">Core</span> Multi-Account Modeling</h3>
-        <p>Separate tracking for Pre-Tax (401k/IRA), Roth, and Taxable accounts. Contribution limits enforced per SECURE 2.0 including catch-up provisions for ages 50+ and the enhanced 60-63 window.</p></div>
+        <p>Separate tracking for Pre-Tax (401k/IRA), Roth, and Taxable accounts with per-account expected returns. Quick Add presets for 20+ common account types (401k, 403b, 457b, HSA, HYSA, 529, etc.). Contribution limits enforced per SECURE 2.0 including catch-up provisions for ages 50+ and the enhanced 60-63 window.</p></div>
       <div class="feat"><h3><span class="tag t1">Core</span> Spouse Integration</h3>
         <p>Full dual-income household modeling. Independent retirement ages, income trajectories, savings rates, SS benefits, pensions, and SSDI flowing into a unified household projection.</p></div>
       <div class="feat"><h3><span class="tag t1">Core</span> Inflation-Adjusted View</h3>
@@ -70,11 +70,11 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
     <div class="cat-hdr"><span class="ic">&#127963;</span> Tax &amp; RMD Engine</div>
     <div class="grid">
       <div class="feat"><h3><span class="tag t2">Tax</span> Federal &amp; State Tax</h3>
-        <p>2025 MFJ federal brackets applied year by year. Configurable state tax rate. Taxable income computed from earned income, Social Security (up to 85% taxable), RMDs, Roth conversions, pensions, and capital gains.</p></div>
+        <p>2025 MFJ and Single federal brackets applied year by year. State tax via dropdown (all 50 states + DC). Capital gains taxed separately at preferential LTCG rates (0%/15%/20%) using proper income stacking. Net Investment Income Tax (NIIT) at 3.8% for MAGI above $250K MFJ / $200K single. Social Security taxed per IRS &sect;86 (up to 85% taxable).</p></div>
       <div class="feat"><h3><span class="tag t2">Tax</span> RMD Calculations (SECURE 2.0)</h3>
         <p>Required Minimum Distributions using the Uniform Lifetime Table with SECURE Act 2.0 start ages (73-75 depending on birth year). RMDs sourced from pre-tax accounts and fully included in taxable income.</p></div>
       <div class="feat"><h3><span class="tag t2">Tax</span> Roth Conversion Optimizer</h3>
-        <p>Tests hundreds of strategies varying amounts, bracket targets (fill 12%/22%/24%), and timing windows. Ranks top 8 by composite score minimizing lifetime taxes, RMDs, and IRMAA. Side-by-side tax burden and account composition charts.</p></div>
+        <p>Tests hundreds of strategies varying amounts, bracket targets (fill 12%/22%/24%), and timing windows. Ranks top 8 by composite score of lifetime tax savings, IRMAA reduction, and net worth gain. Three scoring priorities: Balanced, Minimize Taxes, or Maximize Net Worth. Side-by-side tax burden and account composition charts.</p></div>
       <div class="feat"><h3><span class="tag t2">Tax</span> Charitable Giving &amp; QCD</h3>
         <p>Qualified Charitable Distributions up to $108,000/year (2025 IRS limit) directly from IRAs to satisfy RMDs tax-free. Models both QCD and standard charitable deductions with their distinct tax impacts.</p></div>
     </div>
@@ -86,11 +86,11 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
       <div class="feat"><h3><span class="tag t3">SS</span> Social Security Optimization</h3>
         <p>SSA-precise benefit calculations using exact monthly reduction and credit rates (5/9% and 5/12% early, 2/3% delayed). FRA in integer months per birth year. Claiming comparison tables 62-70 with breakeven analysis. Manual SSA statement entry supported.</p></div>
       <div class="feat"><h3><span class="tag t3">SS</span> SSDI Modeling</h3>
-        <p>Disability Insurance bridge with automatic conversion to retirement benefits at FRA. Independent SSDI for both spouses with taxable income integration and post-SSDI claiming comparison tables.</p></div>
+        <p>Disability Insurance bridge with automatic conversion to retirement benefits at FRA. Early Medicare eligibility after 24-month qualifying period (SSDI Start Age + 2). Independent SSDI for both spouses with taxable income integration, survivor benefit support, and post-SSDI claiming comparison tables.</p></div>
       <div class="feat"><h3><span class="tag t4">Health</span> Medicare &amp; IRMAA</h3>
         <p>2025 IRMAA brackets modeled year by year using 2-year MAGI lookback. Medicare premiums inflate at configurable medical cost inflation. Income-related surcharges from Roth conversions tracked explicitly.</p></div>
       <div class="feat"><h3><span class="tag t4">Health</span> Pre-Medicare Healthcare</h3>
-        <p>If retiring before 65, models ACA marketplace or COBRA costs during the coverage gap. Configurable annual cost and medical inflation rate with cumulative gap cost summary.</p></div>
+        <p>If retiring before Medicare eligibility, models ACA marketplace or COBRA costs during the coverage gap. SSDI recipients get automatic gap reduction (Medicare at SSDI start + 2 years). Configurable annual cost and medical inflation rate with cumulative gap cost summary.</p></div>
     </div>
   </div>
 
@@ -98,7 +98,7 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
     <div class="cat-hdr"><span class="ic">&#127919;</span> Planning &amp; Analysis</div>
     <div class="grid">
       <div class="feat"><h3><span class="tag t5">Plan</span> Monte Carlo Simulation</h3>
-        <p>2,000 randomized scenarios with year-by-year market and inflation variation. Reports success probability, percentile outcomes (10th/25th/50th/75th/90th), and worst-case analysis with configurable volatility.</p></div>
+        <p>Randomized scenarios with year-by-year market and inflation variation. Per-account volatility scaling &mdash; conservative accounts (HYSA, bonds) absorb less market shock than equities. Reports success probability, percentile outcomes (10th/50th/90th), and worst-case analysis with configurable volatility.</p></div>
       <div class="feat"><h3><span class="tag t5">Plan</span> Scenario Comparison</h3>
         <p>16 built-in scenarios including single-variable and combination tests ("Low Return + High Inflation," "Early Retire + Lower Return," "+20% Expenses + High Inflation"). Multi-category chart comparison.</p></div>
       <div class="feat"><h3><span class="tag t5">Plan</span> Survivor Analysis</h3>
@@ -114,7 +114,7 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
       <div class="feat"><h3><span class="tag t6">Export</span> HTML Snapshot</h3>
         <p>Export your entire plan as a self-contained HTML file with charts, tables, and all inputs that opens in any browser without the app. Perfect for archiving or sharing with an advisor.</p></div>
       <div class="feat"><h3><span class="tag t6">Export</span> CSV Projection Export</h3>
-        <p>Download the full projection table as CSV for analysis in Excel or Google Sheets. Every column available for your own modeling.</p></div>
+        <p>Download the full projection table as CSV for analysis in Excel or Google Sheets. Includes federal tax, state tax, capital gains tax, NIIT, MAGI, and every other column for your own modeling.</p></div>
       <div class="feat"><h3><span class="tag t6">App</span> PWA &mdash; Install &amp; Offline</h3>
         <p>Install RetIQ as a standalone app on desktop or mobile. Works offline after installation. All data stays on your device.</p></div>
       <div class="feat"><h3><span class="tag t6">App</span> Privacy by Design</h3>
@@ -127,16 +127,16 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
     <div class="grid">
       <div class="feat"><h3><span class="tag t1">Income</span> Pension / Annuity</h3>
         <p>Model defined-benefit pensions, military retirement, or annuities for both spouses. Configurable start age and shared COLA rate (0% for fixed, 2-3% for inflation-adjusted).</p></div>
-      <div class="feat"><h3><span class="tag t1">Income</span> Expense Modes</h3>
-        <p>Fixed-amount or percentage-of-portfolio withdrawal modes. Inflation-adjusted expense growth with configurable survivor expense ratio for single-income periods.</p></div>
+      <div class="feat"><h3><span class="tag t1">Income</span> Pre-Retirement &amp; Post-Retirement Expenses</h3>
+        <p>Separate expense inputs for working years and retirement with independent inflation rates. Pre-retirement expenses flow through full cash flow modeling (income minus expenses, savings, and taxes) with automatic shortfall detection. Post-retirement supports fixed-amount or percentage-of-portfolio withdrawal modes with expense phases.</p></div>
       <div class="feat"><h3><span class="tag t5">Plan</span> Debt / Liabilities</h3>
-        <p>Track mortgages, auto loans, student loans with payoff schedules. Monthly payment, interest rate, and remaining balance modeled through payoff date.</p></div>
+        <p>Track mortgages, auto loans, student loans, and other debts. Each liability specifies monthly payment, active ages, and tax-deductible flag (for mortgage interest approximation). Payments are added to expenses during the active period.</p></div>
       <div class="feat"><h3><span class="tag t1">UI</span> Accessibility</h3>
         <p>Colorblind-friendly palette, dark and light themes, responsive layout for mobile and desktop, monospace projection tables, and interactive chart hover tooltips.</p></div>
     </div>
   </div>
 
-  <div class="footer">RetIQ v1 &middot; retiqstudio.com &middot; Not financial advice &middot; All computation runs locally in your browser</div>
+  <div class="footer">RetIQ v1.3 &middot; retiqstudio.com &middot; Not financial advice &middot; All computation runs locally in your browser</div>
 </div>
 </body>
 </html>

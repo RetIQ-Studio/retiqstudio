@@ -1,5 +1,5 @@
-/* RetIQ PWA Service Worker (v1) */
-const CACHE_NAME = "retiq-v1-cache-2026-02-20";
+/* RetIQ PWA Service Worker (v1.1) */
+const CACHE_NAME = "retiq-v1-cache-2026-02-25";
 const ASSETS = [
   "./",
   "./index.html",
@@ -35,23 +35,32 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
-      const cached = await cache.match(req);
-      if (cached) return cached;
 
-      try {
-        const fresh = await fetch(req);
-        // Cache a copy of successful same-origin responses
+      // Stale-while-revalidate: serve cached immediately, fetch fresh in background
+      const cached = await cache.match(req);
+
+      const fetchPromise = fetch(req).then((fresh) => {
         if (fresh && fresh.status === 200 && new URL(req.url).origin === self.location.origin) {
           cache.put(req, fresh.clone());
         }
         return fresh;
-      } catch (e) {
-        // Offline fallback for navigation
-        if (req.mode === "navigate") {
-          return cache.match("./offline.html");
-        }
-        throw e;
+      }).catch(() => null);
+
+      if (cached) {
+        // Serve cached version now, update cache in background
+        fetchPromise; // fire-and-forget
+        return cached;
       }
+
+      // No cache — must wait for network
+      const fresh = await fetchPromise;
+      if (fresh) return fresh;
+
+      // Offline fallback for navigation
+      if (req.mode === "navigate") {
+        return cache.match("./offline.html");
+      }
+      return new Response("Offline", { status: 503 });
     })()
   );
 });

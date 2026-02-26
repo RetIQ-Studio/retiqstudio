@@ -55,13 +55,6 @@ button:hover { opacity: 0.88; }
   padding-left:12px;
   padding-right:12px;
   box-sizing: border-box;}
-.logo { display: flex; align-items: center; gap: 10px; }
-.logo-icon {
-  width: 30px; height: 30px; border-radius: 7px;
-  background: linear-gradient(135deg, var(--blue), var(--cyan));
-  display: flex; align-items: center; justify-content: center;
-  font-size: 15px; font-weight: 700; color: #fff;
-}
 .logo-text { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
 .logo-badge { font-size: 10px; color: var(--blue); background: var(--blue-bg); padding: 2px 7px; border-radius: 4px; font-weight: 500; }
 .nav { display: flex; gap: 4px; flex-wrap: wrap; }
@@ -128,7 +121,17 @@ button:hover { opacity: 0.88; }
 .acct-row input, .acct-row select { font-size: 13px; }
 .acct-remove { background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); padding: 8px 10px; font-size: 14px; line-height: 1; }
 .add-acct-btn { background: transparent; border: 1px dashed var(--border-active); border-radius: 6px; color: var(--blue); padding: 8px 16px; font-size: 13px; width: 100%; }
+.share-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; font-size: 10px; border-radius: 12px; border: 1px solid rgba(34,197,94,0.3); background: rgba(34,197,94,0.08); color: var(--green); cursor: pointer; text-decoration: none; transition: all 0.15s; }
+.share-chip:hover { background: rgba(34,197,94,0.18); border-color: rgba(34,197,94,0.5); }
 .acct-total { margin-top: 16px; padding: 12px 16px; background: var(--bg-base); border-radius: 8px; display: flex; justify-content: space-between; }
+.acct-presets { margin-bottom: 16px; padding: 14px; background: var(--bg-base); border-radius: 10px; }
+.acct-preset-cat { margin-bottom: 8px; }
+.acct-preset-cat:last-child { margin-bottom: 0; }
+.acct-preset-label { font-size: 10px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 4px; }
+.acct-chip { display: inline-block; padding: 4px 10px; margin: 2px 3px; font-size: 12px; border-radius: 14px; border: 1px solid var(--border-active); color: var(--text-dim); background: var(--bg-card); cursor: pointer; transition: all 0.15s; }
+.acct-chip:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
+.acct-chip.added { background: transparent; border-color: var(--border); color: var(--text-faint); cursor: pointer; text-decoration: line-through; opacity: 0.5; }
+.acct-chip.added:hover { background: rgba(239,68,68,0.15); color: var(--red, #ef4444); border-color: var(--red, #ef4444); opacity: 0.8; }
 
 .info-box { padding: 10px 14px; background: var(--bg-base); border-radius: 8px; margin-top: 8px; }
 .info-box-label { font-size: 11px; color: var(--text-muted); }
@@ -165,8 +168,9 @@ button:hover { opacity: 0.88; }
 .scenario-btn {
   background: var(--bg-card); border: 1px solid var(--border);
   border-radius: 6px; color: var(--text-dim); padding: 8px 14px;
-  font-size: 12px; font-weight: 500; transition: all 0.2s;
+  font-size: 12px; font-weight: 500; transition: all 0.2s; cursor: pointer;
 }
+.scenario-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-bg); }
 .scenario-btn.active { background: var(--blue-bg); border-color: var(--blue); color: var(--blue); }
 
 .chart-wrap { position: relative; margin-bottom: 16px; }
@@ -220,40 +224,7 @@ button:hover { opacity: 0.88; }
   letter-spacing:.2px;
 }
 
-#installModalBackdrop{
-  position:fixed; inset:0;
-  background:rgba(0,0,0,.55);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
-  padding:16px;
-}
-#installModal{
-  width:min(560px, 96vw);
-  background:var(--card-bg, #0f172a);
-  color:var(--text, #e5e7eb);
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:16px;
-  box-shadow:0 20px 60px rgba(0,0,0,.5);
-  padding:16px;
-}
-#installModal h2{ font-size:16px; margin-bottom:8px; }
-#installModal p{ font-size:13px; line-height:1.45; margin:8px 0; color:var(--muted, #9ca3af); }
-#installModal ol{ margin:8px 0 0 18px; }
-#installModal li{ margin:6px 0; font-size:13px; }
-#installModal .row{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
-#installModal button{ padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:transparent; color:inherit; cursor:pointer; }
-#installModal button.primary{ background:#2563eb; border-color:#2563eb; color:white; }
 
-
-.header-wrap {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  background: var(--panel, #0b1220);
-  border-bottom: 1px solid rgba(255,255,255,.08);
-}
 </style>
 
   <link rel="manifest" href="manifest.webmanifest">
@@ -282,21 +253,22 @@ button:hover { opacity: 0.88; }
 <div class="header" style="flex-direction:column;align-items:stretch;">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;">
     <span class="logo-text">RetIQ</span>
-    <span class="logo-badge">v1</span>
+    <span class="logo-badge">v1.3</span>
     <span id="planBadge" class="plan-badge" title="Current plan">FREE</span>
     <button id="installBtn" class="tab" title="Install RetIQ">Install</button>
     <button id="buyBtn" class="tab" title="Pro unlocks: Save HTML snapshots, future Pro features">Upgrade</button>
     <button id="activateBtn" class="tab" title="Enter or manage your license">Activate</button>
     <div class="save-load">
-      <button onclick="exportHTML()" title="Save as HTML snapshot"> HTML</button>
-      <button onclick="document.getElementById('importFile').click()" title="Load plan from JSON or HTML snapshot"> Load</button>
+      <button onclick="exportHTML()" title="Save as HTML snapshot">⤓ HTML</button>
+      <button onclick="document.getElementById('importFile').click()" title="Load plan from JSON or HTML snapshot">⤒ Load</button>
       <input type="file" id="importFile" accept=".json,.html,.htm" onchange="importData(event)">
     </div>
-    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">Light</button>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">Dark</button>
     <div class="dollar-toggle" id="dollarToggle"></div>
     <div style="display:flex;gap:8px;align-items:center;font-size:11px">
       <a href="https://retiqstudio.com/features.html" target="_blank" style="color:var(--blue);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px" title="Feature list">Features</a>
       <a href="https://retiqstudio.com/manual.html" target="_blank" style="color:var(--blue);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px" title="User manual">Manual</a>
+      <a class="share-chip" onclick="shareRetIQ()" title="Help others retire well">Share RetIQ</a>
     </div>
   </div>
   <div class="nav" id="mainNav" style="justify-content:center;margin-top:4px;"></div>
@@ -327,6 +299,19 @@ try {
   }
 } catch(e) {}
 
+function shareRetIQ() {
+  const url = 'https://retiqstudio.com';
+  const text = 'RetIQ — Privacy-first retirement planner with Roth optimization, Monte Carlo simulation, and tax modeling. No subscriptions.';
+  if (navigator.share) {
+    navigator.share({ title: 'RetIQ — Retirement Planning', text: text, url: url }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(url + ' — ' + text).then(() => {
+      const chip = document.querySelector('.share-chip');
+      if (chip) { const orig = chip.textContent; chip.textContent = 'Link copied!'; setTimeout(() => chip.textContent = orig, 2000); }
+    }).catch(() => { window.open(url, '_blank'); });
+  }
+}
+
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
 // STATE TAXES (Feature #4) & DOLLAR TOGGLE (Feature #5)
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
@@ -353,7 +338,8 @@ const STATE_TAXES = {
 };
 function calcStateTax(taxableIncome, stateCode) {
   if (!stateCode || stateCode === 'none') return 0;
-  const st = STATE_TAXES[stateCode];
+  const code = stateCode.toUpperCase();
+  const st = STATE_TAXES[code];
   return (!st || st.rate === 0) ? 0 : Math.round(Math.max(0, taxableIncome) * st.rate / 100);
 }
 
@@ -364,7 +350,7 @@ function renderDollarToggle() {
   const el = document.getElementById('dollarToggle'); if (!el) return;
   el.innerHTML = `<button class="${showRealDollars?'active':''}" onclick="showRealDollars=true;render()">Today's $</button>
     <button class="${!showRealDollars?'active':''}" onclick="showRealDollars=false;render()">Future $</button>
-    ${!showRealDollars ? '<input type=number value="'+realDollarRate+'" step=0.5 min=0 max=10 style="width:50px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:2px 4px;font-size:11px;text-align:center" onchange="realDollarRate=Number(this.value);render()"><span style="font-size:10px">% infl.</span>' : ''}`;
+    ${showRealDollars ? '<input type=number value="'+realDollarRate+'" step=0.5 min=0 max=10 style="width:50px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:2px 4px;font-size:11px;text-align:center" onchange="realDollarRate=Number(this.value);render()"><span style="font-size:10px">% infl.</span>' : ''}`;
 }
 
 const QCD_ANNUAL_LIMIT = 108000; // IRS Notice 2024-80 (2025 inflation-adjusted)
@@ -608,6 +594,11 @@ function runProjection(p) {
   const ssdi1 = p.ssdiPrimary || {};
   const ssdi2 = p.ssdiSpouse || {};
 
+  // Medicare eligibility: SSDI recipients qualify after 24-month qualifying period
+  // Normal Medicare starts at 65; SSDI recipients get it at SSDI start age + 2 (if earlier)
+  const primaryMedicareAge = ssdi1.enabled ? Math.min((ssdi1.startAge || 0) + 2, 65) : 65;
+  const spouseMedicareAge = ssdi2.enabled ? Math.min((ssdi2.startAge || 0) + 2, 65) : 65;
+
   for (let age = p.currentAge; age <= p.endAge; age++) {
     const yr = age - p.currentAge;
     const spAge = (p.spouseEnabled || p.spouseAge > 0) ? (p.spouseAge || 0) + yr : null;
@@ -617,11 +608,15 @@ function runProjection(p) {
     const retired = age > p.retirementAge || (age === p.retirementAge && retireMonth === 0);
     const partialRetire = age === p.retirementAge && retireMonth > 0;
     const effectivelyRetired = retired || partialRetire;
-    const spRetired = spAge && spAge >= p.spouseRetirementAge;
+    const spouseRetireMonth = p.spouseRetireMonth || 0;
+    const spRetired = spAge && (spAge > p.spouseRetirementAge || (spAge === p.spouseRetirementAge && spouseRetireMonth === 0));
+    const spPartialRetire = spAge && spAge === p.spouseRetirementAge && spouseRetireMonth > 0;
 
     const spouseDead = spouseDiesAge && age >= spouseDiesAge;
     const primaryDead = primaryDiesAge && age >= primaryDiesAge;
-    const isSingle = spouseDead || primaryDead;
+    const hasSpouse = p.spouseEnabled || (p.spouseAge && p.spouseAge > 0);
+    const isSingle = !hasSpouse || spouseDead || primaryDead;
+    const lostSpouse = spouseDead || primaryDead; // spouse died during projection (for expense reduction)
 
     const incGrow = p.incomeGrowth || 0;
     const savGrow = p.savingsGrowth || 0;
@@ -634,8 +629,14 @@ function runProjection(p) {
 
     let earned = retired ? 0 : (partialRetire ? incomeAtYear * (retireMonth / 12) : incomeAtYear);
     if (primaryDead) earned = 0;
-    if (p.spouseAge && !spRetired && !spouseDead) earned += spouseIncomeAtYear;
-    if (primaryDead && p.spouseAge && !spRetired) earned = spouseIncomeAtYear;
+    if (p.spouseAge && !spouseDead) {
+      if (!spRetired && !spPartialRetire) earned += spouseIncomeAtYear;
+      else if (spPartialRetire) earned += spouseIncomeAtYear * (spouseRetireMonth / 12);
+    }
+    if (primaryDead && p.spouseAge && !spouseDead) {
+      if (!spRetired && !spPartialRetire) earned = spouseIncomeAtYear;
+      else if (spPartialRetire) earned = spouseIncomeAtYear * (spouseRetireMonth / 12);
+    }
 
     // Feature #1: SSDI
     let ssdiIncome = 0;
@@ -654,7 +655,7 @@ function runProjection(p) {
         })()
       : estimateSS({ avgIncome: p.ssAnnualIncome || p.annualIncome, claimAge: p.ssClaimAge, birthYear: ssBirthYear, useDetailed: p.useDetailedSS, earningsHistory: p.earningsHistory });
 
-    const spouseHasSS = p.spouseSSUseManual ? (p.spouseSSManualMonthly > 0) : (p.spouseSSIncome > 0);
+    const spouseHasSS = p.spouseSSUseManual ? (p.spouseSSManualMonthly > 0) : (p.spouseSSIncome > 0 || ssdi2.enabled);
     const spouseSSResult = p.spouseSSUseManual && p.spouseSSManualMonthly > 0
       ? (() => {
           const by = p.spouseBirthYear || spBirthYear;
@@ -671,8 +672,13 @@ function runProjection(p) {
     // Compute survivor benefit amounts (based on deceased's PIA, not claim-adjusted amount)
     // If deceased died BEFORE their claim age, survivor gets 100% of PIA
     // If deceased died AFTER claiming, survivor gets the actual benefit amount (with delayed credits)
-    const primaryPIA = primarySSResult.piaMonthly ? primarySSResult.piaMonthly * 12 : primarySSResult.annual;
-    const spousePIA = spouseSSResult.piaMonthly ? spouseSSResult.piaMonthly * 12 : spouseSSResult.annual;
+    // PIA: use SS result if available, fall back to SSDI monthly amount (SSDI ≈ PIA for disabled workers)
+    const primaryPIA = primarySSResult.piaMonthly ? primarySSResult.piaMonthly * 12
+      : primarySSResult.annual > 0 ? primarySSResult.annual
+      : ssdi1.enabled ? (ssdi1.monthlyAmount || 0) * 12 : 0;
+    const spousePIA = spouseSSResult.piaMonthly ? spouseSSResult.piaMonthly * 12
+      : spouseSSResult.annual > 0 ? spouseSSResult.annual
+      : ssdi2.enabled ? (ssdi2.monthlyAmount || 0) * 12 : 0;
 
     function getSurvivorBenefit(deceasedPIA, deceasedClaimAge, deceasedFRA, deceasedSSResult, deathAge, survivorAge, survivorFRA, colaRate) {
       // What the deceased was actually receiving (or would have received)
@@ -813,23 +819,30 @@ function runProjection(p) {
 
     // Expense phases (new): active -> later -> late retirement
     let expMultiplier = 1;
-    if (isSingle) expMultiplier = 1 - expenseReduction / 100;
+    if (lostSpouse) expMultiplier = 1 - expenseReduction / 100;
     const ep = p.expensePhases || {};
     if (ep.enabled && effectivelyRetired) {
       if (age >= (ep.lateAge || 85)) expMultiplier *= (ep.lateMultiplier || 95) / 100;
       else if (age >= (ep.laterAge || 75)) expMultiplier *= (ep.laterMultiplier || 85) / 100;
     }
     let expenses;
-    if (p.expenseMode === 'percent' && effectivelyRetired) {
+    if (!effectivelyRetired && p.preRetirementExpenses > 0) {
+      // Pre-retirement: use separate expense amount with its own inflation rate
+      // Note: expMultiplier (expense phases, survivor reduction) doesn't apply pre-retirement
+      const preRetInf = p.preRetirementExpenseInflation !== undefined ? p.preRetirementExpenseInflation : p.inflation;
+      expenses = p.preRetirementExpenses * Math.pow(1 + preRetInf / 100, yr);
+    } else if (p.expenseMode === 'percent' && effectivelyRetired) {
       expenses = (preTax + roth + taxable) * (p.withdrawalRate || 4) / 100 * expMultiplier;
     } else {
       expenses = p.annualExpenses * Math.pow(1 + p.inflation / 100, yr) * expMultiplier;
     }
 
-    // Pre-Medicare healthcare (new): extra cost between retirement and age 65
+    // Pre-Medicare healthcare (new): extra cost between retirement and Medicare eligibility
+    // SSDI recipients qualify for Medicare after 24-month waiting period (before age 65)
     let healthcareCost = 0;
     const hc = p.preMedicareHealthcare || {};
-    if (hc.enabled && effectivelyRetired && age < 65) {
+    const effectiveMedicareAge = primaryDead ? spouseMedicareAge : primaryMedicareAge;
+    if (hc.enabled && effectivelyRetired && age < effectiveMedicareAge) {
       const hcStart = hc.startAge > 0 ? hc.startAge : Math.ceil(p.retirementAge);
       if (age >= hcStart) {
         const hcYrs = age - hcStart;
@@ -841,6 +854,36 @@ function runProjection(p) {
     // Savings phase -- with optional contribution limit enforcement
     let saved = 0;
     if (!effectivelyRetired && !primaryDead) {
+      // Pre-retirement cash flow: check if after-tax income covers expenses + savings
+      // Compute approximate tax on earned income for cash flow check
+      const preRetTaxEst = calcTax(Math.max(0, earned - (isSingle ? STD_DEDUCTION_SINGLE : STD_DEDUCTION)), isSingle)
+        + calcStateTax(Math.max(0, earned - (isSingle ? STD_DEDUCTION_SINGLE : STD_DEDUCTION)), p.stateCode);
+      const afterTaxIncome = earned + other + ssdiIncome + pensionIncome - preRetTaxEst;
+      const preRetExpenses = expenses; // already set above (pre-retirement or fallback)
+      const cashAfterExpenses = afterTaxIncome - preRetExpenses;
+      // If cash after expenses < target savings, reduce savings or tap taxable accounts
+      const targetSavings = (partialRetire ? savingsAtYear * (retireMonth / 12) : savingsAtYear)
+        + (p.spouseAge && !spouseDead ? (spRetired ? 0 : spPartialRetire ? spSavingsAtYear * (spouseRetireMonth / 12) : spSavingsAtYear) : 0);
+
+      let actualSavings = targetSavings;
+      let preRetWithdrawal = 0;
+      if (cashAfterExpenses < targetSavings) {
+        // Shortfall: try to cover from taxable accounts
+        const shortfall = targetSavings - cashAfterExpenses;
+        if (shortfall > 0 && cashAfterExpenses >= 0) {
+          // Can still save some, but need to draw from taxable for the rest
+          preRetWithdrawal = Math.min(shortfall, taxable);
+          taxable -= preRetWithdrawal;
+        } else if (cashAfterExpenses < 0) {
+          // Can't even cover expenses from income — draw from taxable for expenses too
+          const expenseShortfall = Math.abs(cashAfterExpenses);
+          preRetWithdrawal = Math.min(expenseShortfall + targetSavings, taxable);
+          taxable -= preRetWithdrawal;
+          actualSavings = Math.max(0, preRetWithdrawal - expenseShortfall);
+        }
+        if (cashAfterExpenses >= 0) actualSavings = Math.min(targetSavings, cashAfterExpenses + preRetWithdrawal);
+      }
+
       const hasPreTax = p.accounts.some(a => a.type === 'pretax');
       const rothBal = p.accounts.filter(a => a.type === 'roth').reduce((s,a) => s+a.balance, 0);
       const rothConvEnabled = p.rothConversion && p.rothConversion.enabled;
@@ -855,7 +898,9 @@ function runProjection(p) {
         const catchUp = age >= 50 ? (age >= 60 && age <= 63 ? Math.round(11250 * limInf) : Math.round(7500 * limInf)) : 0;
         const catchUpIRA = age >= 50 ? Math.round(1000 * limInf) : 0;
 
-        const savAmt = partialRetire ? savingsAtYear * (retireMonth / 12) : savingsAtYear;
+        // Primary savings (use actualSavings ratio to scale)
+        const savRatio = targetSavings > 0 ? actualSavings / targetSavings : 0;
+        const savAmt = (partialRetire ? savingsAtYear * (retireMonth / 12) : savingsAtYear) * savRatio;
         let toPT = Math.min(savAmt * 0.6, hasPreTax ? limit401k + catchUp : 0);
         let toRoth = Math.min(savAmt * 0.25, hasRoth ? limitIRA + catchUpIRA : 0);
         let toTaxable = hasTaxable ? Math.max(0, savAmt - toPT - toRoth) : 0;
@@ -865,11 +910,13 @@ function runProjection(p) {
 
         // Spouse savings
         if (p.spouseAge && !spRetired && !spouseDead) {
+          const spSavBase = spPartialRetire ? spSavingsAtYear * (spouseRetireMonth / 12) : spSavingsAtYear;
+          const spSavAmt = spSavBase * savRatio;
           const spCatchUp = spAge >= 50 ? (spAge >= 60 && spAge <= 63 ? Math.round(11250 * limInf) : Math.round(7500 * limInf)) : 0;
           const spCatchUpIRA = spAge >= 50 ? Math.round(1000 * limInf) : 0;
-          let spPT = Math.min(spSavingsAtYear * 0.6, hasPreTax ? limit401k + spCatchUp : 0);
-          let spR = Math.min(spSavingsAtYear * 0.25, hasRoth ? limitIRA + spCatchUpIRA : 0);
-          let spT = hasTaxable ? Math.max(0, spSavingsAtYear - spPT - spR) : 0;
+          let spPT = Math.min(spSavAmt * 0.6, hasPreTax ? limit401k + spCatchUp : 0);
+          let spR = Math.min(spSavAmt * 0.25, hasRoth ? limitIRA + spCatchUpIRA : 0);
+          let spT = hasTaxable ? Math.max(0, spSavAmt - spPT - spR) : 0;
           preTax += spPT; roth += spR; taxable += spT; saved += spPT + spR + spT;
         }
       } else {
@@ -878,20 +925,20 @@ function runProjection(p) {
         const total = wPT + wR + wT;
         if (total > 0) { wPT /= total; wR /= total; wT /= total; }
         const allocate = (amount) => { preTax += amount * wPT; roth += amount * wR; taxable += amount * wT; };
-        const savAmt = partialRetire ? savingsAtYear * (retireMonth / 12) : savingsAtYear;
+        const savRatio = targetSavings > 0 ? actualSavings / targetSavings : 0;
+        const savAmt = (partialRetire ? savingsAtYear * (retireMonth / 12) : savingsAtYear) * savRatio;
         allocate(savAmt); saved = savAmt;
-        if (p.spouseAge && !spRetired && !spouseDead) { allocate(spSavingsAtYear); saved += spSavingsAtYear; }
+        if (p.spouseAge && !spRetired && !spouseDead) { const spSavBase = spPartialRetire ? spSavingsAtYear * (spouseRetireMonth / 12) : spSavingsAtYear; allocate(spSavBase * savRatio); saved += spSavBase * savRatio; }
       }
     }
 
     // Debt / Liability payments
-    let debtPayments = 0, deductibleDebt = 0;
+    let debtPayments = 0;
     const debts = p.debts || [];
     for (const d of debts) {
       if (age >= (d.startAge || p.currentAge) && age <= (d.endAge || p.endAge)) {
         const pmt = (d.monthlyPayment || 0) * 12;
         debtPayments += pmt;
-        if (d.taxDeductible) deductibleDebt += pmt; // mortgage interest deduction approximation
       }
     }
     expenses += debtPayments;
@@ -941,7 +988,7 @@ function runProjection(p) {
     }
 
     // Withdrawal phase
-    let withdrawal = 0, taxableWd = 0, rmdUsed = 0;
+    let withdrawal = 0, taxableWd = 0, rmdUsed = 0, capGains = 0;
     if (effectivelyRetired || primaryDead) {
       const gap = Math.max(0, expenses - ss - ssdiIncome - other - pensionIncome);
       if (rmdRequired && rmd > 0) {
@@ -951,17 +998,9 @@ function runProjection(p) {
         preTax -= rmdTaken; taxableWd += rmdTaken; rmdUsed += rmdTaken; withdrawal += rmdTaken;
       }
       let remaining = Math.max(0, gap - rmdUsed);
-      // Taxable account: only gains are taxed. Assume ~50% cost basis (conservative).
+      // Taxable account: only gains portion is taxed. Assume ~50% cost basis (conservative).
       const ft = Math.min(remaining, taxable); taxable -= ft; remaining -= ft;
-      const taxableGains = ft * 0.5; // estimated gain portion
-      // Capital gains rate: IRS §86 SS taxation for bracket determination
-      const ssTaxForCG = calcTaxableSS(ss, earned + pensionIncome + ssdiIncome + taxableWd, isSingle);
-      const totalIncForCG = earned + ssTaxForCG + pensionIncome + ssdiIncome + taxableWd;
-      // LTCG rates 2025 (IRS Rev. Proc. 2024-40): MFJ 0%≤$96,700 / 15%≤$583,750 / 20%; Single 0%≤$48,350 / 15%≤$533,400 / 20%
-      const cg0Thresh = isSingle ? 48350 : 96700;
-      const cg20Thresh = isSingle ? 533400 : 583750;
-      const cgRate = totalIncForCG > cg20Thresh ? 0.20 : totalIncForCG > cg0Thresh ? 0.15 : 0;
-      taxableWd += taxableGains * cgRate;
+      capGains = ft * 0.5; // estimated gain portion — taxed separately at preferential LTCG rates
       const fp = Math.min(remaining, preTax); preTax -= fp; remaining -= fp; taxableWd += fp;
       const fr = Math.min(remaining, roth); roth -= fr; remaining -= fr;
       withdrawal += ft + fp + fr;
@@ -979,7 +1018,7 @@ function runProjection(p) {
       if (rc.strategy === 'fixed') {
         rothConv = Math.min(rc.fixedAmount || 0, preTax);
       } else if (rc.strategy === 'fillBracket') {
-        const ssTaxForRoth = calcTaxableSS(ss, earned + taxableWd + ssdiIncome + pensionIncome, isSingle);
+        const ssTaxForRoth = calcTaxableSS(ss, earned + taxableWd + capGains + ssdiIncome + pensionIncome, isSingle);
         const curTaxable = earned + taxableWd + ssdiIncome + pensionIncome + ssTaxForRoth;
         let stdDedTemp = isSingle ? STD_DEDUCTION_SINGLE : STD_DEDUCTION;
         // Include senior deductions so bracket room calculation matches actual tax computation
@@ -1001,8 +1040,8 @@ function runProjection(p) {
         if (bracketTop === Infinity) bracketTop = curTaxableAfterDed;
         rothConv = Math.min(Math.max(0, bracketTop - curTaxableAfterDed), preTax);
       } else if (rc.strategy === 'targetMAGI') {
-        const ssTaxForMAGI = calcTaxableSS(ss, earned + taxableWd + ssdiIncome + pensionIncome, isSingle);
-        const curMAGI = earned + taxableWd + ssdiIncome + pensionIncome + ssTaxForMAGI;
+        const ssTaxForMAGI = calcTaxableSS(ss, earned + taxableWd + capGains + ssdiIncome + pensionIncome, isSingle);
+        const curMAGI = earned + taxableWd + capGains + ssdiIncome + pensionIncome + ssTaxForMAGI;
         rothConv = Math.min(Math.max(0, (rc.targetMAGI || 200000) - curMAGI), preTax);
       } else if (rc.strategy === 'percentBalance') {
         rothConv = Math.min(Math.round(preTax * (rc.percentOfBalance || 10) / 100), preTax);
@@ -1014,11 +1053,11 @@ function runProjection(p) {
       preTax -= rothConv; roth += rothConv;
     }
 
-    // Tax - federal + state
-    // IRS §86: compute taxable portion of SS based on provisional income
-    const otherIncForSS = earned + taxableWd + rothConv + ssdiIncome + pensionIncome;
+    // Tax - federal + state + capital gains + NIIT
+    // IRS §86: compute taxable portion of SS based on provisional income (includes cap gains)
+    const otherIncForSS = earned + taxableWd + rothConv + capGains + ssdiIncome + pensionIncome;
     const ssTaxable = calcTaxableSS(ss, otherIncForSS, isSingle);
-    const otherIncNoConv = earned + taxableWd + ssdiIncome + pensionIncome;
+    const otherIncNoConv = earned + taxableWd + capGains + ssdiIncome + pensionIncome;
     const ssTaxableNoConv = calcTaxableSS(ss, otherIncNoConv, isSingle);
 
     // Standard deduction + senior additions
@@ -1048,22 +1087,65 @@ function runProjection(p) {
       stdDed += obbbDed;
     }
 
-    const taxInc = otherIncForSS + ssTaxable - stdDed;
-    const taxWithoutConv = calcTax(Math.max(0, otherIncNoConv + ssTaxableNoConv - stdDed), isSingle);
-    const fedTax = calcTax(Math.max(0, taxInc), isSingle);
-    const conversionTax = Math.round(fedTax - taxWithoutConv);
-    const stateTax = calcStateTax(Math.max(0, taxInc), p.stateCode);
+    // Ordinary income tax (excludes capital gains — they're taxed at preferential rates)
+    const ordinaryInc = earned + taxableWd + rothConv + ssdiIncome + pensionIncome + ssTaxable;
+    const ordinaryIncNoConv = earned + taxableWd + ssdiIncome + pensionIncome + ssTaxableNoConv;
+    const ordinaryTaxable = Math.max(0, ordinaryInc - stdDed);
+    const fedTaxOrdinary = calcTax(ordinaryTaxable, isSingle);
+    const taxWithoutConv = calcTax(Math.max(0, ordinaryIncNoConv - stdDed), isSingle);
+    const conversionTax = Math.round(fedTaxOrdinary - taxWithoutConv);
+
+    // Capital gains tax: LTCG stacks on top of ordinary taxable income
+    // IRS Rev. Proc. 2024-40: MFJ 0%≤$96,700 / 15%≤$583,750 / 20%; Single 0%≤$48,350 / 15%≤$533,400 / 20%
+    let cgTax = 0;
+    if (capGains > 0) {
+      const cg0Thresh = isSingle ? 48350 : 96700;
+      const cg15Thresh = isSingle ? 533400 : 583750;
+      // CG stacks on top of ordinary taxable income for rate determination
+      const cgStart = ordinaryTaxable; // bottom of CG stack
+      const cgEnd = ordinaryTaxable + capGains; // top of CG stack
+      // Portion in 0% zone
+      const in0 = Math.max(0, Math.min(capGains, cg0Thresh - cgStart));
+      // Portion in 15% zone
+      const in15Start = Math.max(cgStart, cg0Thresh);
+      const in15 = Math.max(0, Math.min(cgEnd, cg15Thresh) - in15Start);
+      // Portion in 20% zone
+      const in20 = Math.max(0, cgEnd - Math.max(cgStart, cg15Thresh));
+      cgTax = Math.round(in15 * 0.15 + in20 * 0.20);
+    }
+
+    // NIIT: 3.8% Net Investment Income Tax on lesser of (NII, MAGI exceeding threshold)
+    // IRC §1411: applies to cap gains, interest, dividends for MAGI > $200K single / $250K MFJ
+    const magi = otherIncForSS + ssTaxable;
+    const niitThresh = isSingle ? 200000 : 250000;
+    const niitTax = (magi > niitThresh && capGains > 0)
+      ? Math.round(Math.min(capGains, magi - niitThresh) * 0.038) : 0;
+
+    const fedTax = fedTaxOrdinary + cgTax + niitTax;
+    const stateTax = calcStateTax(Math.max(0, ordinaryInc + capGains - stdDed), p.stateCode);
     const tax = fedTax + stateTax;
 
-    // IRMAA (MAGI = AGI + tax-exempt interest; AGI includes taxable SS)
-    const magi = otherIncForSS + ssTaxable;
-    const irmaa = age >= 65 ? calcIRMAA(magi, isSingle) : { partB: 0, partD: 0, surcharge: 0, totalAnnual: 0, bracketIdx: 0 };
-    const medicareCost = age >= 65 ? Math.round(irmaa.totalAnnual * Math.pow(1.05, yr)) : 0;
+    // IRMAA: 2-year MAGI lookback (your 2028 IRMAA is based on 2026 tax return)
+    // Use MAGI from 2 years prior if available in projection history
+    const irmaaMagi = (yr >= 2 && years[yr - 2]) ? years[yr - 2].magi : magi;
+    const irmaaSingle = (yr >= 2 && years[yr - 2]) ? years[yr - 2].isSingle : isSingle;
+    const irmaa = age >= effectiveMedicareAge ? calcIRMAA(irmaaMagi, irmaaSingle) : { partB: 0, partD: 0, surcharge: 0, totalAnnual: 0, bracketIdx: 0 };
+    const medicareCost = age >= effectiveMedicareAge ? Math.round(irmaa.totalAnnual * Math.pow(1.05, yr)) : 0;
 
-    // Feature #7: Per-account growth
+    // Feature #7: Per-account growth with proportional MC volatility
     const growAcct = (bal, nomRet) => {
-      const nr = hasSequences ? (p._returnSeq[yr] !== undefined ? p._returnSeq[yr] : nomRet) : nomRet;
-      const inf = hasSequences ? (p._inflationSeq[yr] !== undefined ? p._inflationSeq[yr] : p.inflation) : p.inflation;
+      let nr, inf;
+      if (hasSequences) {
+        // MC mode: _returnSeq stores market shock (deviation from mean, scaled by retStd)
+        // Scale shock proportionally to account's expected return vs baseline equity return
+        // Low-return accounts (HYSA 4%) get less volatile; high-return (equity 7%) get full shock
+        const volScale = Math.max(0.1, Math.min(1.5, nomRet / Math.max(p.nominalReturn, 1)));
+        nr = nomRet + (p._returnSeq[yr] !== undefined ? p._returnSeq[yr] * volScale : 0);
+        inf = p._inflationSeq[yr] !== undefined ? p._inflationSeq[yr] : p.inflation;
+      } else {
+        nr = nomRet;
+        inf = p.inflation;
+      }
       return bal * (1 + (1 + nr / 100) / (1 + inf / 100) - 1);
     };
     preTax = growAcct(preTax, ptReturn);
@@ -1078,13 +1160,14 @@ function runProjection(p) {
       other: Math.round(other), totalInc: Math.round(totalInc), expenses: Math.round(expenses),
       savings: Math.round(saved), withdrawal: Math.round(withdrawal),
       tax: Math.round(tax), fedTax: Math.round(fedTax), stateTax: Math.round(stateTax),
+      cgTax: Math.round(cgTax), niitTax: Math.round(niitTax), capGains: Math.round(capGains),
       preTax: Math.round(preTax), roth: Math.round(roth),
       taxable: Math.round(taxable), netWorth: Math.round(preTax + roth + taxable),
       retired: effectivelyRetired || primaryDead, rmd: Math.round(rmdUsed), rmdRequired,
       qcd: Math.round(qcdAmount),
       rothConv: Math.round(rothConv), conversionTax: Math.round(conversionTax),
       irmaa: Math.round(irmaa.surcharge), medicareCost: Math.round(medicareCost),
-      irmaaBracket: irmaa.bracketIdx, isSingle,
+      irmaaBracket: irmaa.bracketIdx, isSingle, magi: Math.round(magi),
     });
   }
   return years;
@@ -1101,18 +1184,18 @@ function runMonteCarlo(p, n = 500, retStd = 6, infStd = 1.5) {
   }
 
   for (let i = 0; i < n; i++) {
-    // Generate per-year return and inflation sequences
-    // MC randomizes the global return; per-account offsets are preserved via growAcct
+    // Generate per-year market shock and inflation sequences
+    // Shocks are stored as standard-normal deviations — growAcct scales by each account's volatility
     const returnSeq = [];
     const inflationSeq = [];
     for (let y = 0; y < numYears; y++) {
-      const nomRet = randNormal(p.nominalReturn, retStd);
-      const inf = Math.max(-1, randNormal(p.inflation, infStd)); // floor at -1% (mild deflation)
-      returnSeq.push(nomRet);
+      const shock = randNormal(0, retStd); // market shock (deviation from expected return)
+      const inf = Math.max(-1, randNormal(p.inflation, infStd)); // absolute inflation rate
+      returnSeq.push(shock);
       inflationSeq.push(inf);
     }
 
-    const mp = { ...p, _returnSeq: returnSeq, _inflationSeq: inflationSeq };
+    const mp = { ...p, _returnSeq: returnSeq, _inflationSeq: inflationSeq, _mcRetStd: retStd };
     const proj = runProjection(mp);
     results.push({ final: proj[proj.length - 1].netWorth, proj,
       bustAge: proj.find(y => y.netWorth <= 0)?.age || null });
@@ -1133,11 +1216,14 @@ function runMonteCarlo(p, n = 500, retStd = 6, infStd = 1.5) {
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
 
 const fmt = n => n < 0 ? `-$${Math.abs(n).toLocaleString()}` : `$${n.toLocaleString()}`;
+const parseC = s => Number(String(s).replace(/[^0-9.\-]/g, '')) || 0;
+const fmtC = n => { const v = parseC(n); return v.toLocaleString('en-US'); };
 const fmtD = (n, yr) => { const v = yr !== undefined ? deflate(n, yr) : n; return v < 0 ? `-$${Math.abs(v).toLocaleString()}` : `$${v.toLocaleString()}`; };
 const fmtK = (n, yr) => {
   const v = yr !== undefined ? deflate(n, yr) : n;
-  if (Math.abs(v) >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
-  if (Math.abs(v) >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
+  const abs = Math.abs(v), sign = v < 0 ? '-' : '';
+  if (abs >= 1e6) return `${sign}$${(abs / 1e6).toFixed(1)}M`;
+  if (abs >= 1e3) return `${sign}$${(abs / 1e3).toFixed(0)}K`;
   return fmt(v);
 };
 
@@ -1147,6 +1233,7 @@ const fmtK = (n, yr) => {
 
 let state = {
   tab: 'dashboard', inputTab: 'personal', projChartKeys: ['netWorth'], projShowTable: false, mcResults: null, scenario: null, rothOptResults: null, scenarioChartKeys: ['netWorth'],
+  optScoreMode: 'balanced',
   mcConfig: { numSims: 500, returnStdDev: 6, inflationStdDev: 1.5 },
   params: {
     // Demo: The Johnsons — a realistic two-income household
@@ -1155,6 +1242,7 @@ let state = {
 
     annualIncome: 130000, annualSavings: 25000, annualExpenses: 85000,
     expenseMode: 'fixed', withdrawalRate: 4,
+    preRetirementExpenses: 110000, preRetirementExpenseInflation: 3,
     incomeGrowth: 3, savingsGrowth: 3,
 
     // Social Security
@@ -1174,7 +1262,7 @@ let state = {
     spouseSurvivorSSClaimAge: 60,
 
     nominalReturn: 7, inflation: 3, additionalIncome: 6000,
-    stateCode: 'md',
+    stateCode: 'MD',
 
     // Pension / Annuity
     pension: { enabled: true, annualAmount: 18000, startAge: 65, cola: 2, name: 'State Pension' },
@@ -1201,8 +1289,8 @@ let state = {
 
     // Liabilities
     debts: [
-      { id: 1, name: 'Mortgage', type: 'mortgage', monthlyPayment: 2200, startAge: 45, endAge: 60, taxDeductible: true },
-      { id: 2, name: 'Auto Loan', type: 'loan', monthlyPayment: 450, startAge: 45, endAge: 49, taxDeductible: false }
+      { id: 1, name: 'Mortgage', type: 'mortgage', monthlyPayment: 2200, startAge: 45, endAge: 60 },
+      { id: 2, name: 'Auto Loan', type: 'loan', monthlyPayment: 450, startAge: 45, endAge: 49 }
     ],
 
     // Legacy goal
@@ -1244,6 +1332,9 @@ function proGate(featureName, teaser) {
     </div></div></div>`;
 }
 try { if (isPro()) { const s = localStorage.getItem('retiq_v1'); if (s) state.params = JSON.parse(s); } } catch(e) {}
+// Migration: ensure new fields exist for existing saved states
+if (state.params.preRetirementExpenses === undefined) state.params.preRetirementExpenses = 0;
+if (state.params.preRetirementExpenseInflation === undefined) state.params.preRetirementExpenseInflation = 3;
 function saveState() { if (isPro()) { try { localStorage.setItem('retiq_v1', JSON.stringify(state.params)); } catch(e) {} } }
 function setParam(key, val) { if (!isPro()) return; state.params[key] = val; state.mcResults = null; state.rothOptResults = null; saveState(); render(); }
 
@@ -1332,8 +1423,11 @@ function exportProjectionCSV() {
     { head:'Social Security', key:'ss', isCurrency:true },
     { head:'Pension', key:'pension', isCurrency:true },
     { head:'Expenses', key:'expenses', isCurrency:true },
-    { head:'Federal Tax', key:'tax', isCurrency:true },
+    { head:'Federal Tax', key:'fedTax', isCurrency:true },
     { head:'State Tax', key:'stateTax', isCurrency:true },
+    { head:'Cap Gains Tax', key:'cgTax', isCurrency:true },
+    { head:'NIIT', key:'niitTax', isCurrency:true },
+    { head:'Total Tax', key:'tax', isCurrency:true },
     { head:'Withdrawals', key:'withdrawal', isCurrency:true },
     { head:'RMD', key:'rmd', isCurrency:true },
     { head:'Roth Conversions', key:'rothConv', isCurrency:true },
@@ -1341,6 +1435,8 @@ function exportProjectionCSV() {
     { head:'Healthcare', key:'healthcare', isCurrency:true },
     { head:'Charity (QCD)', key:'qcd', isCurrency:true },
     { head:'Charity (Total)', key:'charityTotal', isCurrency:true },
+    { head:'Capital Gains', key:'capGains', isCurrency:true },
+    { head:'MAGI', key:'magi', isCurrency:true },
     { head:'Pre-Tax Balance', key:'preTax', isCurrency:true },
     { head:'Roth Balance', key:'roth', isCurrency:true },
     { head:'Taxable Balance', key:'taxable', isCurrency:true },
@@ -1381,6 +1477,50 @@ function importData(evt) {
 function updateAccount(id, key, val) { if (proGuard()) return; const a = state.params.accounts.find(x => x.id === id); if (a) { a[key] = val; state.mcResults = null; saveState(); render(); } }
 function removeAccount(id) { if (proGuard()) return; state.params.accounts = state.params.accounts.filter(a => a.id !== id); state.mcResults = null; saveState(); render(); }
 function addAccount() { if (proGuard()) return; state.params.accounts.push({ id: Date.now(), name: 'New Account', type: 'pretax', balance: 0, returnRate: 7 }); state.mcResults = null; saveState(); render(); }
+const ACCT_PRESETS = {
+  'Pre-Tax': [
+    { name: '401(k)', type: 'pretax', returnRate: 7 },
+    { name: '403(b)', type: 'pretax', returnRate: 7 },
+    { name: '457(b)', type: 'pretax', returnRate: 7 },
+    { name: 'Traditional IRA', type: 'pretax', returnRate: 7 },
+    { name: 'SEP IRA', type: 'pretax', returnRate: 7 },
+    { name: 'SIMPLE IRA', type: 'pretax', returnRate: 7 },
+    { name: 'Rollover IRA', type: 'pretax', returnRate: 7 },
+  ],
+  'Roth': [
+    { name: 'Roth IRA', type: 'roth', returnRate: 7 },
+    { name: 'Roth 401(k)', type: 'roth', returnRate: 7 },
+  ],
+  'Taxable': [
+    { name: 'Brokerage', type: 'taxable', returnRate: 7 },
+    { name: 'HSA', type: 'roth', returnRate: 6 },
+    { name: 'High-Yield Savings', type: 'taxable', returnRate: 4 },
+    { name: 'Savings / Checking', type: 'taxable', returnRate: 0.5 },
+    { name: '529 Plan', type: 'roth', returnRate: 6 },
+  ],
+  'Spouse': [
+    { name: 'Spouse 401(k)', type: 'pretax', returnRate: 7 },
+    { name: 'Spouse Roth IRA', type: 'roth', returnRate: 7 },
+    { name: 'Spouse Trad IRA', type: 'pretax', returnRate: 7 },
+    { name: 'Spouse 403(b)', type: 'pretax', returnRate: 7 },
+  ],
+};
+function togglePresetAccount(name) {
+  if (proGuard()) return;
+  const idx = state.params.accounts.findIndex(a => a.name.toLowerCase() === name.toLowerCase());
+  if (idx !== -1) {
+    state.params.accounts.splice(idx, 1);
+  } else {
+    let preset = null;
+    for (const cat of Object.values(ACCT_PRESETS)) {
+      preset = cat.find(p => p.name === name);
+      if (preset) break;
+    }
+    if (!preset) return;
+    state.params.accounts.push({ id: Date.now(), name: preset.name, type: preset.type, balance: 0, returnRate: preset.returnRate });
+  }
+  state.mcResults = null; saveState(); render();
+}
 function setSSDI(who, key, val) {
   if (proGuard()) return;
   const k = who === 'primary' ? 'ssdiPrimary' : 'ssdiSpouse';
@@ -1410,7 +1550,7 @@ function setExpensePhase(key, val) {
 function addDebt() {
   if (proGuard()) return;
   if (!state.params.debts) state.params.debts = [];
-  state.params.debts.push({ id: Date.now(), name: 'New Debt', type: 'mortgage', monthlyPayment: 2000, startAge: state.params.currentAge, endAge: state.params.currentAge + 20, taxDeductible: false, balance: 0, interestRate: 5 });
+  state.params.debts.push({ id: Date.now(), name: 'New Debt', type: 'mortgage', monthlyPayment: 2000, startAge: state.params.currentAge, endAge: state.params.currentAge + 20 });
   state.mcResults = null; saveState(); render();
 }
 function updateDebt(id, key, val) { if (proGuard()) return; const d = (state.params.debts||[]).find(x => x.id === id); if (d) { d[key] = val; state.mcResults = null; saveState(); render(); } }
@@ -1445,7 +1585,7 @@ function setRothConv(key, val) {
   if (proGuard()) return;
   if (!state.params.rothConversion) state.params.rothConversion = { enabled: false, strategy: 'fixed', fixedAmount: 50000, startAge: 65, endAge: 72, targetBracket: 0.22, customSchedule: [] };
   state.params.rothConversion[key] = val;
-  state.mcResults = null; saveState(); render();
+  state.mcResults = null; state.rothOptResults = null; state.rothOptAppliedIdx = null; saveState(); render();
 }
 
 // -- Roth Conversion Optimizer ----------------------------------------
@@ -1510,6 +1650,11 @@ function optimizeRothConversion() {
   }
 
   // Score each candidate
+  // Score modes: tax savings and IRMAA savings are independent; RMD reduction is NOT scored
+  // separately because it's already captured in tax savings (lower RMDs = lower taxes).
+  const weights = state.optScoreMode === 'taxMin' ? { tax: 0.70, irmaa: 0.20, nw: 0.10 }
+    : state.optScoreMode === 'nwMax' ? { tax: 0.20, irmaa: 0.10, nw: 0.70 }
+    : /* balanced */ { tax: 0.45, irmaa: 0.20, nw: 0.35 };
   const scored = candidates.map(c => {
     const tax = c.proj.reduce((s, y) => s + y.tax, 0);
     const rmd = c.proj.reduce((s, y) => s + y.rmd, 0);
@@ -1518,14 +1663,15 @@ function optimizeRothConversion() {
     const convTax = c.proj.reduce((s, y) => s + y.conversionTax, 0);
     const final = c.proj[c.proj.length - 1].netWorth;
 
-    // Composite score: lower is better
-    // Weight: tax savings matter most, RMD reduction next, IRMAA, plus bonus for higher final NW
+    // Independent metrics (positive = better than baseline)
     const taxSaved = baseTax - tax;
-    const rmdSaved = baseRMD - rmd;
     const irmaaSaved = baseIRMAA - irmaa;
     const nwGain = final - baseFinal;
-    // Score = weighted sum of benefits (positive = better)
-    const score = taxSaved * 1.0 + rmdSaved * 0.3 + irmaaSaved * 0.5 + nwGain * 0.2;
+    // Normalize each metric to baseline scale before weighting
+    const taxNorm = baseTax > 0 ? taxSaved / baseTax : 0;
+    const irmaaNorm = baseIRMAA > 0 ? irmaaSaved / baseIRMAA : 0;
+    const nwNorm = baseFinal > 0 ? nwGain / baseFinal : 0;
+    const score = taxNorm * weights.tax + irmaaNorm * weights.irmaa + nwNorm * weights.nw;
 
     return {
       ...c, tax, rmd, irmaa, conv, convTax, final, score,
@@ -1542,16 +1688,21 @@ function optimizeRothConversion() {
     strategies: top,
     totalTested: candidates.length,
   };
+  state.rothOptAppliedIdx = null;
   render();
 }
 function setMCConfig(key, val) { state.mcConfig[key] = val; state.mcResults = null; render(); }
+function setOptScoreMode(mode) { state.optScoreMode = mode; state.rothOptResults = null; state.rothOptAppliedIdx = null; render(); }
 function applyRothOpt(idx) {
   if (proGuard()) return;
   const opt = state.rothOptResults;
   if (opt && opt.strategies && opt.strategies[idx]) {
     const rc = { ...opt.strategies[idx].rc, enabled: true };
     state.params.rothConversion = rc;
-    state.mcResults = null; state.rothOptResults = null; saveState(); render();
+    state.mcResults = null;
+    // Mark applied strategy instead of clearing results
+    state.rothOptAppliedIdx = idx;
+    saveState(); render();
     // Brief visual confirmation
     setTimeout(() => {
       const card = document.querySelector('[data-accent="cyan"]');
@@ -1573,7 +1724,7 @@ function runMC() {
 function buildChart(data, keys, colors, labels, opts = {}) {
   if (!data || !data.length) return '';
   const { height = 200, stacked = false, title = '' } = opts;
-  const w = 500, h = height, pL = 0, pR = 0, pT = 12, pB = 22;
+  const w = 500, h = height, pL = 14, pR = 14, pT = 12, pB = 22;
   const cW = w - pL - pR, cH = h - pT - pB;
 
   let allVals;
@@ -1617,7 +1768,12 @@ function buildChart(data, keys, colors, labels, opts = {}) {
 
   let xLabels = '';
   const step = Math.max(1, Math.ceil(data.length / 8));
-  data.forEach((d, i) => { if (i === 0 || i === data.length - 1 || i % step === 0) xLabels += `<text x="${pL + i * xStep}" y="${h-3}" font-size="6" fill="var(--text-muted)" text-anchor="middle">${d.age}</text>`; });
+  data.forEach((d, i) => {
+    if (i === 0 || i === data.length - 1 || i % step === 0) {
+      const anchor = i === 0 ? 'start' : i === data.length - 1 ? 'end' : 'middle';
+      xLabels += `<text x="${pL + i * xStep}" y="${h-3}" font-size="6" fill="var(--text-muted)" text-anchor="${anchor}">${d.age}</text>`;
+    }
+  });
 
   const cid = 'c_' + Math.random().toString(36).slice(2, 8);
   const chartDataJSON = JSON.stringify(data.map(d => ({ age: d.age, year: d.year, vals: keys.map(k => d[k] || 0) }))).replace(/"/g, '&quot;');
@@ -1626,7 +1782,7 @@ function buildChart(data, keys, colors, labels, opts = {}) {
 
   return `<div class="chart-wrap" id="${cid}_w">${title ? `<div class="chart-title">${title}</div>` : ''}
     <div style="position:relative">
-      <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto" id="${cid}">
+      <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;overflow:visible" id="${cid}">
         ${gridLines}${paths}${retLine}${xLabels}
         <rect x="${pL}" y="${pT}" width="${cW}" height="${cH}" fill="transparent"
           onmousemove="cHover(event,'${cid}','${chartDataJSON}','${colorsJSON}','${labelsJSON}',${pL},${xStep})"
@@ -1669,9 +1825,18 @@ function field(label, key, opts = {}) {
   const { prefix, suffix, help, val } = opts;
   const v = val !== undefined ? val : state.params[key];
   const ro = !isPro();
+  const isCurrency = prefix === '$';
+  const displayVal = isCurrency ? fmtC(v) : v;
+  const inputType = isCurrency ? 'text' : 'number';
+  const extraAttr = isCurrency
+    ? `inputmode="decimal" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))"`
+    : '';
+  const changeExpr = isCurrency
+    ? `setParam('${key}',parseC(this.value))`
+    : `setParam('${key}',Number(this.value))`;
   return `<div class="field"><label class="field-label">${label}</label><div class="field-wrap">
     ${prefix ? `<span class="field-prefix">${prefix}</span>` : ''}
-    <input type="number" class="field-input${prefix?' has-prefix':''}${suffix?' has-suffix':''}" value="${v}" ${ro ? 'readonly style="opacity:0.6;cursor:not-allowed"' : `onchange="setParam('${key}',Number(this.value))"`}>
+    <input type="${inputType}" class="field-input${prefix?' has-prefix':''}${suffix?' has-suffix':''}" value="${displayVal}" ${ro ? 'readonly style="opacity:0.6;cursor:not-allowed"' : `onchange="${changeExpr}" ${extraAttr}`}>
     ${suffix ? `<span class="field-suffix">${suffix}</span>` : ''}
   </div>${help ? `<div class="field-help">${help}</div>` : ''}</div>`;
 }
@@ -1720,7 +1885,7 @@ function renderDashboard(proj) {
     <div class="grid-2">
       <div class="card" data-accent="blue">${buildChart(proj, nwKeys, nwColors, nwLabels, { title:'Net Worth Over Time', stacked: nwKeys.length > 1, height:180 })}</div>
       <div class="card" data-accent="cyan">${buildChart(proj, ['totalInc','expenses'], ['#06b6d4','#ef4444'], ['Total Income','Expenses'], { title:'Income vs Expenses', height:180 })}</div>
-      <div class="card" data-accent="purple">${buildChart(proj, ['tax','rmd'], ['#8b5cf6','#ec4899'], ['Federal Tax','RMD Amount'], { title:'Taxes & RMDs', height:160 })}</div>
+      <div class="card" data-accent="purple">${buildChart(proj, ['tax','rmd'], ['#8b5cf6','#ec4899'], ['Total Tax','RMD Amount'], { title:'Taxes & RMDs', height:160 })}</div>
       <div class="card" data-accent="green">${buildChart(
         proj.filter(y => y.retired),
         ['ss','withdrawal','medicareCost'],
@@ -1736,6 +1901,7 @@ function renderDashboard(proj) {
         <strong style="color:var(--amber)">${p.retirementAge}</strong>.
         Household income: <strong style="color:var(--text)">${fmt(p.annualIncome + (p.spouseIncome||0))}/yr</strong> (growing ${p.incomeGrowth || 0}%/yr),
         saving <strong style="color:var(--green)">${fmt(p.annualSavings + (p.spouseSavings||0))}/yr</strong> (growing ${p.savingsGrowth || 0}%/yr).
+        ${p.preRetirementExpenses > 0 ? `Pre-retirement expenses: <strong style="color:var(--red)">${fmt(p.preRetirementExpenses)}/yr</strong> (${p.preRetirementExpenseInflation !== undefined ? p.preRetirementExpenseInflation : p.inflation}% inflation). ` : ''}
         Portfolio: <strong style="color:var(--blue)">${fmtK(totalAcct)}</strong>.
         ${rmdStartYr ? `<span class="badge badge-rmd">RMD</span> Required Minimum Distributions begin at age <strong>${rmdStartYr.age}</strong>. ` : ''}
         ${totalIRMAA > 0 ? `<span class="badge badge-irmaa">IRMAA</span> Medicare surcharges total <strong style="color:var(--pink)">${fmtK(totalIRMAA)}</strong> over your lifetime. ` : ''}
@@ -1782,7 +1948,7 @@ function renderInputs() {
   }
 
   if (state.inputTab === 'personal') {
-    content = `<div class="grid-2">
+    content += `<div class="grid-2">
       <div class="card"><div class="card-title">You</div>
         <div class="grid-2">
           <div class="field"><label class="field-label">Current Age</label><div class="field-wrap">
@@ -1835,7 +2001,7 @@ function renderInputs() {
   }
 
   if (state.inputTab === 'income') {
-    content = `<div class="grid-2">
+    content += `<div class="grid-2">
       <div class="card"><div class="card-title">Your Income</div>
         ${field('Annual Gross Income (current)','annualIncome',{prefix:'$'})}
         ${field('Annual Savings (current)','annualSavings',{prefix:'$'})}
@@ -1865,19 +2031,57 @@ function renderInputs() {
   }
 
   if (state.inputTab === 'expenses') {
-    content = `<div class="grid-2">
-      <div class="card"><div class="card-title">Annual Expenses</div>
-        <div style="margin-bottom:8px">
-          <div style="display:flex;gap:6px;margin-bottom:8px">
-            <button class="tab${(p.expenseMode||'fixed')==='fixed'?' active':''}" onclick="setParam('expenseMode','fixed')" style="font-size:11px;padding:4px 10px">Fixed Amount</button>
-            <button class="tab${p.expenseMode==='percent'?' active':''}" onclick="setParam('expenseMode','percent')" style="font-size:11px;padding:4px 10px">% of Portfolio</button>
-          </div>
-          ${p.expenseMode === 'percent' ?
-            field('Withdrawal Rate','withdrawalRate',{suffix:'%',help:'Classic 4% rule. Applied to portfolio balance each year in retirement.'})
-            + field('Pre-Retirement Expenses','annualExpenses',{prefix:'$',help:'Fixed expenses used before retirement.'})
-          :
-            field('Annual Expenses (today\'s $)','annualExpenses',{prefix:'$',help:'Housing, food, healthcare, travel. Grows with inflation.'})
-          }
+    // Pre-retirement cash flow summary
+    const hhIncome = p.annualIncome + (p.spouseEnabled ? (p.spouseIncome||0) : 0);
+    const hhSavings = p.annualSavings + (p.spouseEnabled ? (p.spouseSavings||0) : 0);
+    const preRetExp = p.preRetirementExpenses || 0;
+    const estTaxInc = Math.max(0, hhIncome - (p.spouseEnabled ? STD_DEDUCTION : STD_DEDUCTION_SINGLE));
+    const estFedTax = calcTax(estTaxInc, !p.spouseEnabled);
+    const estStateTax = calcStateTax(estTaxInc, p.stateCode);
+    const estTotalTax = estFedTax + estStateTax;
+    const cashFlow = hhIncome - preRetExp - hhSavings - estTotalTax;
+    const cashFlowColor = cashFlow >= 0 ? 'var(--green)' : 'var(--red)';
+
+    // Retirement expense at retirement start
+    const retExpAtRetire = p.expenseMode === 'percent'
+      ? '(' + (p.withdrawalRate||4) + '% of portfolio)'
+      : fmt(Math.round(p.annualExpenses * Math.pow(1 + p.inflation / 100, p.retirementAge - p.currentAge)));
+
+    content += `<div class="grid-2">
+      <div class="card" data-accent="cyan"><div class="card-title">Pre-Retirement Expenses</div>
+        <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;line-height:1.6">
+          Your annual living costs during working years. These reduce available cash flow alongside savings and taxes.
+        </div>
+        ${field('Annual Expenses (today\'s $)','preRetirementExpenses',{prefix:'$',help:'Housing, food, transport, childcare, etc. All spending before retirement.'})}
+        ${field('Expense Inflation Rate','preRetirementExpenseInflation',{suffix:'%',help:'How fast your pre-retirement costs grow. Typical: 2-4%. Default uses general inflation if not set.'})}
+        ${preRetExp > 0 ? `<div style="margin-top:12px;padding:10px 14px;background:var(--bg-base);border-radius:8px;font-size:12px;line-height:1.8;color:var(--text-dim)">
+          <strong style="color:var(--text-muted)">Current Year Cash Flow</strong><br>
+          Household Income: <strong style="color:var(--text)">${fmt(hhIncome)}</strong><br>
+          &minus; Pre-Ret Expenses: <strong style="color:var(--red)">${fmt(preRetExp)}</strong><br>
+          &minus; Savings: <strong style="color:var(--blue)">${fmt(hhSavings)}</strong><br>
+          &minus; Est. Taxes: <strong style="color:var(--purple)">${fmt(Math.round(estTotalTax))}</strong><br>
+          <span style="border-top:1px solid var(--border);display:block;margin-top:4px;padding-top:4px">
+            Surplus / Shortfall: <strong style="color:${cashFlowColor}">${fmt(Math.round(cashFlow))}</strong>
+            ${cashFlow < 0 ? '<br><span style="color:var(--amber);font-size:11px">&#9888; Shortfall will be covered from taxable accounts</span>' : ''}
+          </span>
+        </div>` : '<div style="font-size:12px;color:var(--text-faint);margin-top:8px">Set your pre-retirement expenses to see a working-years cash flow breakdown.</div>'}
+      </div>
+      <div class="card" data-accent="amber"><div class="card-title">Post-Retirement Expenses</div>
+        <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;line-height:1.6">
+          Your annual spending in retirement. This is the base amount before expense phases, healthcare, or long-term care adjustments.
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <button class="tab${(p.expenseMode||'fixed')==='fixed'?' active':''}" onclick="setParam('expenseMode','fixed')" style="font-size:11px;padding:4px 10px">Fixed Amount</button>
+          <button class="tab${p.expenseMode==='percent'?' active':''}" onclick="setParam('expenseMode','percent')" style="font-size:11px;padding:4px 10px">% of Portfolio</button>
+        </div>
+        ${p.expenseMode === 'percent' ?
+          field('Withdrawal Rate','withdrawalRate',{suffix:'%',help:'Classic 4% rule. Applied to portfolio balance each year in retirement.'})
+        :
+          field('Annual Expenses (today\'s $)','annualExpenses',{prefix:'$',help:'Housing, food, healthcare, travel in retirement. Grows with general inflation rate.'})
+        }
+        <div style="font-size:12px;color:var(--text-dim);margin-top:8px;line-height:1.6">
+          At retirement (age ${p.retirementAge}): <strong style="color:var(--text)">${retExpAtRetire}</strong>.
+          Expense phases, healthcare gap costs, and LTC are configured in the Healthcare tab.
         </div>
       </div></div>`;
   }
@@ -1891,7 +2095,7 @@ function renderInputs() {
         <option value="taxable"${a.type==='taxable'?' selected':''}>Taxable</option>
       </select></div>
       <div style="flex:1.5;position:relative"><span class="field-prefix">$</span>
-        <input type="number" class="field-input has-prefix" value="${a.balance}" onchange="updateAccount(${a.id},'balance',Number(this.value))" style="font-size:13px">
+        <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(a.balance)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="updateAccount(${a.id},'balance',parseC(this.value))" style="font-size:13px">
       </div>
       <div style="flex:0.7;position:relative">
         <input type="number" class="field-input has-suffix" value="${a.returnRate !== undefined ? a.returnRate : 7}" onchange="updateAccount(${a.id},'returnRate',Number(this.value))" style="font-size:13px" title="Expected nominal return">
@@ -1904,7 +2108,22 @@ function renderInputs() {
     const birthYear = new Date().getFullYear() - p.currentAge;
     const rmdAge = rmdStartAge(birthYear);
 
-    content = `<div class="card"><div class="card-title">Investment Accounts <span style="font-size:11px;color:var(--text-faint);font-weight:400">-- each with its own return rate</span></div>
+    content += `<div class="card"><div class="card-title">Investment Accounts <span style="font-size:11px;color:var(--text-faint);font-weight:400">-- each with its own return rate</span></div>
+      <div class="acct-presets">
+        <div style="font-size:12px;color:var(--text);font-weight:600;margin-bottom:8px">Quick Add</div>
+        ${Object.entries(ACCT_PRESETS).map(([cat, presets]) => {
+          const chips = presets.map(pr => {
+            const exists = p.accounts.some(a => a.name.toLowerCase() === pr.name.toLowerCase());
+            return `<span class="acct-chip${exists ? ' added' : ''}" onclick="togglePresetAccount('${pr.name.replace(/'/g, "\\'")}')" title="${exists ? 'Click to remove' : (pr.type === 'pretax' ? 'Pre-Tax' : pr.type === 'roth' ? 'Roth' : 'Taxable') + ' · ' + pr.returnRate + '% return'}">${pr.name}${exists ? ' ✓' : ''}</span>`;
+          }).join('');
+          return `<div class="acct-preset-cat"><div class="acct-preset-label">${cat}</div>${chips}</div>`;
+        }).join('')}
+        <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5">
+          Click to add with default type &amp; return rate. Adjust balance, return rate, and type as needed.<br>
+          <strong>HSA</strong> and <strong>529</strong> are modeled as Roth (tax-free growth) — an approximation.
+          Other account types can be added manually with the button below.
+        </div>
+      </div>
       <div class="acct-header"><div style="flex:2">Name</div><div style="flex:1">Type</div><div style="flex:1.5">Balance</div><div style="flex:0.7">Return</div><div style="width:36px"></div></div>
       ${rows}
       <button class="add-acct-btn" onclick="addAccount()">+ Add Account</button>
@@ -1922,24 +2141,23 @@ function renderInputs() {
     const totalMonthly = debts.reduce((s, d) => s + (d.monthlyPayment || 0), 0);
     const totalLifetime = debts.reduce((s, d) => s + (d.monthlyPayment || 0) * 12 * Math.max(0, (d.endAge || p.endAge) - (d.startAge || p.currentAge)), 0);
 
-    content = `<div class="card" data-accent="red"><div class="card-title">Liabilities</div>
+    content += `<div class="card" data-accent="red"><div class="card-title">Liabilities</div>
       <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
         Model mortgages, alimony, student loans, and other recurring obligations that reduce available cash flow
         for a specific duration. Payments are added to expenses during the active period.
       </div>
 
       ${debts.length > 0 ? `<div style="overflow-x:auto;margin-bottom:14px"><table class="proj-table" style="font-size:12px">
-        <thead><tr><th style="text-align:left">Name</th><th>Type</th><th>Monthly</th><th>Ages</th><th>Tax Ded.</th><th></th></tr></thead>
+        <thead><tr><th style="text-align:left">Name</th><th>Type</th><th>Monthly</th><th>Ages</th><th></th></tr></thead>
         <tbody>${debts.map(d => `<tr>
           <td style="text-align:left"><input type="text" value="${d.name||''}" onchange="updateDebt(${d.id},'name',this.value)" style="background:transparent;border:none;color:var(--text);font-size:12px;width:100px"></td>
           <td><select onchange="updateDebt(${d.id},'type',this.value)" style="background:transparent;border:none;color:var(--text-dim);font-size:11px">
             ${['mortgage','alimony','loan','other'].map(t => `<option value="${t}"${d.type===t?' selected':''}>${t}</option>`).join('')}
           </select></td>
-          <td><input type="number" value="${d.monthlyPayment||0}" onchange="updateDebt(${d.id},'monthlyPayment',Number(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:12px;width:70px;text-align:right;border-radius:4px;padding:2px 4px"></td>
+          <td><input type="text" inputmode="decimal" value="${fmtC(d.monthlyPayment||0)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="updateDebt(${d.id},'monthlyPayment',parseC(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:12px;width:70px;text-align:right;border-radius:4px;padding:2px 4px"></td>
           <td style="white-space:nowrap">
             <input type="number" value="${d.startAge||p.currentAge}" onchange="updateDebt(${d.id},'startAge',Number(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:12px;width:40px;text-align:center;border-radius:4px;padding:2px">-<input type="number" value="${d.endAge||p.endAge}" onchange="updateDebt(${d.id},'endAge',Number(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:12px;width:40px;text-align:center;border-radius:4px;padding:2px">
           </td>
-          <td><input type="checkbox" ${d.taxDeductible?'checked':''} onchange="updateDebt(${d.id},'taxDeductible',this.checked)" style="width:14px;height:14px"></td>
           <td><button onclick="removeDebt(${d.id})" style="background:none;border:none;color:var(--red);font-size:14px;cursor:pointer" title="Remove">x</button></td>
         </tr>`).join('')}</tbody>
       </table></div>` : ''}
@@ -1956,7 +2174,7 @@ function renderInputs() {
   if (state.inputTab === 'pension') {
     const pen1 = p.pension || {};
     const pen2 = p.spousePension || {};
-    content = `<div class="card" data-accent="green"><div class="card-title">Pension / Annuity Income</div>
+    content += `<div class="card" data-accent="green"><div class="card-title">Pension / Annuity Income</div>
       <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
         Model defined-benefit pensions, military retirement pay, annuities, or other guaranteed income streams that start at a specific age.
       </div>
@@ -1970,7 +2188,7 @@ function renderInputs() {
             <div class="field"><label class="field-label">Name</label>
               <input type="text" class="field-input" value="${pen1.name||'Pension'}" onchange="setPension('pension','name',this.value)" style="font-size:13px"></div>
             <div class="field"><label class="field-label">Annual Amount</label><div class="field-wrap"><span class="field-prefix">$</span>
-              <input type="number" class="field-input has-prefix" value="${pen1.annualAmount||0}" onchange="setPension('pension','annualAmount',Number(this.value))">
+              <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(pen1.annualAmount||0)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="setPension('pension','annualAmount',parseC(this.value))">
             </div></div>
             <div class="field"><label class="field-label">Start Age</label>
               <input type="number" class="field-input" value="${pen1.startAge||65}" onchange="setPension('pension','startAge',Number(this.value))"></div>
@@ -1986,7 +2204,7 @@ function renderInputs() {
             <div class="field"><label class="field-label">Name</label>
               <input type="text" class="field-input" value="${pen2.name||'Spouse Pension'}" onchange="setPension('spousePension','name',this.value)" style="font-size:13px"></div>
             <div class="field"><label class="field-label">Annual Amount</label><div class="field-wrap"><span class="field-prefix">$</span>
-              <input type="number" class="field-input has-prefix" value="${pen2.annualAmount||0}" onchange="setPension('spousePension','annualAmount',Number(this.value))">
+              <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(pen2.annualAmount||0)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="setPension('spousePension','annualAmount',parseC(this.value))">
             </div></div>
             <div class="field"><label class="field-label">Start Age</label>
               <input type="number" class="field-input" value="${pen2.startAge||65}" onchange="setPension('spousePension','startAge',Number(this.value))"></div>
@@ -2010,9 +2228,9 @@ function renderInputs() {
     const yearsGap = Math.max(0, 65 - retAge);
     const totalHC = hc.enabled && yearsGap > 0 ? Array.from({length: yearsGap}, (_,i) => Math.round((hc.annualCost||18000) * Math.pow(1 + (hc.inflation||5)/100, i))).reduce((s,v) => s+v, 0) : 0;
 
-    content = `<div class="card" data-accent="pink"><div class="card-title">Pre-Medicare Healthcare (Age Gap Coverage)</div>
+    content += `<div class="card" data-accent="pink"><div class="card-title">Pre-Medicare Healthcare (Age Gap Coverage)</div>
       <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
-        If you retire before 65, you need healthcare coverage until Medicare kicks in.
+        If you retire before Medicare eligibility, you need healthcare coverage until Medicare kicks in. SSDI recipients qualify for Medicare after 24 months.
         ACA marketplace plans for a couple typically cost $12,000-$25,000/year and inflate faster than general costs.
         ${retAge >= 65 ? '<strong style="color:var(--green)">Your retirement age is 65+, so this may not apply.</strong>' : `<strong style="color:var(--amber)">You have a ${yearsGap}-year gap (age ${retAge}-65).</strong>`}
       </div>
@@ -2022,7 +2240,7 @@ function renderInputs() {
       </label>
       ${hc.enabled ? `
         <div class="grid-2">
-          ${(() => { const f = (l,k,o) => '<div class="field"><label class="field-label">'+l+'</label><div class="field-wrap">'+(o.prefix?'<span class="field-prefix">'+o.prefix+'</span>':'')+'<input type="number" class="field-input'+(o.prefix?' has-prefix':'')+(o.suffix?' has-suffix':'')+'" value="'+(hc[k]||o.def)+'" onchange="setHealthcare(\''+k+'\',Number(this.value))">'+(o.suffix?'<span class="field-suffix">'+o.suffix+'</span>':'')+'</div>'+(o.help?'<div class="field-help">'+o.help+'</div>':'')+'</div>';
+          ${(() => { const f = (l,k,o) => { const isCur = o.prefix==='$'; return '<div class="field"><label class="field-label">'+l+'</label><div class="field-wrap">'+(o.prefix?'<span class="field-prefix">'+o.prefix+'</span>':'')+'<input type="'+(isCur?'text':'number')+'" '+(isCur?'inputmode="decimal" ':'')+'class="field-input'+(o.prefix?' has-prefix':'')+(o.suffix?' has-suffix':'')+'" value="'+(isCur?fmtC(hc[k]||o.def):(hc[k]||o.def))+'" '+(isCur?'onfocus="this.value=this.value.replace(/,/g,\'\')" onblur="this.value=fmtC(parseC(this.value))" ':'')+'onchange="setHealthcare(\''+k+'\','+(isCur?'parseC(this.value)':'Number(this.value)')+')">'+(o.suffix?'<span class="field-suffix">'+o.suffix+'</span>':'')+'</div>'+(o.help?'<div class="field-help">'+o.help+'</div>':'')+'</div>'; };
             return f('Annual Cost (Year 1)','annualCost',{prefix:'$',def:18000,help:'ACA Silver plan for couple: ~$15-25K'})
               + f('Healthcare Inflation','inflation',{suffix:'%',def:5,help:'Medical costs typically inflate at 5-7%/year'});
           })()}
@@ -2049,7 +2267,7 @@ function renderInputs() {
         return `<div class="grid-2">
           <div class="grid-2">
             <div class="field"><label class="field-label">Annual Cost (today's $)</label><div class="field-wrap"><span class="field-prefix">$</span>
-              <input type="number" class="field-input has-prefix" value="${ltc.annualCost||100000}" onchange="setLTC('annualCost',Number(this.value))">
+              <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(ltc.annualCost||100000)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="setLTC('annualCost',parseC(this.value))">
             </div><div class="field-help">Nursing: $90-120K &#183; Assisted: $55-65K &#183; Home aide: $60-75K</div></div>
             <div class="field"><label class="field-label">Start Age</label>
               <input type="number" class="field-input" value="${ltc.startAge||82}" onchange="setLTC('startAge',Number(this.value))">
@@ -2070,7 +2288,7 @@ function renderInputs() {
             Have LTC Insurance
           </label>
           ${ltc.hasInsurance ? `<div class="field"><label class="field-label">Annual Insurance Coverage</label><div class="field-wrap"><span class="field-prefix">$</span>
-            <input type="number" class="field-input has-prefix" value="${ltc.insuranceCoverage||0}" onchange="setLTC('insuranceCoverage',Number(this.value))">
+            <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(ltc.insuranceCoverage||0)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="setLTC('insuranceCoverage',parseC(this.value))">
           </div><div class="field-help">Annual benefit your policy pays toward LTC</div></div>` : ''}
         </div>
         <div class="grid-2">
@@ -2177,8 +2395,10 @@ function renderInputs() {
       </div>`;
     }
 
-    // Bracket visualization for current year
-    const brackets = TAX_BRACKETS_MFJ;
+    // Bracket visualization for current year — adapt to filing status
+    const hasSpouseForTax = p.spouseEnabled || (p.spouseAge && p.spouseAge > 0);
+    const brackets = hasSpouseForTax ? TAX_BRACKETS_MFJ : TAX_BRACKETS_SINGLE;
+    const bracketLabel = hasSpouseForTax ? 'MFJ' : 'Single';
     const bracketViz = brackets.filter(b => b.max < 1e8).map((b, i) => {
       const width = Math.min(b.max - b.min, 500000);
       const isTarget = rc.strategy === 'fillBracket' && b.rate <= (rc.targetBracket || 0.22);
@@ -2191,7 +2411,7 @@ function renderInputs() {
       </div>`;
     }).join('');
 
-    content = `<div class="card" data-accent="cyan"><div class="card-title">Roth Conversion Strategy</div>
+    content += `<div class="card" data-accent="cyan"><div class="card-title">Roth Conversion Strategy</div>
       ${!hasPretax ? '<div style="color:var(--amber);font-size:13px;margin-bottom:12px">! No pre-tax accounts found. Add a pre-tax account in the Accounts tab first.</div>' : ''}
       <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
         Converting pre-tax (401k/Traditional IRA) funds to Roth means paying taxes now in exchange for tax-free growth and withdrawals later.
@@ -2220,25 +2440,22 @@ function renderInputs() {
           ${rc.strategy === 'fixed' ? `
             <div class="field"><label class="field-label">Annual Conversion Amount</label>
               <div class="field-wrap"><span class="field-prefix">$</span>
-                <input type="number" class="field-input has-prefix" value="${rc.fixedAmount||50000}" onchange="setRothConv('fixedAmount',Number(this.value))">
+                <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(rc.fixedAmount||50000)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="setRothConv('fixedAmount',parseC(this.value))">
               </div></div>
-          ` : `
+          ` : ''}
+          ${rc.strategy === 'fillBracket' ? `
             <div class="field"><label class="field-label">Fill Up To Bracket</label>
               <select class="field-input" onchange="setRothConv('targetBracket',Number(this.value))" style="cursor:pointer">
-                <option value="0.10"${rc.targetBracket===0.10?' selected':''}>10% ($0 - $23,200)</option>
-                <option value="0.12"${rc.targetBracket===0.12?' selected':''}>12% ($23,200 - $94,300)</option>
-                <option value="0.22"${rc.targetBracket===0.22?' selected':''}>22% ($94,300 - $201,050)</option>
-                <option value="0.24"${rc.targetBracket===0.24?' selected':''}>24% ($201,050 - $383,900)</option>
-                <option value="0.32"${rc.targetBracket===0.32?' selected':''}>32% ($383,900 - $487,450)</option>
+                ${brackets.filter(b => b.rate <= 0.32).map(b => `<option value="${b.rate}"${rc.targetBracket===b.rate?' selected':''}>${(b.rate*100).toFixed(0)}% (${fmtK(b.min)} - ${fmtK(b.max)})</option>`).join('')}
               </select>
-              <div class="field-help">Conversions fill available space in brackets up to this rate</div>
+              <div class="field-help">Conversions fill available space in ${bracketLabel} brackets up to this rate</div>
             </div>
-          `}
+          ` : ''}
 
           ${rc.strategy === 'targetMAGI' ? `
             <div class="field"><label class="field-label">Target MAGI Ceiling</label>
               <div class="field-wrap"><span class="field-prefix">$</span>
-                <input type="number" class="field-input has-prefix" value="${rc.targetMAGI||200000}" onchange="setRothConv('targetMAGI',Number(this.value))">
+                <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(rc.targetMAGI||200000)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="setRothConv('targetMAGI',parseC(this.value))">
               </div>
               <div class="field-help">Convert up to this total MAGI -- controls IRMAA brackets</div></div>
           ` : ''}
@@ -2262,7 +2479,7 @@ function renderInputs() {
         </div>
 
         <div>
-          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">MFJ Tax Brackets</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">${bracketLabel} Tax Brackets</div>
           <div style="font-size:10px;color:var(--text-faint);margin-bottom:6px">${rc.strategy==='fillBracket'?'Highlighted brackets will be filled by conversions':'Target brackets for reference'}</div>
           ${bracketViz}
         </div>
@@ -2277,8 +2494,17 @@ function renderInputs() {
       const opt = state.rothOptResults;
       let optHtml = `<div class="card" data-accent="green"><div class="card-title">Roth Conversion Optimizer</div>
         <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
-          Tests hundreds of conversion strategies -- varying amounts, bracket targets, and timing windows -- then ranks
-          the top results by a composite score that minimizes lifetime taxes, RMDs, and IRMAA surcharges while maximizing final net worth.
+          Tests hundreds of conversion strategies — varying amounts, bracket targets, and timing windows — then ranks
+          the top results by a composite score of lifetime tax savings, IRMAA reduction, and net worth gain.
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+          <span style="font-size:12px;color:var(--text-dim);font-weight:500">Scoring priority:</span>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text);cursor:pointer">
+            <input type="radio" name="optScore" ${state.optScoreMode==='balanced'?'checked':''} onchange="setOptScoreMode('balanced')" style="accent-color:var(--green)"> Balanced</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text);cursor:pointer">
+            <input type="radio" name="optScore" ${state.optScoreMode==='taxMin'?'checked':''} onchange="setOptScoreMode('taxMin')" style="accent-color:var(--green)"> Minimize Taxes</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text);cursor:pointer">
+            <input type="radio" name="optScore" ${state.optScoreMode==='nwMax'?'checked':''} onchange="setOptScoreMode('nwMax')" style="accent-color:var(--green)"> Maximize Net Worth</label>
         </div>
         <button class="mc-btn opt-btn" onclick="this.textContent='Optimizing...';this.disabled=true;setTimeout(optimizeRothConversion,50)" style="background:linear-gradient(135deg,var(--green),var(--cyan))">
           Find Optimal Strategy
@@ -2295,7 +2521,7 @@ function renderInputs() {
               <th style="text-align:left">Strategy</th>
               <th>Converted</th><th>Conv Tax</th>
               <th>Tax vs Base</th><th>RMD vs Base</th><th>IRMAA vs Base</th>
-              <th>Final NW vs Base</th><th title="Weighted composite of tax savings, RMD reduction, IRMAA savings, and net worth gain">Benefit Score</th><th></th>
+              <th>Final NW vs Base</th><th title="Weighted composite: tax savings, IRMAA savings, net worth gain">Score</th><th></th>
             </tr></thead>
             <tbody>
               <tr style="background:var(--bg-base)">
@@ -2306,8 +2532,9 @@ function renderInputs() {
               </tr>
               ${opt.strategies.map((s, idx) => {
                 const isBest = idx === 0;
-                return `<tr${isBest ? ' style="background:rgba(16,185,129,0.08)"' : ''}>
-                  <td style="text-align:left;color:${isBest?'var(--green)':'var(--text)'};font-weight:${isBest?'600':'400'}">${isBest?'&#9733; ':''}${s.label}</td>
+                const isApplied = state.rothOptAppliedIdx === idx;
+                return `<tr${isApplied ? ' style="background:rgba(16,185,129,0.15)"' : isBest ? ' style="background:rgba(16,185,129,0.08)"' : ''}>
+                  <td style="text-align:left;color:${isBest?'var(--green)':'var(--text)'};font-weight:${isBest?'600':'400'}">${isBest?'&#9733; ':''}${s.label}${isApplied?' <span style="color:var(--green)">&#10003; Applied</span>':''}</td>
                   <td style="color:var(--cyan)">${fmtK(s.conv)}</td>
                   <td style="color:var(--red)">${fmtK(s.convTax)}</td>
                   <td style="color:${s.taxDiff<0?'var(--green)':s.taxDiff>0?'var(--red)':'var(--text-faint)'}">${s.taxDiff<0?'&#8595; '+fmtK(Math.abs(s.taxDiff)):s.taxDiff>0?'&#8593; '+fmtK(s.taxDiff):'--'}</td>
@@ -2315,7 +2542,7 @@ function renderInputs() {
                   <td style="color:${s.irmaaDiff<0?'var(--green)':s.irmaaDiff>0?'var(--pink)':'var(--text-faint)'}">${s.irmaaDiff<0?'&#8595; '+fmtK(Math.abs(s.irmaaDiff)):s.irmaaDiff>0?'&#8593; '+fmtK(s.irmaaDiff):'--'}</td>
                   <td style="color:${s.nwDiff>0?'var(--green)':s.nwDiff<0?'var(--red)':'var(--text-faint)'}">${s.nwDiff>0?'&#8593; '+fmtK(s.nwDiff):s.nwDiff<0?'&#8595; '+fmtK(Math.abs(s.nwDiff)):'--'}</td>
                   <td style="font-weight:600;color:${isBest?'var(--green)':'var(--text-dim)'}">${(s.score/1000).toFixed(1)}K</td>
-                  <td><button class="scenario-btn" style="padding:4px 10px;font-size:10px" onclick="applyRothOpt(${idx})">Apply</button></td>
+                  <td>${isApplied ? '<span style="color:var(--green);font-size:11px;font-weight:600">Active</span>' : `<button class="scenario-btn" style="padding:4px 10px;font-size:10px;color:var(--green);border-color:var(--green)" onclick="applyRothOpt(${idx})">Apply</button>`}</td>
                 </tr>`;
               }).join('')}
             </tbody>
@@ -2375,7 +2602,7 @@ function renderInputs() {
   if (state.inputTab === 'ssdi') {
     const ssdi1 = p.ssdiPrimary || {};
     const ssdi2 = p.ssdiSpouse || {};
-    content = `<div class="card" data-accent="blue"><div class="card-title">SSDI -- Social Security Disability Insurance <span class="badge badge-ssdi">Disability</span></div>
+    content += `<div class="card" data-accent="blue"><div class="card-title">SSDI -- Social Security Disability Insurance <span class="badge badge-ssdi">Disability</span></div>
       <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
         SSDI provides income if you or your spouse become disabled before retirement. At FRA, SSDI converts to regular SS benefits. SSDI income is taxable (up to 85%). Each person's SSDI is tracked separately.
       </div>
@@ -2387,7 +2614,7 @@ function renderInputs() {
           </label>
           ${ssdi1.enabled ? `
             <div class="field"><label class="field-label">Your Monthly SSDI Amount</label><div class="field-wrap"><span class="field-prefix">$</span>
-              <input type="number" class="field-input has-prefix" value="${ssdi1.monthlyAmount||0}" onchange="setSSDI('primary','monthlyAmount',Number(this.value))">
+              <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(ssdi1.monthlyAmount||0)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="setSSDI('primary','monthlyAmount',parseC(this.value))">
             </div></div>
             <div class="field"><label class="field-label">SSDI Start Age</label>
               <input type="number" class="field-input" value="${ssdi1.startAge||0}" onchange="setSSDI('primary','startAge',Number(this.value))"></div>
@@ -2405,7 +2632,7 @@ function renderInputs() {
           </label>
           ${ssdi2.enabled ? `
             <div class="field"><label class="field-label">Spouse Monthly SSDI Amount</label><div class="field-wrap"><span class="field-prefix">$</span>
-              <input type="number" class="field-input has-prefix" value="${ssdi2.monthlyAmount||0}" onchange="setSSDI('spouse','monthlyAmount',Number(this.value))">
+              <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(ssdi2.monthlyAmount||0)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="setSSDI('spouse','monthlyAmount',parseC(this.value))">
             </div></div>
             <div class="field"><label class="field-label">SSDI Start Age</label>
               <input type="number" class="field-input" value="${ssdi2.startAge||0}" onchange="setSSDI('spouse','startAge',Number(this.value))"></div>
@@ -2474,7 +2701,7 @@ function renderInputs() {
       : estimateSS({ avgIncome: p.ssAnnualIncome || p.annualIncome, claimAge: p.ssClaimAge, birthYear });
     // claim comparison table built inline below
 
-    content = `<div class="grid-2">
+    content += `<div class="grid-2">
       <div class="card"><div class="card-title">Your Social Security</div>
         ${field('SS Claim Age','ssClaimAge',{help:'62 (early) to 70 (max delayed credits)'})}
         ${(p.spouseEnabled || p.spouseAge > 0) ? field('Survivor SS Claim Age','survivorSSClaimAge',{help:'Age to start collecting survivor SS if spouse passes away. Min 60.'}) : ''}
@@ -2640,7 +2867,7 @@ function renderInputs() {
   if (state.inputTab === 'charity') {
     const charity = p.charitableGiving || {};
     const sched = charity.schedule || [];
-    content = `<div class="card" data-accent="amber"><div class="card-title">Charitable Giving & QCD <span class="badge badge-qcd">Tax-Free RMD</span></div>
+    content += `<div class="card" data-accent="amber"><div class="card-title">Charitable Giving & QCD <span class="badge badge-qcd">Tax-Free RMD</span></div>
       <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
         Model charitable giving throughout retirement. Qualified Charitable Distributions (QCDs) from IRAs after age 701/2
         count toward RMDs without adding to taxable income -- reducing taxes and potentially IRMAA surcharges.
@@ -2661,7 +2888,7 @@ function renderInputs() {
         ${!charity.useSchedule ? `
           <div class="grid-2">
             <div class="field"><label class="field-label">Annual Giving Amount</label><div class="field-wrap"><span class="field-prefix">$</span>
-              <input type="number" class="field-input has-prefix" value="${charity.annualAmount||10000}" onchange="setQCD('annualAmount',Number(this.value))">
+              <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(charity.annualAmount||10000)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="setQCD('annualAmount',parseC(this.value))">
             </div><div class="field-help">Max QCD: $108K/yr (2025). Amounts beyond QCD eligibility are non-deductible expenses.</div></div>
             <div>
               <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);margin-top:24px">
@@ -2680,7 +2907,7 @@ function renderInputs() {
               <td style="white-space:nowrap">
                 <input type="number" value="${s.startAge||65}" onchange="updateCharitySched(${idx},'startAge',Number(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:12px;width:40px;text-align:center;border-radius:4px;padding:2px">-<input type="number" value="${s.endAge||95}" onchange="updateCharitySched(${idx},'endAge',Number(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:12px;width:40px;text-align:center;border-radius:4px;padding:2px">
               </td>
-              <td><div style="display:flex;align-items:center;gap:2px"><span style="color:var(--text-faint);font-size:11px">$</span><input type="number" value="${s.amount||0}" onchange="updateCharitySched(${idx},'amount',Number(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:12px;width:65px;text-align:right;border-radius:4px;padding:2px 4px"></div></td>
+              <td><div style="display:flex;align-items:center;gap:2px"><span style="color:var(--text-faint);font-size:11px">$</span><input type="text" inputmode="decimal" value="${fmtC(s.amount||0)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="updateCharitySched(${idx},'amount',parseC(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:12px;width:65px;text-align:right;border-radius:4px;padding:2px 4px"></div></td>
               <td><div style="display:flex;align-items:center;gap:2px"><input type="number" value="${s.pctIncome||0}" onchange="updateCharitySched(${idx},'pctIncome',Number(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:12px;width:45px;text-align:right;border-radius:4px;padding:2px 4px"><span style="color:var(--text-faint);font-size:11px">%</span></div></td>
               <td><button onclick="removeCharitySched(${idx})" style="background:none;border:none;color:var(--red);font-size:14px;cursor:pointer">x</button></td>
             </tr>`).join('')}</tbody>
@@ -2700,7 +2927,7 @@ function renderInputs() {
     const surplus = final - (lg.targetAmount || 0);
     const barColor = pct >= 100 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444';
 
-    content = `<div class="card" data-accent="green"><div class="card-title">Legacy Planning</div>
+    content += `<div class="card" data-accent="green"><div class="card-title">Legacy Planning</div>
       <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
         Set a target amount you want to leave behind for heirs, charity, or other purposes.
         The dashboard will track progress toward this goal, and you can use other tabs to adjust strategies
@@ -2712,7 +2939,7 @@ function renderInputs() {
       </label>
       ${lg.enabled ? `
         <div class="field"><label class="field-label">Target Legacy Amount</label><div class="field-wrap"><span class="field-prefix">$</span>
-          <input type="number" class="field-input has-prefix" value="${lg.targetAmount||500000}" onchange="setLegacy('targetAmount',Number(this.value))">
+          <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(lg.targetAmount||500000)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="setLegacy('targetAmount',parseC(this.value))">
         </div><div class="field-help">Net worth you want to leave at end of plan (age ${p.endAge})</div></div>
 
         <div style="margin:16px 0">
@@ -2757,11 +2984,17 @@ function renderInputs() {
 
   if (state.inputTab === 'medicare') {
     const proj = runProjection(p);
-    const medicareYears = proj.filter(y => y.age >= 65);
+    const ssdi1d = p.ssdiPrimary || {};
+    const primaryMedAge = ssdi1d.enabled ? Math.min((ssdi1d.startAge || 0) + 2, 65) : 65;
+    const medicareYears = proj.filter(y => y.age >= primaryMedAge);
     const totalMedicare = medicareYears.reduce((s,y) => s + y.medicareCost, 0);
     const totalSurcharge = medicareYears.reduce((s,y) => s + y.irmaa, 0);
+    const hasSpouse = p.spouseEnabled || (p.spouseAge && p.spouseAge > 0);
+    const irmaaBrackets = hasSpouse ? IRMAA_BRACKETS_MFJ : IRMAA_BRACKETS_SINGLE;
+    const irmaaLabel = hasSpouse ? 'MFJ' : 'Single';
+    const irmaaBaseThresh = hasSpouse ? '$212K' : '$106K';
 
-    content = `<div class="card" data-accent="pink"><div class="card-title">Medicare IRMAA Impact <span class="badge badge-irmaa">Income-Based</span></div>
+    content += `<div class="card" data-accent="pink"><div class="card-title">Medicare IRMAA Impact <span class="badge badge-irmaa">Income-Based</span></div>
       <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;line-height:1.6">
         Medicare Part B and Part D premiums include Income-Related Monthly Adjustment Amounts (IRMAA) based on your MAGI from 2 years prior.
         Higher income in retirement (from RMDs, capital gains, or SS) can push you into higher IRMAA brackets.
@@ -2769,19 +3002,19 @@ function renderInputs() {
 
       <div class="grid-2">
         <div>
-          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">2024 IRMAA Brackets (MFJ)</div>
-          ${IRMAA_BRACKETS_MFJ.map((b, i) => {
-            const next = IRMAA_BRACKETS_MFJ[i+1];
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">2025 IRMAA Brackets (${irmaaLabel})</div>
+          ${irmaaBrackets.map((b, i) => {
+            const next = irmaaBrackets[i+1];
             const rangeStr = next ? `$${(b.magi/1000).toFixed(0)}K - $${(next.magi/1000).toFixed(0)}K` : `$${(b.magi/1000).toFixed(0)}K+`;
             const isFirst = i === 0;
             return `<div class="irmaa-bracket">
-              <span>${isFirst ? 'Base (&le;$206K)' : rangeStr}</span>
+              <span>${isFirst ? 'Base (&le;' + irmaaBaseThresh + ')' : rangeStr}</span>
               <span>Part B: $${(b.partB/12).toFixed(0)}/mo${i > 0 ? ' &#183; Part D: +$'+(b.partD/12).toFixed(0)+'/mo' : ''}</span>
             </div>`;
           }).join('')}
         </div>
         <div>
-          <div class="info-box" style="margin-top:0"><div class="info-box-label">Lifetime Medicare Cost (from 65)</div>
+          <div class="info-box" style="margin-top:0"><div class="info-box-label">Lifetime Medicare Cost (from ${primaryMedAge})</div>
             <div class="info-box-value" style="color:var(--pink)">${fmtK(totalMedicare)}</div></div>
           <div class="info-box"><div class="info-box-label">Lifetime IRMAA Surcharges</div>
             <div class="info-box-value" style="color:var(--pink)">${fmtK(totalSurcharge)}</div></div>
@@ -2798,7 +3031,7 @@ function renderInputs() {
 
   if (state.inputTab === 'assumptions') {
     const realRet = ((1 + p.nominalReturn/100) / (1 + p.inflation/100) - 1) * 100;
-    content = `<div class="card"><div class="card-title">Economic Assumptions</div>
+    content += `<div class="card"><div class="card-title">Economic Assumptions</div>
       <div class="grid-2">
         ${field('Nominal Investment Return','nominalReturn',{suffix:'%',help:'Default for accounts without individual rates. Historical S&P 500 ~10%. Balanced ~7%'})}
         ${field('Inflation Rate','inflation',{suffix:'%',help:'Historical avg ~3%'})}
@@ -2824,6 +3057,7 @@ function renderInputs() {
         Withdrawal order: RMD (minus QCDs) -> taxable -> pre-tax -> Roth.
         Taxable withdrawals taxed on estimated gains (50% cost basis) at applicable capital gains rate.
         Pension income is fully taxable. Pre-Medicare healthcare added to expenses during gap years.
+        Pre-retirement expenses use a separate inflation rate and reduce available cash flow; shortfalls draw from taxable accounts.
         Expense phases reduce base spending in later retirement.
         RMD age per SECURE Act 2.0. IRMAA uses 2025 brackets. SS includes FRA by birth year, COLA, and independent survivor benefit claiming. Survivor SS integrates with SSDI (pays higher of the two).
       </div>
@@ -2833,12 +3067,6 @@ function renderInputs() {
   return subNav + content;
 }
 
-function renderProjectionTeaser(proj) {
-  const p = state.params;
-  const cols = [{head:'Age',key:'age'},{head:'Income',key:'totalInc'},{head:'Expenses',key:'expenses'},{head:'Tax',key:'tax'},{head:'Net Worth',key:'netWorth'}];
-  const rows = proj.slice(0, 8).map(y => `<tr>${cols.map(c => `<td>${c.key==='age' ? y.age : fmt(y[c.key]||0)}</td>`).join('')}</tr>`).join('');
-  return `<div class="card"><table class="proj-table"><thead><tr>${cols.map(c=>`<th>${c.head}</th>`).join('')}</tr></thead><tbody>${rows}<tr><td colspan="${cols.length}" style="text-align:center;color:var(--text-faint);padding:12px">... ${proj.length - 8} more years ...</td></tr></tbody></table></div>`;
-}
 function renderProjectionTable(proj) {
   const p = state.params;
   const categories = [
@@ -2846,7 +3074,7 @@ function renderProjectionTable(proj) {
     { key: 'earned', label: 'Earned Income', color: '#06b6d4' },
     { key: 'ss', label: 'Social Security', color: '#10b981' },
     { key: 'expenses', label: 'Expenses', color: '#ef4444' },
-    { key: 'tax', label: 'Federal Tax', color: '#8b5cf6' },
+    { key: 'fedTax', label: 'Federal Tax', color: '#8b5cf6' },
     { key: 'stateTax', label: 'State Tax', color: '#a855f7' },
     { key: 'withdrawal', label: 'Withdrawals', color: '#f59e0b' },
     { key: 'rmd', label: 'RMDs', color: '#7c3aed' },
@@ -2857,6 +3085,7 @@ function renderProjectionTable(proj) {
     { key: 'debtPayments', label: 'Liabilities', color: '#dc2626' },
     { key: 'ltcCost', label: 'Long-Term Care', color: '#be185d' },
     { key: 'charityTotal', label: 'Charity', color: '#d97706' },
+    { key: 'magi', label: 'MAGI', color: '#6366f1' },
     { key: 'preTax', label: 'Pre-Tax Balance', color: '#3b82f6' },
     { key: 'roth', label: 'Roth Balance', color: '#10b981' },
     { key: 'taxable', label: 'Taxable Balance', color: '#f59e0b' },
@@ -2918,7 +3147,7 @@ function renderProjectionTable(proj) {
       { head:'SS', key:'ss', color:'var(--green)', isCurrency:true },
       { head:'Pension', key:'pension', color:'var(--green)', isCurrency:true },
       { head:'Exp.', key:'expenses', color:'var(--red)', isCurrency:true },
-      { head:'Fed Tax', key:'tax', color:'var(--purple)', isCurrency:true },
+      { head:'Fed Tax', key:'fedTax', color:'var(--purple)', isCurrency:true },
       { head:'State Tax', key:'stateTax', color:'var(--purple)', isCurrency:true },
       { head:'W/D', key:'withdrawal', color:'var(--amber)', isCurrency:true },
       { head:'RMD', key:'rmd', color:'var(--purple)', isCurrency:true },
@@ -3029,7 +3258,8 @@ function renderScenarios(proj) {
   const scenarios = [
     {name:'Retire at 60',o:{retirementAge:60}},{name:'Retire at 62',o:{retirementAge:62}},
     {name:'Retire at 67',o:{retirementAge:67}},{name:'Retire at 70',o:{retirementAge:70}},
-    {name:'Lower returns (5%)',o:{nominalReturn:5}},{name:'Higher expenses (+20%)',o:{annualExpenses:Math.round(p.annualExpenses*1.2)}},
+    {name:'Lower returns (5%)',o:{nominalReturn:5}},{name:'Higher ret. expenses (+20%)',o:{annualExpenses:Math.round(p.annualExpenses*1.2)}},
+    {name:'Higher pre-ret expenses (+20%)',o:{preRetirementExpenses:Math.round((p.preRetirementExpenses||0)*1.2)}},
     {name:'SS at 62',o:{ssClaimAge:62}},{name:'SS at 70',o:{ssClaimAge:70}},
     {name:'No COLA on SS',o:{ssCOLA:0}},{name:'High inflation (5%)',o:{inflation:5}},
     {name:'Roth Conv $50K/yr',o:{rothConversion:{enabled:true,strategy:'fixed',fixedAmount:50000,startAge:p.retirementAge,endAge:Math.min(p.retirementAge+7,72),targetBracket:0.22}}},
@@ -3037,7 +3267,7 @@ function renderScenarios(proj) {
     {name:'Low Return + High Inflation',o:{nominalReturn:5,inflation:5}},
     {name:'Early Retire + Lower Return',o:{retirementAge:60,nominalReturn:5}},
     {name:'SS at 70 + Roth Conv',o:{ssClaimAge:70,rothConversion:{enabled:true,strategy:'fillBracket',fixedAmount:50000,startAge:p.retirementAge,endAge:Math.min(p.retirementAge+7,72),targetBracket:0.22}}},
-    {name:'+20% Exp + High Inflation',o:{annualExpenses:Math.round(p.annualExpenses*1.2),inflation:5}},
+    {name:'+20% Exp + High Inflation',o:{annualExpenses:Math.round(p.annualExpenses*1.2),preRetirementExpenses:Math.round((p.preRetirementExpenses||0)*1.2),inflation:5}},
   ];
 
   // Category selection for scenario charts (up to 3)
@@ -3046,7 +3276,8 @@ function renderScenarios(proj) {
     { key: 'earned', label: 'Earned Income', color: '#06b6d4' },
     { key: 'ss', label: 'Social Security', color: '#10b981' },
     { key: 'expenses', label: 'Expenses', color: '#ef4444' },
-    { key: 'tax', label: 'Federal Tax', color: '#8b5cf6' },
+    { key: 'fedTax', label: 'Federal Tax', color: '#8b5cf6' },
+    { key: 'stateTax', label: 'State Tax', color: '#a855f7' },
     { key: 'rmd', label: 'RMDs', color: '#7c3aed' },
     { key: 'preTax', label: 'Pre-Tax Bal.', color: '#3b82f6' },
     { key: 'roth', label: 'Roth Bal.', color: '#10b981' },
@@ -3216,7 +3447,7 @@ function render() {
     case 'montecarlo': html = renderMonteCarlo(proj); break;
     case 'scenarios': html = renderScenarios(proj); break;
   }
-  html += '<div class="footer">RetIQ v1 &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan</div>';
+  html += '<div class="footer">RetIQ v1.3.022626.3 &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan</div>';
   document.getElementById('app').innerHTML = html;
   updateHeaderHeight();
 }
@@ -3230,11 +3461,6 @@ updateHeaderHeight();
 
 // ---------------- RetIQ Install + Pro Licensing ----------------
 const RETIQ_API = "https://retiq-worker.bortvin.workers.dev";
-
-function isInstalledPWA(){
-  // iOS Safari sets navigator.standalone. Others use display-mode media query.
-  return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true;
-}
 
 function setPlanBadge(isPro){
   const badge = document.getElementById("planBadge");
@@ -3277,106 +3503,6 @@ async function validateLicense(key){
     return d.valid === true;
   }catch{ return null; } // null = network error (offline), false = explicitly invalid
 }
-
-function openInstallModal({canPrompt}){
-  const back = document.getElementById("installModalBackdrop");
-  const steps = document.getElementById("installSteps");
-  const doBtn = document.getElementById("installDoBtn");
-  const closeBtn = document.getElementById("installCloseBtn");
-  if(!back || !steps) return;
-
-  const ua = navigator.userAgent || "";
-  const isIOS = /iPhone|iPad|iPod/i.test(ua);
-  const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
-
-  let html = "";
-  if(canPrompt){
-    html = `
-      <p><b>One click install</b> is available in this browser.</p>
-      <ol>
-        <li>Click <b>Install now</b></li>
-        <li>Confirm install</li>
-        <li>Launch RetIQ from your apps</li>
-      </ol>`;
-    doBtn.style.display = "inline-block";
-  } else if(isIOS){
-    html = `
-      <p>iOS installs RetIQ via the Share menu:</p>
-      <ol>
-        <li>Tap the <b>Share</b> icon in Safari</li>
-        <li>Select <b>Add to Home Screen</b></li>
-        <li>Open RetIQ from your Home Screen</li>
-      </ol>`;
-    doBtn.style.display = "none";
-  } else if(isSafari){
-    html = `
-      <p>Safari (macOS) installs RetIQ via the Share menu:</p>
-      <ol>
-        <li>Open the Safari toolbar <b>Share</b> button</li>
-        <li>Select <b>Add to Dock</b></li>
-        <li>Launch RetIQ from the Dock</li>
-      </ol>`;
-    doBtn.style.display = "none";
-  } else {
-    html = `
-      <p>Install RetIQ from your browser menu:</p>
-      <ol>
-        <li>Open the browser menu (⋮)</li>
-        <li>Choose <b>Install RetIQ</b> / <b>Install app</b></li>
-        <li>Launch from your apps list</li>
-      </ol>`;
-    doBtn.style.display = "none";
-  }
-
-  steps.innerHTML = html;
-  back.style.display = "flex";
-
-  const close = ()=>{ back.style.display="none"; };
-  closeBtn.onclick = close;
-  back.onclick = (e)=>{ if(e.target === back) close(); };
-}
-
-let deferredInstallPrompt = null;
-
-// Hide Install if already installed
-(function initInstallUI(){
-  const installBtn = document.getElementById("installBtn");
-  if(!installBtn) return;
-
-  if(isInstalledPWA()){
-    installBtn.style.display="none";
-    return;
-  }
-  // Default to visible (intentional), but we'll still prompt only when available
-  installBtn.style.display="inline-flex";
-
-  installBtn.addEventListener("click", ()=>{
-    openInstallModal({canPrompt: !!deferredInstallPrompt});
-  });
-})();
-
-window.addEventListener("beforeinstallprompt", (e)=>{
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  const doBtn = document.getElementById("installDoBtn");
-  if(doBtn){
-    doBtn.style.display="inline-block";
-    doBtn.onclick = async ()=>{
-      try{
-        deferredInstallPrompt.prompt();
-        await deferredInstallPrompt.userChoice;
-      } finally {
-        deferredInstallPrompt = null;
-        document.getElementById("installModalBackdrop").style.display="none";
-      }
-    };
-  }
-});
-
-window.addEventListener("appinstalled", ()=>{
-  const installBtn = document.getElementById("installBtn");
-  if(installBtn) installBtn.style.display="none";
-});
 
 // ---- Pro gating helpers ----
 function requirePro(reason){
