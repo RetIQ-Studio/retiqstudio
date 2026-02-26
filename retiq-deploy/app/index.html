@@ -1028,7 +1028,7 @@ function runProjection(p) {
     if (rc && rc.enabled && age >= rc.startAge && age <= rc.endAge && preTax > 0) {
       if (rc.strategy === 'fixed') {
         rothConv = Math.min(rc.fixedAmount || 0, preTax);
-      } else if (rc.strategy === 'fillBracket') {
+      } else if (rc.strategy === 'fillBracket' || rc.strategy === 'smartFill') {
         const ssTaxForRoth = calcTaxableSS(ss, earned + taxableWd + capGains + ssdiIncome + pensionIncome, isSingle);
         const curTaxable = earned + taxableWd + ssdiIncome + pensionIncome + ssTaxForRoth;
         let stdDedTemp = isSingle ? STD_DEDUCTION_SINGLE : STD_DEDUCTION;
@@ -1049,7 +1049,23 @@ function runProjection(p) {
         let bracketTop = 0;
         for (const b of brackets) { if (b.rate <= rc.targetBracket) bracketTop = b.max; }
         if (bracketTop === Infinity) bracketTop = curTaxableAfterDed;
-        rothConv = Math.min(Math.max(0, bracketTop - curTaxableAfterDed), preTax);
+        let bracketRoom = Math.max(0, bracketTop - curTaxableAfterDed);
+
+        // Smart Fill: additionally cap at next IRMAA threshold to avoid triggering surcharges
+        if (rc.strategy === 'smartFill') {
+          const ssTaxForMAGI = calcTaxableSS(ss, earned + taxableWd + capGains + ssdiIncome + pensionIncome, isSingle);
+          const curMAGI = earned + taxableWd + capGains + ssdiIncome + pensionIncome + ssTaxForMAGI;
+          const irmaaBrackets = isSingle ? IRMAA_BRACKETS_SINGLE : IRMAA_BRACKETS_MFJ;
+          // Find the next IRMAA tier above current MAGI
+          let nextIRMAAThreshold = Infinity;
+          for (const ib of irmaaBrackets) {
+            if (ib.magi > curMAGI) { nextIRMAAThreshold = ib.magi; break; }
+          }
+          const irmaaRoom = Math.max(0, nextIRMAAThreshold - curMAGI);
+          bracketRoom = Math.min(bracketRoom, irmaaRoom);
+        }
+
+        rothConv = Math.min(bracketRoom, preTax);
       } else if (rc.strategy === 'targetMAGI') {
         const ssTaxForMAGI = calcTaxableSS(ss, earned + taxableWd + capGains + ssdiIncome + pensionIncome, isSingle);
         const curMAGI = earned + taxableWd + capGains + ssdiIncome + pensionIncome + ssTaxForMAGI;
@@ -1659,6 +1675,14 @@ function optimizeRothConversion() {
       if (bust && (!baseBust || bust < baseBust)) continue;
       candidates.push({ rc, proj, label: `Fill ${(br*100).toFixed(0)}% &#183; Ages ${startAge}-${endAge}` });
     }
+    // Smart Fill (IRMAA-aware bracket fill)
+    for (const br of bracketTargets) {
+      const rc = { enabled: true, strategy: 'smartFill', fixedAmount: 0, startAge, endAge, targetBracket: br };
+      const proj = runProjection({...p, rothConversion: rc});
+      const bust = proj.find(y => y.netWorth <= 0)?.age || null;
+      if (bust && (!baseBust || bust < baseBust)) continue;
+      candidates.push({ rc, proj, label: `Smart ${(br*100).toFixed(0)}% &#183; Ages ${startAge}-${endAge}` });
+    }
   }
 
   // Score each candidate
@@ -1749,6 +1773,140 @@ function applyRothOpt(idx) {
       if (card) { card.style.boxShadow = '0 0 20px var(--green)'; setTimeout(() => card.style.boxShadow = '', 1200); }
     }, 100);
   }
+}
+
+// -- Custom Schedule helpers ----------------------------------------
+function setCustomScheduleAmount(age, val) {
+  if (proGuard()) return;
+  const rc = state.params.rothConversion;
+  if (!rc.customSchedule) rc.customSchedule = [];
+  const idx = rc.customSchedule.findIndex(e => e.age === age);
+  const amount = Math.max(0, Math.round(val));
+  if (idx >= 0) rc.customSchedule[idx].amount = amount;
+  else rc.customSchedule.push({ age, amount });
+  rc.customSchedule.sort((a, b) => a.age - b.age);
+  state.mcResults = null; state.rothOptResults = null; saveState(); render();
+}
+
+// -- Generate Optimal Schedule (Option C) ----------------------------------------
+// Greedy forward pass: for each year in the conversion window, test candidate
+// amounts and pick the one that produces the best lifetime outcome.
+function generateOptimalSchedule() {
+  if (proGuard()) return;
+  const p = state.params;
+  const preTaxBal = p.accounts.filter(a => a.type === 'pretax').reduce((s, a) => s + a.balance, 0);
+  if (preTaxBal <= 0) { alert('No pre-tax balance to convert.'); return; }
+
+  const rc = p.rothConversion || {};
+  const startAge = rc.startAge || p.retirementAge || 65;
+  const endAge = rc.endAge || 72;
+  const targetBracket = rc.targetBracket || 0.22;
+
+  // Scoring weights (same as optimizer)
+  const weights = state.optScoreMode === 'taxMin' ? { tax: 0.70, irmaa: 0.20, nw: 0.10 }
+    : state.optScoreMode === 'nwMax' ? { tax: 0.20, irmaa: 0.10, nw: 0.70 }
+    : /* balanced */ { tax: 0.45, irmaa: 0.20, nw: 0.35 };
+
+  // Baseline: no conversions
+  const baseProj = runProjection({ ...p, rothConversion: { enabled: false } });
+  const baseTax = baseProj.reduce((s, y) => s + y.tax, 0);
+  const baseIRMAA = baseProj.reduce((s, y) => s + y.irmaa, 0);
+  const baseFinal = baseProj[baseProj.length - 1].netWorth;
+
+  function scoreProj(proj) {
+    const tax = proj.reduce((s, y) => s + y.tax, 0);
+    const irmaa = proj.reduce((s, y) => s + y.irmaa, 0);
+    const final = proj[proj.length - 1].netWorth;
+    const taxNorm = baseTax > 0 ? (baseTax - tax) / baseTax : 0;
+    const irmaaNorm = baseIRMAA > 0 ? (baseIRMAA - irmaa) / baseIRMAA : 0;
+    const nwNorm = baseFinal > 0 ? (final - baseFinal) / baseFinal : 0;
+    return taxNorm * weights.tax + irmaaNorm * weights.irmaa + nwNorm * weights.nw;
+  }
+
+  // First pass: get Smart Fill amounts as seed (run one projection with smartFill)
+  const seedProj = runProjection({ ...p, rothConversion: {
+    enabled: true, strategy: 'smartFill', startAge, endAge, targetBracket,
+  }});
+  const seedSchedule = [];
+  for (let age = startAge; age <= endAge; age++) {
+    const yr = seedProj.find(y => y.age === age);
+    seedSchedule.push({ age, amount: yr ? yr.rothConv : 0 });
+  }
+
+  // Candidate amounts to test for each year
+  const fixedCandidates = [0, 5000, 10000, 25000, 50000, 75000, 100000, 150000, 200000, 300000];
+
+  // Greedy forward pass: optimize one year at a time
+  const committed = []; // { age, amount }
+  for (let age = startAge; age <= endAge; age++) {
+    const seedAmt = (seedSchedule.find(e => e.age === age) || {}).amount || 0;
+    // Build candidate list: fixed amounts + seed amount + variations around seed
+    const candidates = new Set(fixedCandidates);
+    candidates.add(seedAmt);
+    if (seedAmt > 0) {
+      candidates.add(Math.round(seedAmt * 0.75));
+      candidates.add(Math.round(seedAmt * 1.25));
+      candidates.add(Math.round(seedAmt * 0.5));
+    }
+    const sortedCands = [...candidates].sort((a, b) => a - b);
+
+    let bestAmt = 0, bestScore = -Infinity;
+    for (const amt of sortedCands) {
+      // Build schedule: committed years + this candidate + smartFill for remaining
+      const schedule = [
+        ...committed,
+        { age, amount: amt },
+      ];
+      // For remaining years, use smartFill (engine will compute dynamically)
+      // We achieve this by using custom schedule for committed+current, then smartFill for remaining
+      // Simplest approach: build full custom schedule with committed+candidate, and for future years
+      // use the seed amounts as reasonable estimates
+      for (let futAge = age + 1; futAge <= endAge; futAge++) {
+        const seed = (seedSchedule.find(e => e.age === futAge) || {}).amount || 0;
+        schedule.push({ age: futAge, amount: seed });
+      }
+
+      const proj = runProjection({ ...p, rothConversion: {
+        enabled: true, strategy: 'custom', startAge, endAge, targetBracket,
+        customSchedule: schedule,
+      }});
+      const score = scoreProj(proj);
+      if (score > bestScore) { bestScore = score; bestAmt = amt; }
+    }
+    committed.push({ age, amount: bestAmt });
+  }
+
+  // Optional second pass: refine each year with neighbors committed
+  for (let pass = 0; pass < 1; pass++) {
+    for (let i = 0; i < committed.length; i++) {
+      const age = committed[i].age;
+      const curAmt = committed[i].amount;
+      // Fine-grained candidates around current best
+      const refineCands = new Set([0, curAmt]);
+      for (const delta of [-25000, -10000, -5000, 5000, 10000, 25000]) {
+        refineCands.add(Math.max(0, curAmt + delta));
+      }
+      let bestAmt = curAmt, bestScore = -Infinity;
+      for (const amt of refineCands) {
+        const schedule = committed.map((e, j) => j === i ? { age, amount: amt } : e);
+        const proj = runProjection({ ...p, rothConversion: {
+          enabled: true, strategy: 'custom', startAge, endAge, targetBracket,
+          customSchedule: schedule,
+        }});
+        const score = scoreProj(proj);
+        if (score > bestScore) { bestScore = score; bestAmt = amt; }
+      }
+      committed[i].amount = bestAmt;
+    }
+  }
+
+  // Apply the optimized schedule
+  state.params.rothConversion = {
+    ...rc, enabled: true, strategy: 'custom', startAge, endAge, targetBracket,
+    customSchedule: committed.filter(e => e.amount > 0),
+  };
+  state.mcResults = null; state.rothOptResults = null; state.rothOptAppliedIdx = null;
+  saveState(); render();
 }
 function runMC() {
   const btn = document.querySelector('.mc-btn');
@@ -2535,8 +2693,10 @@ function renderInputs() {
             <select class="field-input" onchange="setRothConv('strategy',this.value)" style="cursor:pointer">
               <option value="fixed"${rc.strategy==='fixed'?' selected':''}>Fixed Amount / Year</option>
               <option value="fillBracket"${rc.strategy==='fillBracket'?' selected':''}>Fill Tax Bracket</option>
+              <option value="smartFill"${rc.strategy==='smartFill'?' selected':''}>Smart Fill (IRMAA-Aware)</option>
               <option value="targetMAGI"${rc.strategy==='targetMAGI'?' selected':''}>Target MAGI Ceiling</option>
               <option value="percentBalance"${rc.strategy==='percentBalance'?' selected':''}>% of Pre-Tax Balance</option>
+              <option value="custom"${rc.strategy==='custom'?' selected':''}>Custom Schedule</option>
             </select>
           </div>
 
@@ -2546,12 +2706,14 @@ function renderInputs() {
                 <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(rc.fixedAmount||50000)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="setRothConv('fixedAmount',parseC(this.value))">
               </div></div>
           ` : ''}
-          ${rc.strategy === 'fillBracket' ? `
+          ${rc.strategy === 'fillBracket' || rc.strategy === 'smartFill' ? `
             <div class="field"><label class="field-label">Fill Up To Bracket</label>
               <select class="field-input" onchange="setRothConv('targetBracket',Number(this.value))" style="cursor:pointer">
                 ${brackets.filter(b => b.rate <= 0.32).map(b => `<option value="${b.rate}"${rc.targetBracket===b.rate?' selected':''}>${(b.rate*100).toFixed(0)}% (${fmtK(b.min)} - ${fmtK(b.max)})</option>`).join('')}
               </select>
-              <div class="field-help">Conversions fill available space in ${bracketLabel} brackets up to this rate</div>
+              <div class="field-help">${rc.strategy === 'smartFill'
+                ? 'Fills bracket but stops before crossing the next IRMAA tier — no surprise surcharges'
+                : 'Conversions fill available space in ' + bracketLabel + ' brackets up to this rate'}</div>
             </div>
           ` : ''}
 
@@ -2570,6 +2732,36 @@ function renderInputs() {
               </div>
               <div class="field-help">Convert this % of remaining pre-tax balance each year</div></div>
           ` : ''}
+
+          ${rc.strategy === 'custom' ? (() => {
+            const sched = rc.customSchedule || [];
+            const sa = rc.startAge || 65, ea = rc.endAge || 72;
+            let rows = '';
+            for (let a = sa; a <= ea; a++) {
+              const entry = sched.find(e => e.age === a);
+              const amt = entry ? entry.amount : 0;
+              rows += '<tr><td style="text-align:center;color:var(--text)">' + a + '</td>' +
+                '<td><div class="field-wrap" style="margin:0"><span class="field-prefix">$</span>' +
+                '<input type="text" inputmode="decimal" class="field-input has-prefix" style="padding:4px 6px 4px 28px;font-size:12px" ' +
+                'value="' + fmtC(amt) + '" onfocus="this.value=this.value.replace(/,/g,\'\')" ' +
+                'onblur="this.value=fmtC(parseC(this.value))" ' +
+                'onchange="setCustomScheduleAmount(' + a + ',parseC(this.value))">' +
+                '</div></td></tr>';
+            }
+            const total = sched.reduce((s, e) => s + (e.amount || 0), 0);
+            return '<div style="margin-bottom:12px">' +
+              '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+              '<div class="field-label" style="margin:0">Year-by-Year Schedule</div>' +
+              '<button class="scenario-btn" style="padding:4px 12px;font-size:11px;color:var(--green);border-color:var(--green)" ' +
+              'onclick="generateOptimalSchedule()">&#9881; Generate Optimal</button></div>' +
+              '<div style="overflow-x:auto"><table class="proj-table" style="font-size:12px"><thead><tr>' +
+              '<th style="width:60px">Age</th><th>Conversion Amount</th></tr></thead><tbody>' +
+              rows + '</tbody>' +
+              '<tfoot><tr style="font-weight:600"><td style="text-align:center">Total</td>' +
+              '<td style="color:var(--cyan)">' + fmt(total) + '</td></tr></tfoot></table></div>' +
+              '<div class="field-help">Edit amounts per year, or click Generate Optimal to auto-fill based on your tax landscape</div>' +
+              '</div>';
+          })() : ''}
 
           <div class="grid-2">
             <div class="field"><label class="field-label">Start Age</label>
@@ -2597,7 +2789,7 @@ function renderInputs() {
       const opt = state.rothOptResults;
       let optHtml = `<div class="card" data-accent="green"><div class="card-title">Roth Conversion Optimizer</div>
         <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
-          Tests hundreds of conversion strategies — varying amounts, bracket targets, and timing windows — then ranks
+          Tests hundreds of conversion strategies &mdash; varying amounts, bracket targets (with and without IRMAA awareness), and timing windows &mdash; then ranks
           the top results by a composite score of lifetime tax savings, IRMAA reduction, and net worth gain.
         </div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
@@ -3447,6 +3639,7 @@ function renderScenarios(proj) {
     {name:'No COLA on SS',o:{ssCOLA:0}},{name:'High inflation (5%)',o:{inflation:5}},
     {name:'Roth Conv $50K/yr',o:{rothConversion:{enabled:true,strategy:'fixed',fixedAmount:50000,startAge:p.retirementAge,endAge:Math.min(p.retirementAge+7,72),targetBracket:0.22}}},
     {name:'Roth Conv Fill 22%',o:{rothConversion:{enabled:true,strategy:'fillBracket',fixedAmount:50000,startAge:p.retirementAge,endAge:Math.min(p.retirementAge+7,72),targetBracket:0.22}}},
+    {name:'Roth Smart Fill 22%',o:{rothConversion:{enabled:true,strategy:'smartFill',fixedAmount:50000,startAge:p.retirementAge,endAge:Math.min(p.retirementAge+7,72),targetBracket:0.22}}},
     {name:'Low Return + High Inflation',o:{nominalReturn:5,inflation:5}},
     {name:'Early Retire + Lower Return',o:{retirementAge:60,nominalReturn:5}},
     {name:'SS at 70 + Roth Conv',o:{ssClaimAge:70,rothConversion:{enabled:true,strategy:'fillBracket',fixedAmount:50000,startAge:p.retirementAge,endAge:Math.min(p.retirementAge+7,72),targetBracket:0.22}}},

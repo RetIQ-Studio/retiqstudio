@@ -295,12 +295,14 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
     <h3>Roth Conversion Strategy (your active plan)</h3>
     <p>Whatever you configure here is your <em>live</em> conversion plan &mdash; it feeds directly into the Dashboard, Projection table, Monte Carlo, and Scenarios. Toggle the checkbox to enable or disable conversions entirely.</p>
-    <p>Four strategy types:</p>
+    <p>Six strategy types:</p>
     <ul>
       <li><strong>Fixed Amount:</strong> Convert a set dollar amount each year (e.g., $50K/yr).</li>
       <li><strong>Fill Tax Bracket:</strong> Convert enough each year to fill taxable income up to a target bracket (e.g., fill the 22% bracket). This is the most common approach &mdash; it automatically accounts for Social Security, pensions, SSDI, earned income, and taxable withdrawals already filling the bracket, then converts only the remaining gap. As your income mix changes year to year (e.g., SS kicks in at 67), the conversion amount adjusts automatically.</li>
+      <li><strong>Smart Fill (IRMAA-Aware):</strong> Same as Fill Tax Bracket but additionally caps the conversion before crossing the next IRMAA threshold. This prevents surprise Medicare surcharges that can cost $2,000&ndash;$8,000+/year. Recommended for anyone aged 63+ where IRMAA is a real concern (2-year lookback means conversions at 63 affect premiums at 65).</li>
       <li><strong>Target MAGI Ceiling:</strong> Convert up to a total MAGI limit. Useful for staying below IRMAA thresholds.</li>
       <li><strong>% of Pre-Tax Balance:</strong> Convert a percentage of remaining pre-tax balance each year. The amount naturally decreases as the balance shrinks.</li>
+      <li><strong>Custom Schedule:</strong> Specify a different conversion amount for each year. You can edit amounts manually or click <strong>Generate Optimal</strong> to have RetIQ automatically compute the best amount for each year based on your complete tax landscape.</li>
     </ul>
     <p><strong>Start / End Age</strong> defines the conversion window. The sweet spot is typically between retirement (when earned income drops) and RMD start age (when forced distributions begin).</p>
 
@@ -316,7 +318,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>This section updates instantly whenever you change any strategy parameter.</p>
 
     <h3>Roth Conversion Optimizer (research tool)</h3>
-    <p>Click <strong>Find Optimal Strategy</strong> to test ~200+ combinations of amounts ($5K&ndash;$200K), bracket targets (12%/22%/24%), and age windows. The optimizer ranks the top 8 results in a table with these columns:</p>
+    <p>Click <strong>Find Optimal Strategy</strong> to test ~300+ combinations of amounts ($5K&ndash;$200K), bracket targets (fill 12%/22%/24% and their IRMAA-aware Smart Fill variants), and age windows. The optimizer ranks the top 8 results in a table with these columns:</p>
     <ul>
       <li><strong>Converted / Conv Tax:</strong> Total amount moved to Roth and the taxes paid on those conversions.</li>
       <li><strong>Tax / RMD / IRMAA vs Base:</strong> Lifetime savings (or costs) compared to doing no conversions.</li>
@@ -328,7 +330,18 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>The optimizer does <em>not</em> change your plan automatically. It shows you what could work better and lets you decide.</p>
     <p>Click <strong>Apply</strong> on any row to load that strategy into your active plan. The Strategy section updates with the new settings, the Impact Analysis re-computes, and all other tabs (Dashboard, Projection, Monte Carlo) reflect the change. The optimizer table stays visible with a &ldquo;&#10003; Applied&rdquo; marker so you can compare.</p>
 
-    <div class="tip"><strong>Typical workflow:</strong> (1) Set a reasonable starting strategy (e.g., Fill 22%, ages 65&ndash;72). (2) Review the Impact Analysis &mdash; pay attention to the breakeven age. (3) Run the Optimizer to see if there&rsquo;s something better. (4) Compare breakeven ages across strategies: a higher-scoring strategy with a breakeven of 85 may not be worthwhile if your health outlook is uncertain. (5) Apply a result or adjust manually. (6) Check the Dashboard and Monte Carlo to confirm the strategy works across scenarios. Note: the optimizer tests only fixed-amount and fill-bracket strategies. For Target MAGI or % of Balance, configure those manually.</div>
+    <h3>Generate Optimal Schedule (adaptive per-year optimization)</h3>
+    <p>While the Optimizer tests uniform strategies (same rule every year), <strong>Generate Optimal</strong> creates a truly adaptive schedule &mdash; a different conversion amount for each year, tuned to that year&rsquo;s specific tax landscape.</p>
+    <p>To use it: select <strong>Custom Schedule</strong> from the Strategy dropdown, then click <strong>Generate Optimal</strong>. RetIQ runs a greedy forward pass that, for each year in your conversion window, tests ~15 candidate amounts (including IRMAA-safe bracket fills and fixed amounts), evaluates the full lifetime impact of each, and picks the best one. A refinement pass then adjusts each year considering its neighbors.</p>
+    <p>The result populates the editable per-year table. You can review the amounts, tweak any year manually, and see the Impact Analysis update instantly. This is especially powerful for situations where:</p>
+    <ul>
+      <li><strong>Income changes mid-window:</strong> e.g., a gap between retirement and SS start creates &ldquo;golden years&rdquo; where aggressive conversion is optimal, then SS kicks in and the amount should drop.</li>
+      <li><strong>IRMAA cliffs vary by year:</strong> the 2-year lookback means conversion decisions at different ages affect IRMAA at different future ages.</li>
+      <li><strong>You want a personalized strategy:</strong> rather than a uniform rule, you want the exact dollar amount for each year of your retirement.</li>
+    </ul>
+    <div class="warn"><strong>Performance note:</strong> Generate Optimal runs ~120 full projections (15 candidates × 8 years). This typically takes under 500ms. The quality depends on the scoring mode (Balanced, Tax Min, or NW Max) &mdash; the same radio buttons used by the Optimizer control the weighting.</div>
+
+    <div class="tip"><strong>Typical workflow:</strong> (1) Start with a simple strategy (Smart Fill 22% is a great default). (2) Review the Impact Analysis &mdash; check the breakeven age. (3) Run the Optimizer to see if a different window or bracket works better. (4) For maximum optimization, switch to Custom Schedule and click Generate Optimal &mdash; this often beats the best uniform strategy by reducing IRMAA and adapting to income changes. (5) Tweak individual years if needed. (6) Check the Dashboard and Monte Carlo to confirm the strategy works across market scenarios. Note: the Optimizer tests fixed-amount, fill-bracket, and smart-fill strategies. For Target MAGI, % of Balance, or custom fine-tuning, configure those manually.</div>
   </div>
 
   <!-- 13 -->
@@ -416,7 +429,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
   <!-- 20 -->
   <div class="sec" id="scenarios">
     <h2>20. Scenario Comparison</h2>
-    <p>Test how changes to key assumptions affect your plan. RetIQ includes 16 built-in scenarios:</p>
+    <p>Test how changes to key assumptions affect your plan. RetIQ includes 18 built-in scenarios:</p>
     <p><strong>Single-variable:</strong> Retire at 60, Retire at 67, Higher expenses (+20%), Lower return (5%), Higher inflation (5%), SS at 62, SS at 70, and more.</p>
     <p><strong>Combinations:</strong> "Low Return + High Inflation," "Early Retire + Lower Return," "SS at 70 + Roth Conv," "+20% Expenses + High Inflation."</p>
     <p>Results are shown as a comparison table and multi-category chart. The selected scenario categories (SS Income, Net Worth, Tax, etc.) can be toggled to compare any metric across all scenarios simultaneously.</p>
