@@ -594,6 +594,11 @@ function runProjection(p) {
   const ssdi1 = p.ssdiPrimary || {};
   const ssdi2 = p.ssdiSpouse || {};
 
+  // SSDI auto-converts to regular SS at FRA. Recipients cannot choose a different claim age.
+  // Effective claim age = endAge+1 (the age when SSDI stops and SS begins)
+  const effectivePrimarySSClaimAge = ssdi1.enabled ? (ssdi1.endAge || 66) + 1 : p.ssClaimAge;
+  const effectiveSpouseSSClaimAge = ssdi2.enabled ? (ssdi2.endAge || 66) + 1 : (p.spouseSSClaimAge || 67);
+
   // Medicare eligibility: SSDI recipients qualify after 24-month qualifying period
   // Normal Medicare starts at 65; SSDI recipients get it at SSDI start age + 2 (if earlier)
   const primaryMedicareAge = ssdi1.enabled ? Math.min((ssdi1.startAge || 0) + 2, 65) : 65;
@@ -645,26 +650,25 @@ function runProjection(p) {
 
     // SS with survivor benefits -- supports manual monthly entry from SSA statement
     let ss = 0;
-    // Manual entry = FRA monthly amount from SSA statement. We apply early/late claiming adjustment.
+    // For SSDI recipients, SS auto-converts at FRA — use effective claim age, not user setting
     const primarySSResult = p.ssUseManual && p.ssManualMonthly > 0
       ? (() => {
           const by = p.birthYear || ssBirthYear;
           const fraM = fraMonths(by);
-          const adj = ssaAdjustPIA(p.ssManualMonthly, p.ssClaimAge * 12, fraM);
+          const adj = ssaAdjustPIA(p.ssManualMonthly, effectivePrimarySSClaimAge * 12, fraM);
           return { annual: adj * 12, monthly: adj, fra: fraM / 12, aime: 0, piaMonthly: p.ssManualMonthly };
         })()
-      : estimateSS({ avgIncome: p.ssAnnualIncome || p.annualIncome, claimAge: p.ssClaimAge, birthYear: ssBirthYear, useDetailed: p.useDetailedSS, earningsHistory: p.earningsHistory });
+      : estimateSS({ avgIncome: p.ssAnnualIncome || p.annualIncome, claimAge: effectivePrimarySSClaimAge, birthYear: ssBirthYear, useDetailed: p.useDetailedSS, earningsHistory: p.earningsHistory });
 
     const spouseHasSS = p.spouseSSUseManual ? (p.spouseSSManualMonthly > 0) : (p.spouseSSIncome > 0 || ssdi2.enabled);
     const spouseSSResult = p.spouseSSUseManual && p.spouseSSManualMonthly > 0
       ? (() => {
           const by = p.spouseBirthYear || spBirthYear;
           const fraM = fraMonths(by);
-          const clAge = p.spouseSSClaimAge || 67;
-          const adj = ssaAdjustPIA(p.spouseSSManualMonthly, clAge * 12, fraM);
+          const adj = ssaAdjustPIA(p.spouseSSManualMonthly, effectiveSpouseSSClaimAge * 12, fraM);
           return { annual: adj * 12, monthly: adj, fra: fraM / 12, aime: 0, piaMonthly: p.spouseSSManualMonthly };
         })()
-      : (p.spouseSSIncome ? estimateSS({ avgIncome: p.spouseSSIncome, claimAge: p.spouseSSClaimAge || 67, birthYear: spBirthYear }) : { annual: 0, fra: 67 });
+      : (p.spouseSSIncome ? estimateSS({ avgIncome: p.spouseSSIncome, claimAge: effectiveSpouseSSClaimAge, birthYear: spBirthYear }) : { annual: 0, fra: 67 });
 
     const primaryOnSSDI = ssdi1.enabled && age >= (ssdi1.startAge||0) && age <= (ssdi1.endAge||66);
     const spouseOnSSDI = ssdi2.enabled && spAge && spAge >= (ssdi2.startAge||0) && spAge <= (ssdi2.endAge||66);
@@ -706,15 +710,15 @@ function runProjection(p) {
 
     if (!primaryDead && !spouseDead) {
       // Both alive -- normal SS logic
-      if (age >= p.ssClaimAge && !primaryOnSSDI) {
+      if (age >= effectivePrimarySSClaimAge && !primaryOnSSDI) {
         let pSS = primarySSResult.annual;
-        const colaYrs = Math.max(0, age - Math.max(p.ssClaimAge, primarySSResult.fra));
+        const colaYrs = Math.max(0, age - Math.max(effectivePrimarySSClaimAge, primarySSResult.fra));
         pSS = Math.round(pSS * Math.pow(1 + (p.ssCOLA || 2) / 100, colaYrs));
         ss += pSS;
       }
-      if (spAge && spAge >= (p.spouseSSClaimAge || 67) && spouseHasSS && !spouseOnSSDI) {
+      if (spAge && spAge >= effectiveSpouseSSClaimAge && spouseHasSS && !spouseOnSSDI) {
         let spSS = spouseSSResult.annual;
-        const colaYrs = Math.max(0, spAge - Math.max(p.spouseSSClaimAge || 67, spouseSSResult.fra));
+        const colaYrs = Math.max(0, spAge - Math.max(effectiveSpouseSSClaimAge, spouseSSResult.fra));
         spSS = Math.round(spSS * Math.pow(1 + (p.ssCOLA || 2) / 100, colaYrs));
         ss += spSS;
       }
@@ -727,7 +731,7 @@ function runProjection(p) {
       let survivorBen = 0;
       if (age >= svClaimAge && spouseHasSS) {
         survivorBen = getSurvivorBenefit(
-          spousePIA, p.spouseSSClaimAge || 67, spouseSSResult.fra, spouseSSResult,
+          spousePIA, effectiveSpouseSSClaimAge, spouseSSResult.fra, spouseSSResult,
           deathAge - (p.currentAge - (p.spouseAge||0)), // spouse's age at death
           age, primarySSResult.fra, p.ssCOLA || 2
         );
@@ -735,9 +739,9 @@ function runProjection(p) {
 
       // Phase 2: Own SS (at own claim age)
       let ownSS = 0;
-      if (age >= p.ssClaimAge && !primaryOnSSDI) {
+      if (age >= effectivePrimarySSClaimAge && !primaryOnSSDI) {
         ownSS = primarySSResult.annual;
-        const colaYrs = Math.max(0, age - Math.max(p.ssClaimAge, primarySSResult.fra));
+        const colaYrs = Math.max(0, age - Math.max(effectivePrimarySSClaimAge, primarySSResult.fra));
         ownSS = Math.round(ownSS * Math.pow(1 + (p.ssCOLA || 2) / 100, colaYrs));
       }
 
@@ -753,7 +757,7 @@ function runProjection(p) {
       } else {
         // Not on SSDI -- take the higher of own SS vs survivor benefit
         // Strategy: before own claim age, get survivor only; at/after own claim age, get max
-        if (age < p.ssClaimAge) {
+        if (age < effectivePrimarySSClaimAge) {
           ss = survivorBen; // survivor benefit as bridge before own SS kicks in
         } else {
           ss = Math.max(ownSS, survivorBen);
@@ -769,7 +773,7 @@ function runProjection(p) {
       let survivorBen = 0;
       if (spAge && spAge >= svClaimAge) {
         survivorBen = getSurvivorBenefit(
-          primaryPIA, p.ssClaimAge, primarySSResult.fra, primarySSResult,
+          primaryPIA, effectivePrimarySSClaimAge, primarySSResult.fra, primarySSResult,
           deathAge, // primary's age at death
           spAge, spouseSSResult.fra, p.ssCOLA || 2
         );
@@ -777,9 +781,9 @@ function runProjection(p) {
 
       // Phase 2: Spouse's own SS (at spouse's claim age)
       let ownSS = 0;
-      if (spAge && spAge >= (p.spouseSSClaimAge || 67) && spouseHasSS && !spouseOnSSDI) {
+      if (spAge && spAge >= effectiveSpouseSSClaimAge && spouseHasSS && !spouseOnSSDI) {
         ownSS = spouseSSResult.annual;
-        const colaYrs = Math.max(0, spAge - Math.max(p.spouseSSClaimAge || 67, spouseSSResult.fra));
+        const colaYrs = Math.max(0, spAge - Math.max(effectiveSpouseSSClaimAge, spouseSSResult.fra));
         ownSS = Math.round(ownSS * Math.pow(1 + (p.ssCOLA || 2) / 100, colaYrs));
       }
 
@@ -791,7 +795,7 @@ function runProjection(p) {
         }
       } else {
         // Not on SSDI -- take higher of own SS vs survivor benefit
-        if (spAge < (p.spouseSSClaimAge || 67)) {
+        if (spAge < effectiveSpouseSSClaimAge) {
           ss = survivorBen; // survivor benefit as bridge
         } else {
           ss = Math.max(ownSS, survivorBen);
@@ -841,8 +845,9 @@ function runProjection(p) {
     // SSDI recipients qualify for Medicare after 24-month waiting period (before age 65)
     let healthcareCost = 0;
     const hc = p.preMedicareHealthcare || {};
-    const effectiveMedicareAge = primaryDead ? spouseMedicareAge : primaryMedicareAge;
-    if (hc.enabled && effectivelyRetired && age < effectiveMedicareAge) {
+    // Pre-Medicare gap uses primary's Medicare age (their healthcare gap)
+    const primaryMedCoverageAge = primaryDead ? spouseMedicareAge : primaryMedicareAge;
+    if (hc.enabled && effectivelyRetired && age < primaryMedCoverageAge) {
       const hcStart = hc.startAge > 0 ? hc.startAge : Math.ceil(p.retirementAge);
       if (age >= hcStart) {
         const hcYrs = age - hcStart;
@@ -850,6 +855,12 @@ function runProjection(p) {
         expenses += healthcareCost;
       }
     }
+    // Household Medicare start: when first person qualifies (spouse SSDI can trigger earlier)
+    // Convert spouse Medicare age to primary's age scale for comparison
+    const hasSpouseForMedicare = (p.spouseEnabled || (p.spouseAge && p.spouseAge > 0)) && !spouseDead && !primaryDead;
+    const spouseMedInPrimaryAge = hasSpouseForMedicare ? spouseMedicareAge + (p.currentAge - (p.spouseAge || 0)) : 999;
+    const effectiveMedicareAge = primaryDead ? spouseMedicareAge
+      : hasSpouseForMedicare ? Math.min(primaryMedicareAge, spouseMedInPrimaryAge) : primaryMedicareAge;
 
     // Savings phase -- with optional contribution limit enforcement
     let saved = 0;
@@ -1421,6 +1432,7 @@ function exportProjectionCSV() {
     { head:'Year', key:'year', isCurrency:false },
     { head:'Earned Income', key:'earned', isCurrency:true },
     { head:'Social Security', key:'ss', isCurrency:true },
+    { head:'SSDI', key:'ssdi', isCurrency:true },
     { head:'Pension', key:'pension', isCurrency:true },
     { head:'Expenses', key:'expenses', isCurrency:true },
     { head:'Federal Tax', key:'fedTax', isCurrency:true },
@@ -2650,41 +2662,54 @@ function renderInputs() {
       </div>` : ''}
 
       ${(() => {
-        // Build SS Annual tables for SSDI recipients
-        let ssdiTables = '';
+        // Build SSDI → SS transition summaries
+        let ssdiSummary = '';
         if (ssdi1.enabled && ssdi1.monthlyAmount > 0) {
           const by = p.birthYear || (new Date().getFullYear() - p.currentAge);
+          const fraAge = Math.round(fraMonths(by) / 12 * 10) / 10;
+          const ssConvertAge = (ssdi1.endAge || 66) + 1;
           const useManual = p.ssUseManual && p.ssManualMonthly > 0;
-          const tableData = [62,63,64,65,66,67,68,69,70].map(age => {
-            const r = useManual
-              ? (() => { const fm = fraMonths(by); const adj = ssaAdjustPIA(p.ssManualMonthly, age*12, fm);
-                  return {annual:adj*12,monthly:adj,fra:fm/12}; })()
-              : estimateSS({avgIncome:p.ssAnnualIncome||p.annualIncome,claimAge:age,birthYear:by});
-            return {age, annual:r.annual, monthly:r.monthly};
-          });
-          ssdiTables += '<div class="card"><div class="card-title">Your SS Benefits After SSDI (Claiming Age Comparison)</div>' +
-            '<div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">SSDI converts to regular SS at FRA. These are your SS benefit amounts by claiming age.</div>' +
-            '<table class="ss-table"><thead><tr><th>Claim Age</th><th>Monthly</th><th>Annual</th></tr></thead><tbody>' +
-            tableData.map(r => '<tr><td>' + r.age + '</td><td>' + fmt(r.monthly) + '</td><td>' + fmt(r.annual) + '</td></tr>').join('') +
-            '</tbody></table></div>';
+          // SS at FRA (auto-conversion amount)
+          const fraResult = useManual
+            ? (() => { const fm = fraMonths(by); const adj = ssaAdjustPIA(p.ssManualMonthly, Math.round(fraAge)*12, fm);
+                return {annual:adj*12,monthly:adj}; })()
+            : estimateSS({avgIncome:p.ssAnnualIncome||p.annualIncome,claimAge:Math.round(fraAge),birthYear:by});
+          const medAge = Math.min((ssdi1.startAge||0)+2, 65);
+          ssdiSummary += `<div class="card"><div class="card-title">Your SSDI &rarr; SS Transition</div>
+            <table class="ss-table"><thead><tr><th>Phase</th><th>Ages</th><th>Annual Income</th><th>Notes</th></tr></thead><tbody>
+            <tr><td style="color:var(--blue);font-weight:600">SSDI</td><td>${ssdi1.startAge||0} &ndash; ${ssdi1.endAge||66}</td><td>${fmt((ssdi1.monthlyAmount||0)*12)}</td><td>Disability benefit</td></tr>
+            <tr style="background:rgba(16,185,129,0.06)"><td style="color:var(--green);font-weight:600">SS (auto-convert)</td><td>${ssConvertAge}+</td><td>${fmt(fraResult.annual)}</td><td>Converts at FRA (${fraAge}) &mdash; no claiming choice</td></tr>
+            </tbody></table>
+            <div style="margin-top:10px;font-size:12px;color:var(--text-dim);line-height:1.6">
+              <strong>Medicare:</strong> Eligible at age <strong style="color:var(--pink)">${medAge}</strong> (SSDI qualifying period: 24 months after SSDI start).
+              ${medAge < 65 ? ' <span style="color:var(--green)">Earlier than standard age 65.</span>' : ''}
+              ${p.ssClaimAge > ssConvertAge ? `<br><span style="color:var(--amber)">&#9888; Your SS claim age (${p.ssClaimAge}) is ignored &mdash; SSDI auto-converts to SS at age ${ssConvertAge}.</span>` : ''}
+            </div>
+          </div>`;
         }
         if (ssdi2.enabled && ssdi2.monthlyAmount > 0 && (p.spouseEnabled || p.spouseAge > 0)) {
           const spBY = p.spouseBirthYear || (new Date().getFullYear() - (p.spouseAge||0));
+          const spFraAge = Math.round(fraMonths(spBY) / 12 * 10) / 10;
+          const spSSConvertAge = (ssdi2.endAge || 66) + 1;
           const spManual = p.spouseSSUseManual && p.spouseSSManualMonthly > 0;
-          const tableData = [62,63,64,65,66,67,68,69,70].map(age => {
-            const r = spManual
-              ? (() => { const fm = fraMonths(spBY); const adj = ssaAdjustPIA(p.spouseSSManualMonthly, age*12, fm);
-                  return {annual:adj*12,monthly:adj,fra:fm/12}; })()
-              : estimateSS({avgIncome:p.spouseSSIncome||0,claimAge:age,birthYear:spBY});
-            return {age, annual:r.annual, monthly:r.monthly};
-          });
-          ssdiTables += '<div class="card"><div class="card-title">Spouse SS Benefits After SSDI (Claiming Age Comparison)</div>' +
-            '<div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">Spouse SSDI converts to regular SS at FRA. These are spouse SS benefit amounts by claiming age.</div>' +
-            '<table class="ss-table"><thead><tr><th>Claim Age</th><th>Monthly</th><th>Annual</th></tr></thead><tbody>' +
-            tableData.map(r => '<tr><td>' + r.age + '</td><td>' + fmt(r.monthly) + '</td><td>' + fmt(r.annual) + '</td></tr>').join('') +
-            '</tbody></table></div>';
+          const spFraResult = spManual
+            ? (() => { const fm = fraMonths(spBY); const adj = ssaAdjustPIA(p.spouseSSManualMonthly, Math.round(spFraAge)*12, fm);
+                return {annual:adj*12,monthly:adj}; })()
+            : estimateSS({avgIncome:p.spouseSSIncome||0,claimAge:Math.round(spFraAge),birthYear:spBY});
+          const spMedAge = Math.min((ssdi2.startAge||0)+2, 65);
+          ssdiSummary += `<div class="card"><div class="card-title">Spouse SSDI &rarr; SS Transition</div>
+            <table class="ss-table"><thead><tr><th>Phase</th><th>Ages</th><th>Annual Income</th><th>Notes</th></tr></thead><tbody>
+            <tr><td style="color:var(--blue);font-weight:600">SSDI</td><td>${ssdi2.startAge||0} &ndash; ${ssdi2.endAge||66}</td><td>${fmt((ssdi2.monthlyAmount||0)*12)}</td><td>Disability benefit</td></tr>
+            <tr style="background:rgba(16,185,129,0.06)"><td style="color:var(--green);font-weight:600">SS (auto-convert)</td><td>${spSSConvertAge}+</td><td>${fmt(spFraResult.annual)}</td><td>Converts at FRA (${spFraAge}) &mdash; no claiming choice</td></tr>
+            </tbody></table>
+            <div style="margin-top:10px;font-size:12px;color:var(--text-dim);line-height:1.6">
+              <strong>Medicare:</strong> Eligible at age <strong style="color:var(--pink)">${spMedAge}</strong> (SSDI qualifying period: 24 months after SSDI start).
+              ${spMedAge < 65 ? ' <span style="color:var(--green)">Earlier than standard age 65.</span>' : ''}
+              ${(p.spouseSSClaimAge||67) > spSSConvertAge ? `<br><span style="color:var(--amber)">&#9888; Spouse SS claim age (${p.spouseSSClaimAge||67}) is ignored &mdash; SSDI auto-converts to SS at age ${spSSConvertAge}.</span>` : ''}
+            </div>
+          </div>`;
         }
-        return ssdiTables;
+        return ssdiSummary;
       })()}
     </div>`;
   }
@@ -2703,7 +2728,10 @@ function renderInputs() {
 
     content += `<div class="grid-2">
       <div class="card"><div class="card-title">Your Social Security</div>
-        ${field('SS Claim Age','ssClaimAge',{help:'62 (early) to 70 (max delayed credits)'})}
+        ${(p.ssdiPrimary||{}).enabled ? `<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--text-dim);line-height:1.6">
+          <strong style="color:var(--blue)">&#9432; SSDI Active</strong> &mdash; SSDI auto-converts to regular SS at FRA (age ${(p.ssdiPrimary.endAge||66)+1}). The claim age setting below is overridden. Your projection uses FRA benefit amount.
+        </div>` : ''}
+        ${field('SS Claim Age','ssClaimAge',{help:'62 (early) to 70 (max delayed credits)' + ((p.ssdiPrimary||{}).enabled ? ' — overridden by SSDI auto-conversion at FRA' : '')})}
         ${(p.spouseEnabled || p.spouseAge > 0) ? field('Survivor SS Claim Age','survivorSSClaimAge',{help:'Age to start collecting survivor SS if spouse passes away. Min 60.'}) : ''}
         <div style="margin:14px 0;padding:12px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border)">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);margin-bottom:10px">
@@ -2744,7 +2772,10 @@ function renderInputs() {
               })()
             : estimateSS({avgIncome:p.spouseSSIncome||0,claimAge:p.spouseSSClaimAge||67,birthYear:spBY});
           return `
-          ${field('Spouse SS Claim Age','spouseSSClaimAge',{help:'62 (early) to 70 (max delayed credits)'})}
+          ${(p.ssdiSpouse||{}).enabled ? `<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--text-dim);line-height:1.6">
+            <strong style="color:var(--blue)">&#9432; SSDI Active</strong> &mdash; Spouse SSDI auto-converts to regular SS at FRA (age ${(p.ssdiSpouse.endAge||66)+1}). The claim age setting below is overridden. Projection uses FRA benefit amount.
+          </div>` : ''}
+          ${field('Spouse SS Claim Age','spouseSSClaimAge',{help:'62 (early) to 70 (max delayed credits)' + ((p.ssdiSpouse||{}).enabled ? ' — overridden by SSDI auto-conversion at FRA' : '')})}
           ${field('Spouse Survivor SS Claim Age','spouseSurvivorSSClaimAge',{help:'Age spouse starts collecting survivor SS if you pass away. Min 60.'})}
           <div style="margin:14px 0;padding:12px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border)">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);margin-bottom:10px">
@@ -2985,7 +3016,13 @@ function renderInputs() {
   if (state.inputTab === 'medicare') {
     const proj = runProjection(p);
     const ssdi1d = p.ssdiPrimary || {};
-    const primaryMedAge = ssdi1d.enabled ? Math.min((ssdi1d.startAge || 0) + 2, 65) : 65;
+    const ssdi2d = p.ssdiSpouse || {};
+    const primaryMedAgeCalc = ssdi1d.enabled ? Math.min((ssdi1d.startAge || 0) + 2, 65) : 65;
+    const spouseMedAgeCalc = ssdi2d.enabled ? Math.min((ssdi2d.startAge || 0) + 2, 65) : 65;
+    const hasSpouseMed = p.spouseEnabled || (p.spouseAge && p.spouseAge > 0);
+    // Convert spouse Medicare age to primary's age scale
+    const spMedInPrimAge = hasSpouseMed ? spouseMedAgeCalc + (p.currentAge - (p.spouseAge || 0)) : 999;
+    const primaryMedAge = hasSpouseMed ? Math.min(primaryMedAgeCalc, spMedInPrimAge) : primaryMedAgeCalc;
     const medicareYears = proj.filter(y => y.age >= primaryMedAge);
     const totalMedicare = medicareYears.reduce((s,y) => s + y.medicareCost, 0);
     const totalSurcharge = medicareYears.reduce((s,y) => s + y.irmaa, 0);
@@ -2995,6 +3032,10 @@ function renderInputs() {
     const irmaaBaseThresh = hasSpouse ? '$212K' : '$106K';
 
     content += `<div class="card" data-accent="pink"><div class="card-title">Medicare IRMAA Impact <span class="badge badge-irmaa">Income-Based</span></div>
+      ${primaryMedAge < 65 ? `<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--text-dim);line-height:1.6">
+        <strong style="color:var(--blue)">&#9432; SSDI Early Medicare</strong> &mdash; Due to SSDI, household Medicare eligibility begins at age <strong>${primaryMedAge}</strong> (24-month qualifying period), ${65 - primaryMedAge} years earlier than standard age 65.
+        ${ssdi1d.enabled && ssdi2d.enabled ? ' Both you and spouse qualify early via SSDI.' : ssdi2d.enabled && primaryMedAgeCalc === 65 ? ' (via spouse SSDI)' : ''}
+      </div>` : ''}
       <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;line-height:1.6">
         Medicare Part B and Part D premiums include Income-Related Monthly Adjustment Amounts (IRMAA) based on your MAGI from 2 years prior.
         Higher income in retirement (from RMDs, capital gains, or SS) can push you into higher IRMAA brackets.
@@ -3145,6 +3186,7 @@ function renderProjectionTable(proj) {
       { head:'Year', key:'year', color:'', isCurrency:false },
       { head:'Earned', key:'earned', color:'var(--cyan)', isCurrency:true },
       { head:'SS', key:'ss', color:'var(--green)', isCurrency:true },
+      { head:'SSDI', key:'ssdi', color:'var(--blue)', isCurrency:true },
       { head:'Pension', key:'pension', color:'var(--green)', isCurrency:true },
       { head:'Exp.', key:'expenses', color:'var(--red)', isCurrency:true },
       { head:'Fed Tax', key:'fedTax', color:'var(--purple)', isCurrency:true },
@@ -3447,7 +3489,7 @@ function render() {
     case 'montecarlo': html = renderMonteCarlo(proj); break;
     case 'scenarios': html = renderScenarios(proj); break;
   }
-  html += '<div class="footer">RetIQ v1.3.022626.3 &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan</div>';
+  html += '<div class="footer">RetIQ v1.3 &#183; Build 2026-02-26 14:34 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan</div>';
   document.getElementById('app').innerHTML = html;
   updateHeaderHeight();
 }
