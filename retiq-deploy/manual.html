@@ -298,22 +298,37 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Four strategy types:</p>
     <ul>
       <li><strong>Fixed Amount:</strong> Convert a set dollar amount each year (e.g., $50K/yr).</li>
-      <li><strong>Fill Tax Bracket:</strong> Convert enough each year to fill taxable income up to a target bracket (e.g., fill the 22% bracket). This is the most common approach &mdash; it automatically adjusts the conversion amount based on your other income in each year.</li>
+      <li><strong>Fill Tax Bracket:</strong> Convert enough each year to fill taxable income up to a target bracket (e.g., fill the 22% bracket). This is the most common approach &mdash; it automatically accounts for Social Security, pensions, SSDI, earned income, and taxable withdrawals already filling the bracket, then converts only the remaining gap. As your income mix changes year to year (e.g., SS kicks in at 67), the conversion amount adjusts automatically.</li>
       <li><strong>Target MAGI Ceiling:</strong> Convert up to a total MAGI limit. Useful for staying below IRMAA thresholds.</li>
       <li><strong>% of Pre-Tax Balance:</strong> Convert a percentage of remaining pre-tax balance each year. The amount naturally decreases as the balance shrinks.</li>
     </ul>
     <p><strong>Start / End Age</strong> defines the conversion window. The sweet spot is typically between retirement (when earned income drops) and RMD start age (when forced distributions begin).</p>
 
     <h3>Impact Analysis</h3>
-    <p>Directly below the strategy inputs, this section compares your current strategy against doing no conversions at all. It shows total converted, tax cost, lifetime tax delta, RMD reduction, IRMAA impact, and final net worth change. Three charts visualize the pre-tax balance drawdown, Roth balance growth, and annual conversion amounts with their tax cost.</p>
+    <p>Directly below the strategy inputs, this section compares your current strategy against doing no conversions at all. Key metrics include total converted, tax cost, lifetime tax delta, RMD reduction, IRMAA impact, final net worth change, and <strong>Breakeven Age</strong>.</p>
+    <p><strong>Breakeven Age</strong> is when your tax-adjusted net worth (portfolio value minus cumulative lifetime taxes paid) with conversions catches up to the no-conversion path. Because conversions pay taxes upfront, your wealth temporarily falls behind. The breakeven age tells you how long you must live for the strategy to pay off. Three outcomes are possible:</p>
+    <ul>
+      <li><strong>A specific age</strong> (e.g., 82) &mdash; the most common result. Before this age, conversion taxes are a net cost to your estate.</li>
+      <li><strong>Immediate</strong> &mdash; conversions never fall behind, typically when amounts are small or the bracket is very low.</li>
+      <li><strong>Never</strong> &mdash; the conversion cost is not recovered within the projection. Consider reducing amounts or shortening the window.</li>
+    </ul>
+    <p>A <strong>Tax-Adjusted Net Worth</strong> chart shows both paths side by side so you can see the dip during conversion years and the crossover point visually. Below it, the existing Pre-Tax balance, Roth balance, and annual conversion charts provide further detail. A callout box explains the mortality trade-off: if you do not survive to the breakeven age, the upfront taxes represent real money lost.</p>
     <p>This section updates instantly whenever you change any strategy parameter.</p>
 
     <h3>Roth Conversion Optimizer (research tool)</h3>
-    <p>Click <strong>Find Optimal Strategy</strong> to test ~200+ combinations of amounts ($5K&ndash;$200K), bracket targets (12%/22%/24%), and age windows. The optimizer ranks the top 8 results by a composite score that weighs tax savings, RMD reduction, IRMAA impact, and net worth gain.</p>
+    <p>Click <strong>Find Optimal Strategy</strong> to test ~200+ combinations of amounts ($5K&ndash;$200K), bracket targets (12%/22%/24%), and age windows. The optimizer ranks the top 8 results in a table with these columns:</p>
+    <ul>
+      <li><strong>Converted / Conv Tax:</strong> Total amount moved to Roth and the taxes paid on those conversions.</li>
+      <li><strong>Tax / RMD / IRMAA vs Base:</strong> Lifetime savings (or costs) compared to doing no conversions.</li>
+      <li><strong>Final NW vs Base:</strong> Difference in ending portfolio value.</li>
+      <li><strong>Breakeven:</strong> The age at which tax-adjusted net worth catches up to the no-conversion path. &ldquo;Immed.&rdquo; means conversions never fall behind; a number means you need to survive to that age for the strategy to pay off; &ldquo;Never&rdquo; means the cost isn&rsquo;t recovered.</li>
+      <li><strong>Score (0&ndash;100):</strong> A weighted composite of tax savings, IRMAA reduction, and net worth gain. Higher is better. Use the radio buttons above the table to shift the weighting toward tax minimization, net worth maximization, or a balanced mix.</li>
+    </ul>
+    <p>Below the table, the <strong>best strategy</strong> is expanded with a Tax-Adjusted Net Worth chart (showing the breakeven crossover), a Lifetime Tax Burden chart, and an Account Composition chart. A breakeven callout summarizes the mortality trade-off.</p>
     <p>The optimizer does <em>not</em> change your plan automatically. It shows you what could work better and lets you decide.</p>
     <p>Click <strong>Apply</strong> on any row to load that strategy into your active plan. The Strategy section updates with the new settings, the Impact Analysis re-computes, and all other tabs (Dashboard, Projection, Monte Carlo) reflect the change. The optimizer table stays visible with a &ldquo;&#10003; Applied&rdquo; marker so you can compare.</p>
 
-    <div class="tip"><strong>Typical workflow:</strong> (1) Set a reasonable starting strategy (e.g., Fill 22%, ages 65&ndash;72). (2) Review the Impact Analysis. (3) Run the Optimizer to see if there&rsquo;s something better. (4) Apply a result or adjust manually. (5) Check the Dashboard and Monte Carlo to confirm the strategy works across scenarios. Note: the optimizer tests only fixed-amount and fill-bracket strategies. For Target MAGI or % of Balance, configure those manually.</div>
+    <div class="tip"><strong>Typical workflow:</strong> (1) Set a reasonable starting strategy (e.g., Fill 22%, ages 65&ndash;72). (2) Review the Impact Analysis &mdash; pay attention to the breakeven age. (3) Run the Optimizer to see if there&rsquo;s something better. (4) Compare breakeven ages across strategies: a higher-scoring strategy with a breakeven of 85 may not be worthwhile if your health outlook is uncertain. (5) Apply a result or adjust manually. (6) Check the Dashboard and Monte Carlo to confirm the strategy works across scenarios. Note: the optimizer tests only fixed-amount and fill-bracket strategies. For Target MAGI or % of Balance, configure those manually.</div>
   </div>
 
   <!-- 13 -->

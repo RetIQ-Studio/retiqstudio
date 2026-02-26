@@ -1675,6 +1675,34 @@ function optimizeRothConversion() {
     const convTax = c.proj.reduce((s, y) => s + y.conversionTax, 0);
     const final = c.proj[c.proj.length - 1].netWorth;
 
+    // Breakeven age: when tax-adjusted NW catches up to baseline
+    // Tax-adjusted NW = portfolio - cumulative taxes, capturing upfront conversion cost
+    let breakevenAge = null;
+    const csi = c.proj.findIndex(y => y.rothConv > 0);
+    if (csi >= 0) {
+      let ctC = 0, ctB = 0, prevAdjC = 0, prevAdjB = 0;
+      for (let i = 0; i < Math.min(c.proj.length, baseProj.length); i++) {
+        ctC += c.proj[i].tax || 0;
+        ctB += baseProj[i].tax || 0;
+        const adjC = c.proj[i].netWorth - ctC;
+        const adjB = baseProj[i].netWorth - ctB;
+        if (i >= csi && i > 0 && prevAdjC < prevAdjB && adjC >= adjB) {
+          breakevenAge = c.proj[i].age;
+        }
+        prevAdjC = adjC; prevAdjB = adjB;
+      }
+      ctC = 0; ctB = 0;
+      let everBehind = false;
+      for (let i = 0; i < Math.min(c.proj.length, baseProj.length); i++) {
+        ctC += c.proj[i].tax || 0;
+        ctB += baseProj[i].tax || 0;
+        if (i >= csi && (c.proj[i].netWorth - ctC) < (baseProj[i].netWorth - ctB)) {
+          everBehind = true; break;
+        }
+      }
+      if (!everBehind) breakevenAge = -1;
+    }
+
     // Independent metrics (positive = better than baseline)
     const taxSaved = baseTax - tax;
     const irmaaSaved = baseIRMAA - irmaa;
@@ -1686,7 +1714,7 @@ function optimizeRothConversion() {
     const score = taxNorm * weights.tax + irmaaNorm * weights.irmaa + nwNorm * weights.nw;
 
     return {
-      ...c, tax, rmd, irmaa, conv, convTax, final, score,
+      ...c, tax, rmd, irmaa, conv, convTax, final, score, breakevenAge,
       taxDiff: tax - baseTax, rmdDiff: rmd - baseRMD, irmaaDiff: irmaa - baseIRMAA, nwDiff: final - baseFinal,
     };
   });
@@ -2365,6 +2393,50 @@ function renderInputs() {
       const rmdDiff = projWith.reduce((s,y) => s+y.rmd, 0) - projWithout.reduce((s,y) => s+y.rmd, 0);
       const irmaaDiff = projWith.reduce((s,y) => s+y.irmaa, 0) - projWithout.reduce((s,y) => s+y.irmaa, 0);
 
+      // Breakeven ("catch-up") age: when tax-adjusted NW with conversions overtakes without
+      // Tax-adjusted NW = portfolio value minus cumulative lifetime taxes paid.
+      // This captures the real cost: conversions pay taxes upfront, reducing spendable wealth
+      // until tax-free Roth growth and lower future RMDs recover the difference.
+      let breakevenAge = null;
+      let cumTaxWith = 0, cumTaxWithout = 0;
+      const convStartIdx = projWith.findIndex(y => y.rothConv > 0);
+      if (convStartIdx >= 0) {
+        for (let i = 0; i < projWith.length; i++) {
+          cumTaxWith += projWith[i].tax || 0;
+          cumTaxWithout += projWithout[i].tax || 0;
+          const adjWith = projWith[i].netWorth - cumTaxWith;
+          const adjWithout = projWithout[i].netWorth - cumTaxWithout;
+          if (i >= convStartIdx && i > 0) {
+            const prevCTW = cumTaxWith - (projWith[i].tax || 0);
+            const prevCTWO = cumTaxWithout - (projWithout[i].tax || 0);
+            const prevAdj = projWith[i-1].netWorth - prevCTW;
+            const prevAdjBase = projWithout[i-1].netWorth - prevCTWO;
+            if (prevAdj < prevAdjBase && adjWith >= adjWithout) breakevenAge = projWith[i].age;
+          }
+        }
+        // Check if ever behind
+        cumTaxWith = 0; cumTaxWithout = 0;
+        let everBehind = false;
+        for (let i = 0; i < projWith.length; i++) {
+          cumTaxWith += projWith[i].tax || 0;
+          cumTaxWithout += projWithout[i].tax || 0;
+          if (i >= convStartIdx && (projWith[i].netWorth - cumTaxWith) < (projWithout[i].netWorth - cumTaxWithout)) {
+            everBehind = true; break;
+          }
+        }
+        if (!everBehind) breakevenAge = -1;
+      }
+      const neverCatchesUp = breakevenAge === null && convStartIdx >= 0;
+
+      // Build tax-adjusted NW chart data
+      let ctW = 0, ctWO = 0;
+      const adjNwData = projWith.map((w, i) => {
+        ctW += w.tax || 0;
+        ctWO += projWithout[i].tax || 0;
+        return { age: w.age, year: w.year, retired: w.retired,
+          withConv: w.netWorth - ctW, noConv: projWithout[i].netWorth - ctWO };
+      });
+
       impactHtml = `<div class="card" data-accent="cyan"><div class="card-title">Conversion Impact Analysis</div>
         <div class="stats-row" style="margin-bottom:12px">
           <div class="stat"><div class="stat-label">Total Converted</div><div class="stat-value" style="color:var(--cyan)">${fmtK(totalConv)}</div></div>
@@ -2373,9 +2445,16 @@ function renderInputs() {
           <div class="stat"><div class="stat-label">RMD Reduction</div><div class="stat-value" style="color:var(--green)">${fmtK(Math.abs(rmdDiff))}</div><div class="stat-sub">Lifetime</div></div>
           <div class="stat"><div class="stat-label">IRMAA Impact</div><div class="stat-value" style="color:${irmaaDiff>0?'var(--pink)':'var(--green)'}">${fmtK(irmaaDiff)}</div></div>
           <div class="stat"><div class="stat-label">Final NW &#916;</div><div class="stat-value" style="color:${finalWith.netWorth>=finalWithout.netWorth?'var(--green)':'var(--red)'}">${fmtK(finalWith.netWorth - finalWithout.netWorth)}</div></div>
+          <div class="stat"><div class="stat-label">Breakeven Age</div><div class="stat-value" style="color:${breakevenAge===-1?'var(--green)':breakevenAge?'var(--amber)':'var(--red)'}">${breakevenAge===-1?'Immediate':breakevenAge?breakevenAge:'Never'}</div><div class="stat-sub">${breakevenAge===-1?'NW never falls behind':breakevenAge?'NW catches up at this age':'Within projection'}</div></div>
         </div>
 
-        <div class="grid-2">
+        <div>${buildChart(
+          adjNwData,
+          ['noConv','withConv'],['#8b5cf6','#10b981'],['Tax-Adj NW (No Conv)','Tax-Adj NW (With Conv)'],
+          {title:'Tax-Adjusted Net Worth' + (breakevenAge > 0 ? ' — Breakeven Age ' + breakevenAge : ''),height:170}
+        )}</div>
+
+        <div class="grid-2" style="margin-top:4px">
           <div>${buildChart(
             projWith.map((w,i) => ({age:w.age,year:w.year,retired:w.retired,with:w.preTax,without:projWithout[i].preTax})),
             ['without','with'],['#8b5cf6','#06b6d4'],['Pre-Tax (No Conv)','Pre-Tax (With Conv)'],
@@ -2401,9 +2480,21 @@ function renderInputs() {
           but reduces lifetime RMDs by <strong style="color:var(--green)">${fmtK(Math.abs(rmdDiff))}</strong>
           and moves assets into tax-free Roth growth.
           ${finalWith.netWorth >= finalWithout.netWorth
-            ? 'Net effect: <strong style="color:var(--green)">positive</strong> -- the Roth conversion strategy improves your outcome.'
+            ? 'Net effect: <strong style="color:var(--green)">positive</strong> — the Roth conversion strategy improves your outcome.'
             : 'Net effect: the upfront tax cost outweighs the benefits in this scenario. Consider adjusting conversion amounts or timing.'}
         </div>
+        ${breakevenAge !== -1 ? `<div style="font-size:12px;line-height:1.7;color:var(--text-dim);margin-top:8px;padding:10px 14px;background:var(--bg-base);border-radius:8px;border-left:3px solid var(--amber)">
+          <strong style="color:var(--amber)">&#9202; Breakeven age: ${breakevenAge ? breakevenAge : 'beyond ' + p.endAge}</strong> —
+          Roth conversions pay taxes upfront, so your net worth temporarily drops below the no-conversion path.
+          ${breakevenAge ? 'It takes until age <strong>' + breakevenAge + '</strong> for tax-free growth and lower RMDs to recover that cost.'
+            : 'Within this projection the conversion taxes are never fully recovered.'}
+          ${breakevenAge ? ' If you do not survive to ' + breakevenAge + ', the conversion taxes represent a net loss to your estate — money that could have stayed invested.'
+            : ' The tax cost may still benefit heirs (inherited Roth is tax-free vs. 10-year taxable distribution for inherited pre-tax), but on a pure net worth basis the strategy underperforms.'}
+          ${breakevenAge && breakevenAge <= p.endAge ? ' After age ' + breakevenAge + ', the advantage compounds — every additional year widens the gap in your favor.' : ''}
+        </div>` : `<div style="font-size:12px;line-height:1.7;color:var(--text-dim);margin-top:8px;padding:10px 14px;background:var(--bg-base);border-radius:8px;border-left:3px solid var(--green)">
+          <strong style="color:var(--green)">&#10003; No breakeven delay</strong> —
+          Your net worth with conversions never falls below the no-conversion path. This can happen when conversions are small relative to portfolio size, or when the tax bracket is low enough that the immediate RMD/IRMAA savings offset the conversion tax.
+        </div>`}
       </div>`;
     }
 
@@ -2533,14 +2624,14 @@ function renderInputs() {
               <th style="text-align:left">Strategy</th>
               <th>Converted</th><th>Conv Tax</th>
               <th>Tax vs Base</th><th>RMD vs Base</th><th>IRMAA vs Base</th>
-              <th>Final NW vs Base</th><th title="Weighted composite: tax savings, IRMAA savings, net worth gain">Score</th><th></th>
+              <th>Final NW vs Base</th><th title="Age when net worth with conversions catches up to no-conversion path">Breakeven</th><th title="Weighted composite score (0-100): tax savings, IRMAA savings, net worth gain. Higher is better.">Score</th><th></th>
             </tr></thead>
             <tbody>
               <tr style="background:var(--bg-base)">
                 <td style="text-align:left;color:var(--text-muted)">No Conversion (baseline)</td>
                 <td style="color:var(--text-faint)">--</td><td style="color:var(--text-faint)">--</td>
                 <td>${fmtK(bl.tax)}</td><td>${fmtK(bl.rmd)}</td><td>${fmtK(bl.irmaa)}</td>
-                <td>${fmtK(bl.final)}</td><td style="color:var(--text-faint)">--</td><td></td>
+                <td>${fmtK(bl.final)}</td><td style="color:var(--text-faint)">--</td><td style="color:var(--text-faint)">--</td><td></td>
               </tr>
               ${opt.strategies.map((s, idx) => {
                 const isBest = idx === 0;
@@ -2553,7 +2644,8 @@ function renderInputs() {
                   <td style="color:${s.rmdDiff<0?'var(--green)':s.rmdDiff>0?'var(--red)':'var(--text-faint)'}">${s.rmdDiff<0?'&#8595; '+fmtK(Math.abs(s.rmdDiff)):s.rmdDiff>0?'&#8593; '+fmtK(s.rmdDiff):'--'}</td>
                   <td style="color:${s.irmaaDiff<0?'var(--green)':s.irmaaDiff>0?'var(--pink)':'var(--text-faint)'}">${s.irmaaDiff<0?'&#8595; '+fmtK(Math.abs(s.irmaaDiff)):s.irmaaDiff>0?'&#8593; '+fmtK(s.irmaaDiff):'--'}</td>
                   <td style="color:${s.nwDiff>0?'var(--green)':s.nwDiff<0?'var(--red)':'var(--text-faint)'}">${s.nwDiff>0?'&#8593; '+fmtK(s.nwDiff):s.nwDiff<0?'&#8595; '+fmtK(Math.abs(s.nwDiff)):'--'}</td>
-                  <td style="font-weight:600;color:${isBest?'var(--green)':'var(--text-dim)'}">${(s.score/1000).toFixed(1)}K</td>
+                  <td style="color:${s.breakevenAge===-1?'var(--green)':s.breakevenAge?'var(--text)':'var(--red)'}; font-size:${s.breakevenAge===-1?'9px':'11px'}">${s.breakevenAge===-1?'&#10003; Immed.':s.breakevenAge?s.breakevenAge:'Never'}</td>
+                  <td style="font-weight:600;color:${isBest?'var(--green)':'var(--text-dim)'}">${(s.score*100).toFixed(1)}</td>
                   <td>${isApplied ? '<span style="color:var(--green);font-size:11px;font-weight:600">Active</span>' : `<button class="scenario-btn" style="padding:4px 10px;font-size:10px;color:var(--green);border-color:var(--green)" onclick="applyRothOpt(${idx})">Apply</button>`}</td>
                 </tr>`;
               }).join('')}
@@ -2565,6 +2657,35 @@ function renderInputs() {
             const best = opt.strategies[0];
             const noConvProj = runProjection({...p, rothConversion:{enabled:false}});
             const len = Math.min(best.proj.length, noConvProj.length);
+
+            // Breakeven age for best strategy (tax-adjusted NW)
+            let optBreakevenAge = null;
+            const optConvStart = best.proj.findIndex(y => y.rothConv > 0);
+            if (optConvStart >= 0) {
+              let ctB = 0, ctN = 0;
+              let prevAdjB = 0, prevAdjN = 0;
+              for (let i = 0; i < len; i++) {
+                ctB += best.proj[i].tax || 0;
+                ctN += noConvProj[i].tax || 0;
+                const adjB = best.proj[i].netWorth - ctB;
+                const adjN = noConvProj[i].netWorth - ctN;
+                if (i >= optConvStart && i > 0 && prevAdjB < prevAdjN && adjB >= adjN) {
+                  optBreakevenAge = best.proj[i].age;
+                }
+                prevAdjB = adjB; prevAdjN = adjN;
+              }
+              ctB = 0; ctN = 0;
+              let everBehind = false;
+              for (let i = 0; i < len; i++) {
+                ctB += best.proj[i].tax || 0;
+                ctN += noConvProj[i].tax || 0;
+                if (i >= optConvStart && (best.proj[i].netWorth - ctB) < (noConvProj[i].netWorth - ctN)) {
+                  everBehind = true; break;
+                }
+              }
+              if (!everBehind) optBreakevenAge = -1;
+            }
+
             // Cumulative lifetime tax comparison
             let cumTaxBase = 0, cumTaxBest = 0;
             const taxChartData = [];
@@ -2572,6 +2693,15 @@ function renderInputs() {
               cumTaxBase += noConvProj[i].tax || 0;
               cumTaxBest += best.proj[i].tax || 0;
               taxChartData.push({ age: best.proj[i].age, year: best.proj[i].year, retired: best.proj[i].retired, noConv: cumTaxBase, withConv: cumTaxBest });
+            }
+            // Tax-adjusted net worth comparison
+            const nwChartData = [];
+            let ctBest = 0, ctBase = 0;
+            for (let i = 0; i < len; i++) {
+              ctBest += best.proj[i].tax || 0;
+              ctBase += noConvProj[i].tax || 0;
+              nwChartData.push({ age: best.proj[i].age, year: best.proj[i].year, retired: best.proj[i].retired,
+                withConv: best.proj[i].netWorth - ctBest, noConv: noConvProj[i].netWorth - ctBase });
             }
             // Pre-tax vs Roth balance comparison
             const balChartData = [];
@@ -2582,7 +2712,11 @@ function renderInputs() {
                 rothBase: noConvProj[i].roth || 0, rothConv: best.proj[i].roth || 0,
               });
             }
-            return '<div class="grid-2" style="margin-top:16px">' +
+            return '<div style="margin-top:16px">' + buildChart(
+                nwChartData, ['noConv','withConv'], ['#8b5cf6','#10b981'], ['Tax-Adj NW (No Conv)','Tax-Adj NW (Best Strategy)'],
+                {title:'Tax-Adjusted Net Worth' + (optBreakevenAge > 0 ? ' — Breakeven Age ' + optBreakevenAge : optBreakevenAge === -1 ? ' — Never Falls Behind' : ''), height:170}
+              ) + '</div>' +
+              '<div class="grid-2" style="margin-top:4px">' +
               '<div>' + buildChart(
                 taxChartData, ['noConv','withConv'], ['#8b5cf6','#10b981'], ['Cumulative Tax (No Conv)','Cumulative Tax (With Conv)'],
                 {title:'Lifetime Tax Burden', height:170}
@@ -2601,7 +2735,14 @@ function renderInputs() {
               (best.taxDiff < 0 ? ' and saves <strong style="color:var(--green)">' + fmtK(Math.abs(best.taxDiff)) + '</strong> in lifetime taxes.' : '.') +
               ' Final net worth ' + (best.nwDiff >= 0 ? 'increases' : 'decreases') +
               ' by <strong style="color:' + (best.nwDiff >= 0 ? 'var(--green)' : 'var(--red)') + '">' + fmtK(Math.abs(best.nwDiff)) + '</strong>.' + (best.nwDiff < 0 ? ' <em style="color:var(--text-dim)">(NW may decrease because conversion taxes are paid upfront; the benefit is in reduced lifetime taxes, RMDs, and IRMAA.)</em>' : '') +
-            '</div>';
+            '</div>' +
+            (optBreakevenAge !== -1 ? '<div style="font-size:12px;line-height:1.7;color:var(--text-dim);margin-top:8px;padding:10px 14px;background:var(--bg-base);border-radius:8px;border-left:3px solid var(--amber)">' +
+              '<strong style="color:var(--amber)">&#9202; Breakeven age: ' + (optBreakevenAge ? optBreakevenAge : 'beyond ' + p.endAge) + '</strong> — ' +
+              'Conversion taxes reduce net worth in early years. ' +
+              (optBreakevenAge ? 'Tax-free Roth growth catches up at age <strong>' + optBreakevenAge + '</strong>. Before that age, the conversion taxes represent a net cost to the estate.' : 'Within this projection the cost is never fully recovered on a net worth basis.') +
+            '</div>' : '<div style="font-size:12px;line-height:1.7;color:var(--text-dim);margin-top:8px;padding:10px 14px;background:var(--bg-base);border-radius:8px;border-left:3px solid var(--green)">' +
+              '<strong style="color:var(--green)">&#10003; No breakeven delay</strong> — Net worth with conversions never falls below the no-conversion path.' +
+            '</div>');
             } catch(e) { console.error('Optimizer chart error:', e); return ''; }
           })() : ''}
         </div>`;
