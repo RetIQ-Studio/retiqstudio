@@ -2456,6 +2456,34 @@ function buildStrategyReport(proj) {
   </div>`;
 }
 
+function solveMaxSpending() {
+  const p = state.params;
+  // Binary search: find highest annualExpenses (today's $) where endNW >= 0
+  let lo = 1000, hi = Math.max(p.annualExpenses * 5, 500000);
+
+  // Quick check: can they even survive at minimal spending?
+  const minProj = runProjection({ ...p, annualExpenses: lo });
+  if (minProj[minProj.length - 1].netWorth <= 0) return null; // can't even survive at $1K/yr
+
+  // Quick check: does max spending still work? (cap the search)
+  const maxProj = runProjection({ ...p, annualExpenses: hi });
+  if (maxProj[maxProj.length - 1].netWorth > 0) hi *= 2;
+
+  // Binary search — converge to within $500
+  for (let i = 0; i < 30 && (hi - lo) > 500; i++) {
+    const mid = Math.round((lo + hi) / 2);
+    const proj = runProjection({ ...p, annualExpenses: mid });
+    if (proj[proj.length - 1].netWorth > 0) lo = mid;
+    else hi = mid;
+  }
+
+  // lo is the highest safe value — run final projection for details
+  const finalProj = runProjection({ ...p, annualExpenses: lo });
+  const endNW = finalProj[finalProj.length - 1].netWorth;
+  const totalTax = finalProj.reduce((s, y) => s + y.tax, 0);
+  return { maxExpense: lo, endNW, totalTax, proj: finalProj };
+}
+
 function exportDashboardSummary() {
   const p = state.params;
   const proj = runProjection(p);
@@ -2527,6 +2555,22 @@ function exportDashboardSummary() {
     leversHtml = `
       <div class="sec-head">HIGHEST-IMPACT AREAS</div>
       <div class="levers">${rows}</div>`;
+  }
+
+  // Max Spending
+  let maxSpendHtml = '';
+  const maxR = solveMaxSpending();
+  if (maxR) {
+    const diff = maxR.maxExpense - p.annualExpenses;
+    const diffColor = diff >= 0 ? '#10b981' : '#f59e0b';
+    const diffStr = (diff >= 0 ? '+' : '') + fmt(diff) + '/yr vs current';
+    maxSpendHtml = `
+      <div class="sec-head">MAXIMUM SPENDING</div>
+      <div class="metrics">
+        <div class="metric" style="flex:2"><div class="metric-label">Max Retirement Spending (today's $)</div><div class="metric-value" style="color:#10b981">${fmt(maxR.maxExpense)}/yr</div><div class="metric-sub" style="color:${diffColor}">${diffStr}</div></div>
+        <div class="metric"><div class="metric-label">Current Setting</div><div class="metric-value" style="color:#06b6d4">${fmt(p.annualExpenses)}/yr</div></div>
+        <div class="metric"><div class="metric-label">End NW at Max</div><div class="metric-value" style="color:#94a3b8">${fmtK(maxR.endNW)}</div><div class="metric-sub">Near zero by design</div></div>
+      </div>`;
   }
 
   // Verdict — replace "plan" with "projection"
@@ -2677,6 +2721,7 @@ function exportDashboardSummary() {
   </div>
 
   ${mcHtml}
+  ${maxSpendHtml}
   ${leversHtml}
   ${stratHtml}
 
@@ -2778,6 +2823,30 @@ function renderDashboard(proj) {
         const color = pct >= 100 ? 'var(--green)' : pct >= 50 ? 'var(--amber)' : 'var(--red)';
         return '<div class="stat"><div class="stat-label">Legacy Goal</div><div class="stat-value" style="color:'+color+'">'+pct+'%</div><div class="stat-sub">' + fmtK(final) + ' / ' + fmtK(lg.targetAmount) + '</div></div>';
       })()}
+    </div>
+
+    <div class="card" style="padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:14px">&#128200;</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text)">Maximum Spending</div>
+          <div style="font-size:11px;color:var(--text-faint)">Highest retirement spending that keeps your money lasting through age ${p.endAge}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="maxSpendResult" style="font-size:11px;color:var(--text-dim)"></span>
+        <button onclick="(function(){
+          var el=document.getElementById('maxSpendResult');
+          el.textContent='Calculating...';
+          setTimeout(function(){
+            var r=solveMaxSpending();
+            if(!r){el.innerHTML='<span style=color:var(--red)>Not solvable — portfolio cannot sustain even minimal spending</span>';return;}
+            var diff=r.maxExpense-state.params.annualExpenses;
+            var diffStr=diff>0?'<span style=color:var(--green)>+'+fmtK(diff)+'/yr vs current</span>':'<span style=color:var(--amber)>'+fmtK(diff)+'/yr vs current</span>';
+            el.innerHTML='<strong style=color:var(--green);font-size:14px>'+fmt(r.maxExpense)+'/yr</strong> <span style=font-size:11px;color:var(--text-faint)>(today\\'s $) &nbsp;'+diffStr+'</span>';
+          },20);
+        })()" style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:5px 14px;font-size:11px;font-weight:600;color:var(--cyan);cursor:pointer">Calculate</button>
+      </div>
     </div>
 
     <div class="grid-2">

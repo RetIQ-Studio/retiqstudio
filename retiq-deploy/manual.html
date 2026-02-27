@@ -391,6 +391,10 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Click <strong>Apply</strong> on any card to adopt that strategy immediately &mdash; it updates your inputs and the entire dashboard re-computes. Useful for quick &ldquo;what-if&rdquo; testing without manually changing multiple input tabs.</p>
     <div class="tip"><strong>Tip:</strong> The Report Card runs a full projection for each alternative (~8 projections). This takes about 20ms on desktop and should be similarly fast on most mobile devices. If your plan has no applicable alternatives (e.g., already retired, no pre-tax accounts, SSDI active), the card shows a brief explanation instead.</div>
 
+    <h3>Maximum Spending</h3>
+    <p>The <strong>&#128200; Maximum Spending</strong> card sits between the key metrics and charts. Click <strong>Calculate</strong> to find the highest level annual retirement spending (in today&rsquo;s dollars, inflation-adjusted) that keeps your money lasting through your end age. RetIQ runs a binary search across the full projection engine, so the result accounts for taxes, RMDs, IRMAA, Roth conversions, Social Security, and all other factors.</p>
+    <p>The result shows the maximum amount, a comparison to your current expense setting (green if you have room to spend more, amber if you&rsquo;re currently overspending), and the near-zero end net worth. This is useful for &ldquo;Die With Zero&rdquo; style analysis or simply understanding your spending ceiling.</p>
+
     <h3>Export Summary</h3>
     <p>Click <strong>&#128196; Export Summary</strong> at the top-right of the Dashboard to generate a one-page printable summary. A new window opens with:</p>
     <ul>
@@ -398,6 +402,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <li>Lifetime totals (taxes, SS income, surcharges, peak RMD).</li>
       <li>Active strategy details (SS claiming age, Roth conversion settings).</li>
       <li>Monte Carlo results (if you&rsquo;ve run a simulation).</li>
+      <li>Maximum spending calculation.</li>
       <li>Highest-impact areas with dollar amounts.</li>
       <li>Strategy Report Card top opportunity.</li>
     </ul>
