@@ -129,8 +129,8 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <tr><td>Retirement Age</td><td>Age you plan to stop working. Can be fractional (e.g., 62.5 for mid-year). Income stops and withdrawals begin at this age.</td></tr>
       <tr><td>Plan End Age</td><td>Age at which the projection ends. Default 95. Set higher for conservative planning.</td></tr>
       <tr><td>Birth Year</td><td>Used to determine FRA for Social Security and RMD start age.</td></tr>
-      <tr><td>Birth Month</td><td>Refines SS benefit timing. Also available for spouse.</td></tr>
-      <tr><td>Retirement Month</td><td>The month within your retirement year when you stop working. Enables partial-year income modeling (e.g., retiring mid-year earns 6 months of income). Also available for spouse.</td></tr>
+      <tr><td>Filing Status</td><td>Tax filing status. Married Filing Jointly (MFJ) is used for household projections. Changes to Single after a spouse passes in survivor scenarios.</td></tr>
+      <tr><td>State Tax Rate</td><td>Flat-rate approximation for state income tax. Enter 0% for states with no income tax (FL, TX, NV, etc.).</td></tr>
     </table>
     <h3>Spouse Section</h3>
     <p>Check "Include Spouse" to enable dual-household modeling. Enter the spouse's age, retirement age, birth year, and life expectancy independently. The spouse's income, savings, SS, pension, and SSDI all have their own inputs in their respective tabs.</p>
@@ -179,7 +179,6 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <li><strong>Name:</strong> Label for identification (e.g., "Vanguard 401k", "Fidelity Roth").</li>
       <li><strong>Type:</strong> Pre-Tax (traditional 401k/IRA), Roth (Roth 401k/IRA), or Taxable (brokerage).</li>
       <li><strong>Balance:</strong> Current balance.</li>
-      <li><strong>Return Rate:</strong> Expected nominal annual return for this specific account. Defaults to 7%. This lets you model different growth rates (e.g., 4% for a HYSA, 7% for a stock fund, 10% for an aggressive growth fund). The Monte Carlo engine scales volatility proportionally to each account's return rate.</li>
     </ul>
     <p>RetIQ enforces annual contribution limits: $23,500 for 401k (2025), plus $7,500 catch-up at 50+, plus the enhanced $11,250 catch-up for ages 60-63. Savings are allocated to accounts in order: pre-tax up to limit, then Roth up to limit, then overflow to taxable.</p>
     <p>In retirement, withdrawals come from taxable first, then pre-tax (including RMDs), then Roth last &mdash; the tax-efficient ordering.</p>
@@ -227,11 +226,11 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <li><strong>Start Age:</strong> The age you begin receiving SSDI payments. Keep in mind that SSA has a five-month waiting period after your disability onset before benefits begin, so your start age should reflect when payments actually begin &mdash; not the disability onset itself.</li>
       <li><strong>End Age (converts to SS):</strong> Typically your Full Retirement Age (FRA). At FRA, SSDI automatically converts to regular Social Security retirement benefits at the same dollar amount. You don't need to do anything &mdash; SSA handles the conversion.</li>
     </ul>
-    <p>When you enable SSDI, RetIQ displays an info box showing the annualized income, plus an <strong>SSDI &rarr; SS Transition</strong> table showing the SSDI active period, the auto-conversion age and FRA benefit amount, and your Medicare eligibility date. If your SS claim age setting conflicts with the auto-conversion, a warning is displayed.</p>
+    <p>When you enable SSDI, RetIQ displays an info box showing the annualized income, plus a <strong>claiming-age comparison table</strong> showing what your regular SS benefit would be at each age from 62 to 70. This helps you understand what happens after SSDI ends.</p>
 
     <h3>How RetIQ Models the SSDI &rarr; SS Transition</h3>
-    <p>During the SSDI active period, RetIQ includes your SSDI payment as income. Regular SS benefits are suppressed &mdash; you can't collect both simultaneously. When SSDI ends (at the End Age you specify), RetIQ <strong>automatically converts to regular SS at FRA</strong>. The SS Claim Age you set in the Social Security tab is overridden for SSDI recipients &mdash; SSA does not allow delaying past FRA when converting from SSDI. RetIQ enforces this rule: the effective claim age is always End Age + 1 (typically FRA), and the benefit is calculated at the FRA amount with no delayed credits.</p>
-    <p>Both the Social Security tab and the SSDI tab display banners when SSDI is active, clearly indicating which claim age setting is being used in the projection.</p>
+    <p>During the SSDI active period, RetIQ includes your SSDI payment as income. Regular SS benefits are suppressed &mdash; you can't collect both simultaneously. Once SSDI ends (at the End Age you specify), your regular SS claiming-age logic from the Social Security tab takes over.</p>
+    <p>In most cases, set the SSDI End Age equal to your FRA and the SS Claim Age in the SS tab to the same value. This models the real-world automatic conversion. However, if you want to explore what happens if you delay your SS claim past FRA (to earn delayed retirement credits), you can set a later SS Claim Age &mdash; but be aware that SSA will not let you delay past FRA when converting from SSDI. RetIQ does not enforce this rule for you, so be careful with this setting.</p>
 
     <h3>Medicare Eligibility: The 24-Month Rule</h3>
     <p>One of the most important financial effects of SSDI is early Medicare eligibility. Under federal law, SSDI recipients qualify for Medicare after receiving disability benefits for 24 months. Combined with the 5-month SSDI waiting period, most people become Medicare-eligible about 29 months after disability onset.</p>
@@ -256,8 +255,8 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     </ul>
 
     <h3>Common Scenarios</h3>
-    <p><strong>Scenario 1: Early disability, long SSDI period.</strong> Person becomes disabled at 45, starts SSDI at 45. Medicare kicks in at 47 (eliminating 18 years of pre-Medicare healthcare gap costs). SSDI converts to SS at FRA (67). Set Start Age = 45, End Age = 66. RetIQ automatically starts SS at age 67 regardless of what you set as the SS Claim Age.</p>
-    <p><strong>Scenario 2: Late-career disability.</strong> Person becomes disabled at 58, starts SSDI at 58. Medicare kicks in at 60 (5 years earlier than normal). SSDI converts to SS at 67. Set Start Age = 58, End Age = 66. The engine overrides SS Claim Age to 67 (FRA).</p>
+    <p><strong>Scenario 1: Early disability, long SSDI period.</strong> Person becomes disabled at 45, starts SSDI at 45. Medicare kicks in at 47 (eliminating 18 years of pre-Medicare healthcare gap costs). SSDI converts to SS at FRA (67). Set Start Age = 45, End Age = 67, SS Claim Age = 67.</p>
+    <p><strong>Scenario 2: Late-career disability.</strong> Person becomes disabled at 58, starts SSDI at 58. Medicare kicks in at 60 (5 years earlier than normal). SSDI converts to SS at 67. Set Start Age = 58, End Age = 67, SS Claim Age = 67.</p>
     <p><strong>Scenario 3: Spouse on SSDI with survivor planning.</strong> Primary earner is healthy; spouse is on SSDI. Configure SSDI for the spouse, then use the Survivor section in the Personal tab. If the spouse passes, their SSDI stops and the primary loses that household income. If the primary passes, the spouse on SSDI may be able to receive a survivor benefit on top of their SSDI (the difference, if the primary's record is larger).</p>
 
     <div class="tip"><strong>Where to find your SSDI amount:</strong> Your benefit letter from SSA states your monthly disability amount. If you haven't applied yet, log in to <a href="https://www.ssa.gov/myaccount/" target="_blank" rel="noopener">my Social Security</a> and check the disability estimate on your statement. This is an estimate based on your current earnings record.</div>
@@ -268,8 +267,8 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <h2>10. Healthcare Tab</h2>
     <p>If you retire before Medicare eligibility, you need to bridge the healthcare gap:</p>
     <ul>
-      <li><strong>Annual Premium:</strong> Estimated annual cost for ACA marketplace, COBRA, or private insurance.</li>
-      <li><strong>Medical Inflation:</strong> Annual increase in healthcare costs. Default: 5% (healthcare historically inflates faster than general CPI).</li>
+      <li><strong>Annual Cost (Year 1):</strong> Estimated annual cost for ACA marketplace, COBRA, or private insurance.</li>
+      <li><strong>Healthcare Inflation:</strong> Annual increase in healthcare costs. Default: 5% (healthcare historically inflates faster than general CPI).</li>
     </ul>
     <p>The tab shows the cumulative healthcare cost during the gap years and the final-year premium to help you plan.</p>
     <p><strong>SSDI and early Medicare:</strong> If you have SSDI enabled, RetIQ automatically shortens the healthcare gap. SSDI recipients qualify for Medicare after 24 months of benefits, so your gap coverage ends at your SSDI Start Age + 2 (or 65, whichever is earlier). See the <a href="#ssdi">SSDI Tab</a> section for details.</p>
@@ -298,50 +297,31 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Six strategy types:</p>
     <ul>
       <li><strong>Fixed Amount:</strong> Convert a set dollar amount each year (e.g., $50K/yr).</li>
-      <li><strong>Fill Tax Bracket:</strong> Convert enough each year to fill taxable income up to a target bracket (e.g., fill the 22% bracket). This is the most common approach &mdash; it automatically accounts for Social Security, pensions, SSDI, earned income, and taxable withdrawals already filling the bracket, then converts only the remaining gap. As your income mix changes year to year (e.g., SS kicks in at 67), the conversion amount adjusts automatically.</li>
-      <li><strong>Smart Fill (IRMAA-Aware):</strong> Same as Fill Tax Bracket but additionally caps the conversion before crossing the next IRMAA threshold. This prevents surprise Medicare surcharges that can cost $2,000&ndash;$8,000+/year. Recommended for anyone aged 63+ where IRMAA is a real concern (2-year lookback means conversions at 63 affect premiums at 65).</li>
+      <li><strong>Fill Tax Bracket:</strong> Convert enough each year to fill taxable income up to a target bracket (e.g., fill the 22% bracket). This is the most common approach &mdash; it automatically adjusts the conversion amount based on your other income in each year.</li>
+      <li><strong>Smart Fill (IRMAA-Aware):</strong> Like Fill Tax Bracket, but caps conversions before crossing the next Medicare IRMAA tier. Prevents surprise surcharges that can erase conversion benefits.</li>
       <li><strong>Target MAGI Ceiling:</strong> Convert up to a total MAGI limit. Useful for staying below IRMAA thresholds.</li>
       <li><strong>% of Pre-Tax Balance:</strong> Convert a percentage of remaining pre-tax balance each year. The amount naturally decreases as the balance shrinks.</li>
-      <li><strong>Custom Schedule:</strong> Specify a different conversion amount for each year. You can edit amounts manually or click <strong>Generate Optimal</strong> to have RetIQ automatically compute the best amount for each year based on your complete tax landscape.</li>
+      <li><strong>Custom Schedule:</strong> Set a specific conversion amount for each year in the conversion window. Use the Generate Optimal button to auto-fill amounts based on greedy per-year optimization.</li>
     </ul>
     <p><strong>Start / End Age</strong> defines the conversion window. The sweet spot is typically between retirement (when earned income drops) and RMD start age (when forced distributions begin).</p>
 
     <h3>Impact Analysis</h3>
-    <p>Directly below the strategy inputs, this section compares your current strategy against doing no conversions at all. Key metrics include total converted, tax cost, lifetime tax delta, RMD reduction, IRMAA impact, final net worth change, and <strong>Breakeven Age</strong>.</p>
-    <p><strong>Breakeven Age</strong> is when your tax-adjusted net worth (portfolio value minus cumulative lifetime taxes paid) with conversions catches up to the no-conversion path. Because conversions pay taxes upfront, your wealth temporarily falls behind. The breakeven age tells you how long you must live for the strategy to pay off. Three outcomes are possible:</p>
+    <p>Directly below the strategy inputs, this section compares your current strategy against doing no conversions at all. It shows total converted, tax cost, lifetime tax delta, RMD reduction, IRMAA impact, final net worth change, and breakeven age.</p>
+    <p>Four charts visualize the strategy:</p>
     <ul>
-      <li><strong>A specific age</strong> (e.g., 82) &mdash; the most common result. Before this age, conversion taxes are a net cost to your estate.</li>
-      <li><strong>Immediate</strong> &mdash; conversions never fall behind, typically when amounts are small or the bracket is very low.</li>
-      <li><strong>Never</strong> &mdash; the conversion cost is not recovered within the projection. Consider reducing amounts or shortening the window.</li>
+      <li><strong>Conversion Advantage:</strong> A single line showing the tax-adjusted net worth difference between converting and not converting. Above zero means conversions are winning; below zero means you&rsquo;re still recouping the upfront tax cost. The zero-crossing is the breakeven age.</li>
+      <li><strong>Pre-Tax Balance:</strong> Shows the drawdown of pre-tax accounts (lower = less future RMDs).</li>
+      <li><strong>Roth Balance:</strong> Shows the growth of tax-free Roth assets.</li>
+      <li><strong>Annual Conversions &amp; Tax:</strong> Bar-style chart of each year&rsquo;s conversion amount alongside its tax cost.</li>
     </ul>
-    <p>A <strong>Tax-Adjusted Net Worth</strong> chart shows both paths side by side so you can see the dip during conversion years and the crossover point visually. Below it, the existing Pre-Tax balance, Roth balance, and annual conversion charts provide further detail. A callout box explains the mortality trade-off: if you do not survive to the breakeven age, the upfront taxes represent real money lost.</p>
     <p>This section updates instantly whenever you change any strategy parameter.</p>
 
     <h3>Roth Conversion Optimizer (research tool)</h3>
-    <p>Click <strong>Find Optimal Strategy</strong> to test ~300+ combinations of amounts ($5K&ndash;$200K), bracket targets (fill 12%/22%/24% and their IRMAA-aware Smart Fill variants), and age windows. The optimizer ranks the top 8 results in a table with these columns:</p>
-    <ul>
-      <li><strong>Converted / Conv Tax:</strong> Total amount moved to Roth and the taxes paid on those conversions.</li>
-      <li><strong>Tax / RMD / IRMAA vs Base:</strong> Lifetime savings (or costs) compared to doing no conversions.</li>
-      <li><strong>Final NW vs Base:</strong> Difference in ending portfolio value.</li>
-      <li><strong>Breakeven:</strong> The age at which tax-adjusted net worth catches up to the no-conversion path. &ldquo;Immed.&rdquo; means conversions never fall behind; a number means you need to survive to that age for the strategy to pay off; &ldquo;Never&rdquo; means the cost isn&rsquo;t recovered.</li>
-      <li><strong>Score (0&ndash;100):</strong> A weighted composite of tax savings, IRMAA reduction, and net worth gain. Higher is better. Use the radio buttons above the table to shift the weighting toward tax minimization, net worth maximization, or a balanced mix.</li>
-    </ul>
-    <p>Below the table, the <strong>best strategy</strong> is expanded with a Tax-Adjusted Net Worth chart (showing the breakeven crossover), a Lifetime Tax Burden chart, and an Account Composition chart. A breakeven callout summarizes the mortality trade-off.</p>
+    <p>Click <strong>Find Optimal Strategy</strong> to test ~200+ combinations of fixed amounts ($5K&ndash;$200K), fill-bracket targets (12%/22%/24%), Smart Fill targets (IRMAA-aware bracket fill), and age windows. The optimizer ranks the top 8 results by a composite score that weighs tax savings, IRMAA impact, and net worth gain.</p>
     <p>The optimizer does <em>not</em> change your plan automatically. It shows you what could work better and lets you decide.</p>
     <p>Click <strong>Apply</strong> on any row to load that strategy into your active plan. The Strategy section updates with the new settings, the Impact Analysis re-computes, and all other tabs (Dashboard, Projection, Monte Carlo) reflect the change. The optimizer table stays visible with a &ldquo;&#10003; Applied&rdquo; marker so you can compare.</p>
 
-    <h3>Generate Optimal Schedule (adaptive per-year optimization)</h3>
-    <p>While the Optimizer tests uniform strategies (same rule every year), <strong>Generate Optimal</strong> creates a truly adaptive schedule &mdash; a different conversion amount for each year, tuned to that year&rsquo;s specific tax landscape.</p>
-    <p>To use it: select <strong>Custom Schedule</strong> from the Strategy dropdown, then click <strong>Generate Optimal</strong>. RetIQ runs a greedy forward pass that, for each year in your conversion window, tests ~15 candidate amounts (including IRMAA-safe bracket fills and fixed amounts), evaluates the full lifetime impact of each, and picks the best one. A refinement pass then adjusts each year considering its neighbors.</p>
-    <p>The result populates the editable per-year table. You can review the amounts, tweak any year manually, and see the Impact Analysis update instantly. This is especially powerful for situations where:</p>
-    <ul>
-      <li><strong>Income changes mid-window:</strong> e.g., a gap between retirement and SS start creates &ldquo;golden years&rdquo; where aggressive conversion is optimal, then SS kicks in and the amount should drop.</li>
-      <li><strong>IRMAA cliffs vary by year:</strong> the 2-year lookback means conversion decisions at different ages affect IRMAA at different future ages.</li>
-      <li><strong>You want a personalized strategy:</strong> rather than a uniform rule, you want the exact dollar amount for each year of your retirement.</li>
-    </ul>
-    <div class="warn"><strong>Performance note:</strong> Generate Optimal runs ~120 full projections (15 candidates × 8 years). This typically takes under 500ms. The quality depends on the scoring mode (Balanced, Tax Min, or NW Max) &mdash; the same radio buttons used by the Optimizer control the weighting.</div>
-
-    <div class="tip"><strong>Typical workflow:</strong> (1) Start with a simple strategy (Smart Fill 22% is a great default). (2) Review the Impact Analysis &mdash; check the breakeven age. (3) Run the Optimizer to see if a different window or bracket works better. (4) For maximum optimization, switch to Custom Schedule and click Generate Optimal &mdash; this often beats the best uniform strategy by reducing IRMAA and adapting to income changes. (5) Tweak individual years if needed. (6) Check the Dashboard and Monte Carlo to confirm the strategy works across market scenarios. Note: the Optimizer tests fixed-amount, fill-bracket, and smart-fill strategies. For Target MAGI, % of Balance, or custom fine-tuning, configure those manually.</div>
+    <div class="tip"><strong>Typical workflow:</strong> (1) Set a reasonable starting strategy (e.g., Fill 22%, ages 65&ndash;72). (2) Review the Impact Analysis. (3) Run the Optimizer to see if there&rsquo;s something better. (4) Apply a result or adjust manually. (5) Check the Dashboard and Monte Carlo to confirm the strategy works across scenarios. Note: the optimizer tests fixed-amount, fill-bracket, and Smart Fill strategies. For Target MAGI, % of Balance, or Custom Schedule, configure those manually.</div>
   </div>
 
   <!-- 13 -->
@@ -365,12 +345,12 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <h2>15. Liabilities Tab</h2>
     <p>Track debts that affect your annual expenses:</p>
     <ul>
-      <li><strong>Name:</strong> Label (e.g., "Mortgage", "Car Loan", "Alimony").</li>
-      <li><strong>Type:</strong> Category (Mortgage, Alimony, Loan, Other) &mdash; for labeling and organization.</li>
+      <li><strong>Name:</strong> Label (e.g., "Mortgage", "Car Loan").</li>
       <li><strong>Monthly Payment:</strong> Current payment amount.</li>
-      <li><strong>Active Age Range:</strong> Start and end ages for the payment. For example, a mortgage from age 45 to 60 adds 15 years of payments to your expenses.</li>
+      <li><strong>Interest Rate:</strong> Annual interest rate.</li>
+      <li><strong>Remaining Balance:</strong> Current balance. Used to calculate payoff date.</li>
     </ul>
-    <p>The annual total of all debt payments is shown and factored into the projection. When the active age range ends, the expense disappears from the projection.</p>
+    <p>The annual total of all debt payments is shown and factored into the projection. After payoff, the expense disappears from the projection.</p>
   </div>
 
   <!-- 16 -->
@@ -401,7 +381,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
   <div class="sec" id="projection">
     <h2>18. Projection Table</h2>
     <p>The year-by-year projection table is the core output. Each row is one year of your plan. Columns include:</p>
-    <p>Age, Year, Earned Income, Social Security, SSDI, Pension, Expenses, Tax, RMD, Roth Conversion, Pre-Tax Balance, Roth Balance, Taxable Balance, Net Worth, Medicare, IRMAA, QCD, and more depending on what features are enabled. Columns with all-zero values are automatically hidden.</p>
+    <p>Age, Year, Earned Income, Social Security, Pension, Expenses, Tax, RMD, Roth Conversion, Pre-Tax Balance, Roth Balance, Taxable Balance, Net Worth, Medicare, IRMAA, QCD, and more depending on what features are enabled.</p>
     <p>The header row is sticky so column labels remain visible while scrolling. A totals row at the bottom sums lifetime values. The table scrolls both horizontally and vertically.</p>
     <p>Use the <strong>Today's $ / Future $</strong> toggle in the header to view values in inflation-adjusted or nominal terms.</p>
     <div class="tip"><strong>Tip:</strong> Use the CSV Export button (in the Projection view) to download the table for analysis in Excel or Google Sheets.</div>
@@ -410,11 +390,11 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
   <!-- 19 -->
   <div class="sec" id="montecarlo">
     <h2>19. Monte Carlo Simulation</h2>
-    <p>The Monte Carlo engine runs hundreds of randomized projections, varying both investment returns and inflation each year based on configurable standard deviations.</p>
+    <p>The Monte Carlo engine runs 2,000 randomized projections, varying both investment returns and inflation each year based on configurable standard deviations.</p>
     <h3>Configuration</h3>
     <ul>
-      <li><strong>Number of Simulations:</strong> Default 500. Configurable up to 2,000 for higher precision (slower).</li>
-      <li><strong>Return Std Dev:</strong> Year-to-year volatility of investment returns. Default: 6%.</li>
+      <li><strong>Number of Simulations:</strong> Default 2,000. Higher means more precise but slower.</li>
+      <li><strong>Return Std Dev:</strong> Year-to-year volatility of investment returns. Default: 12% (typical for a stock-heavy portfolio).</li>
       <li><strong>Inflation Std Dev:</strong> Year-to-year inflation volatility. Default: 1.5%.</li>
     </ul>
     <h3>Results</h3>
@@ -429,7 +409,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
   <!-- 20 -->
   <div class="sec" id="scenarios">
     <h2>20. Scenario Comparison</h2>
-    <p>Test how changes to key assumptions affect your plan. RetIQ includes 18 built-in scenarios:</p>
+    <p>Test how changes to key assumptions affect your plan. RetIQ includes 16 built-in scenarios:</p>
     <p><strong>Single-variable:</strong> Retire at 60, Retire at 67, Higher expenses (+20%), Lower return (5%), Higher inflation (5%), SS at 62, SS at 70, and more.</p>
     <p><strong>Combinations:</strong> "Low Return + High Inflation," "Early Retire + Lower Return," "SS at 70 + Roth Conv," "+20% Expenses + High Inflation."</p>
     <p>Results are shown as a comparison table and multi-category chart. The selected scenario categories (SS Income, Net Worth, Tax, etc.) can be toggled to compare any metric across all scenarios simultaneously.</p>
@@ -468,7 +448,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Yes. RetIQ runs entirely in your browser. No financial data is ever sent to any server. The only network calls are for license verification (your email and key only) and optional PWA updates.</p>
 
     <h3>Which tax brackets does RetIQ use?</h3>
-    <p>2025 federal tax brackets for both Married Filing Jointly (MFJ) and Single filers. The filing status switches automatically to Single after a spouse passes in survivor scenarios. State tax uses a simplified effective rate based on the state you select from the dropdown in the Assumptions tab (all 50 states and DC are available). The brackets are applied to computed taxable income each year.</p>
+    <p>2025 Married Filing Jointly federal brackets. State tax uses a simplified effective rate based on the state you select from the dropdown in the Assumptions tab (all 50 states and DC are available). The brackets are applied to computed taxable income each year.</p>
 
     <h3>How accurate are the Social Security estimates?</h3>
     <p>RetIQ matches SSA calculations exactly when using the manual entry mode (entering your FRA benefit from ssa.gov). The income-based estimate uses 2025 bend points and is a good approximation but may differ from SSA's indexed earnings calculation.</p>
@@ -495,7 +475,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Your SSDI payments stop, but your surviving spouse can claim a survivor benefit based on your Social Security work record. RetIQ calculates this from your PIA (or your SSDI amount if no separate SS income was entered). The survivor receives the higher of their own SS benefit or the survivor benefit &mdash; not both.</p>
   </div>
 
-  <div class="footer">RetIQ v1.3 &middot; retiqstudio.com &middot; Not financial advice &middot; All computation runs locally in your browser</div>
+  <div class="footer">RetIQ v1.4 &middot; retiqstudio.com &middot; Not financial advice &middot; All computation runs locally in your browser</div>
 </div>
 </body>
 </html>

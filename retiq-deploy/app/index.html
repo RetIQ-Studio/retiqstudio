@@ -253,7 +253,7 @@ button:hover { opacity: 0.88; }
 <div class="header" style="flex-direction:column;align-items:stretch;">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;">
     <span class="logo-text">RetIQ</span>
-    <span class="logo-badge">v1.3</span>
+    <span class="logo-badge">v1.4</span>
     <span id="planBadge" class="plan-badge" title="Current plan">FREE</span>
     <button id="installBtn" class="tab" title="Install RetIQ">Install</button>
     <button id="buyBtn" class="tab" title="Pro unlocks: Save HTML snapshots, future Pro features">Upgrade</button>
@@ -803,7 +803,7 @@ function runProjection(p) {
       }
     }
 
-    const other = p.additionalIncome || 0;
+    const other = (effectivelyRetired || primaryDead) ? (p.additionalIncome || 0) : 0;
 
     // Pension / Annuity income (new)
     let pensionIncome = 0;
@@ -958,7 +958,6 @@ function runProjection(p) {
     let ltcCost = 0;
     const ltc = p.longTermCare || {};
     if (ltc.enabled && age >= (ltc.startAge || 82) && age < (ltc.startAge || 82) + (ltc.duration || 4)) {
-      const ltcYrs = age - (ltc.startAge || 82);
       let cost = (ltc.annualCost || 100000) * Math.pow(1 + (ltc.inflation || 5) / 100, yr);
       if (ltc.hasInsurance) cost = Math.max(0, cost - (ltc.insuranceCoverage || 0));
       ltcCost = Math.round(cost);
@@ -1940,6 +1939,13 @@ function buildChart(data, keys, colors, labels, opts = {}) {
     gridLines += `<text x="${w-pR+2}" y="${y+2}" font-size="6" fill="var(--text-faint)" text-anchor="start">${fmtK(val)}</text>`;
   });
 
+  // Zero line when data spans positive and negative (e.g. advantage charts)
+  let zeroLine = '';
+  if (minV < 0 && maxV > 0) {
+    zeroLine = `<line x1="${pL}" x2="${w-pR}" y1="${zeroY}" y2="${zeroY}" stroke="var(--text-muted)" stroke-width="0.7" stroke-dasharray="4,2"/>` +
+      `<text x="${pL-1}" y="${zeroY+2}" font-size="6" fill="var(--text-muted)" text-anchor="end">0</text>`;
+  }
+
   let retLine = '';
   const retIdx = data.findIndex(d => d.retired);
   if (retIdx > 0) { const rx = pL + retIdx * xStep; retLine = `<line x1="${rx}" x2="${rx}" y1="${pT}" y2="${pT+cH}" stroke="var(--amber)" stroke-width="0.8" stroke-dasharray="3,2"/>`; }
@@ -1981,7 +1987,7 @@ function buildChart(data, keys, colors, labels, opts = {}) {
   return `<div class="chart-wrap" id="${cid}_w">${title ? `<div class="chart-title">${title}</div>` : ''}
     <div style="position:relative">
       <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;overflow:visible" id="${cid}">
-        ${gridLines}${paths}${retLine}${xLabels}
+        ${gridLines}${zeroLine}${paths}${retLine}${xLabels}
         <rect x="${pL}" y="${pT}" width="${cW}" height="${cH}" fill="transparent"
           onmousemove="cHover(event,'${cid}','${chartDataJSON}','${colorsJSON}','${labelsJSON}',${pL},${xStep})"
           onmouseleave="cLeave('${cid}')"/>
@@ -2039,6 +2045,195 @@ function field(label, key, opts = {}) {
   </div>${help ? `<div class="field-help">${help}</div>` : ''}</div>`;
 }
 
+function computePlanHealth(proj) {
+  const p = state.params;
+  const totalAcct = p.accounts.reduce((s, a) => s + a.balance, 0);
+  const preTaxBal = p.accounts.filter(a => a.type === 'pretax').reduce((s, a) => s + a.balance, 0);
+  const final = proj[proj.length - 1].netWorth;
+  const bust = proj.find(y => y.netWorth <= 0)?.age;
+  const totalTax = proj.reduce((s, y) => s + y.tax, 0);
+  const totalIRMAA = proj.reduce((s, y) => s + y.irmaa, 0);
+  const totalRMD = proj.reduce((s, y) => s + y.rmd, 0);
+  const peakRMD = Math.max(...proj.map(y => y.rmd));
+  const totalConv = proj.reduce((s, y) => s + y.rothConv, 0);
+
+  // -- Verdict --
+  let grade, verdictText, verdictColor, verdictIcon;
+  if (bust) {
+    grade = 'critical';
+    verdictColor = 'var(--red)';
+    verdictIcon = '&#9888;';
+    verdictText = `Your portfolio is projected to run out at age <strong>${bust}</strong>. This means ${p.endAge - bust} years without funds. This needs immediate attention.`;
+  } else if (final < totalAcct * 0.2) {
+    grade = 'caution';
+    verdictColor = 'var(--amber)';
+    verdictIcon = '&#9888;';
+    verdictText = `Your money lasts through age ${p.endAge}, but with only <strong>${fmtK(final)}</strong> remaining — a thin margin. A bad sequence of returns or unexpected expenses could change the outcome.`;
+  } else {
+    grade = 'strong';
+    verdictColor = 'var(--green)';
+    verdictIcon = '&#10003;';
+    verdictText = `Your money is projected to last through age ${p.endAge} with <strong>${fmtK(final)}</strong> remaining. Your plan has a solid foundation.`;
+  }
+
+  // -- Big Levers --
+  const levers = [];
+
+  // 1. Roth conversion opportunity / impact
+  if (preTaxBal > 50000) {
+    const noConvProj = runProjection({ ...p, rothConversion: { enabled: false } });
+    const noConvTax = noConvProj.reduce((s, y) => s + y.tax, 0);
+    const noConvIRMAA = noConvProj.reduce((s, y) => s + y.irmaa, 0);
+    const noConvFinal = noConvProj[noConvProj.length - 1].netWorth;
+
+    if (totalConv > 0) {
+      // Currently converting — show the value
+      const taxSaved = noConvTax - totalTax;
+      const irmaaDelta = totalIRMAA - noConvIRMAA;
+      const netBenefit = taxSaved - irmaaDelta;
+      if (Math.abs(netBenefit) > 5000) {
+        levers.push({
+          magnitude: Math.abs(netBenefit),
+          title: 'Roth Conversion Strategy',
+          icon: '&#128260;',
+          color: netBenefit > 0 ? 'var(--green)' : 'var(--amber)',
+          amount: netBenefit > 0 ? fmt(netBenefit) : '-' + fmt(Math.abs(netBenefit)),
+          amountLabel: netBenefit > 0 ? 'lifetime tax savings' : 'net cost vs. no conversions',
+          desc: netBenefit > 0
+            ? 'Your current conversion strategy is saving you money over doing nothing. Consider running the Optimizer to see if a different approach saves even more.'
+            : 'Your current conversion strategy costs more in IRMAA surcharges than it saves in taxes. Consider Smart Fill or adjusting your target bracket.',
+          action: "state.tab='inputs';state.inputTab='rothconv';render()",
+          actionLabel: 'Go to Roth Conversions',
+        });
+      }
+    } else {
+      // Not converting — show the opportunity
+      // Quick test: fill 22% bracket
+      const testProj = runProjection({ ...p, rothConversion: {
+        enabled: true, strategy: 'smartFill', startAge: p.retirementAge, endAge: Math.min(p.retirementAge + 7, 74), targetBracket: 0.22,
+      }});
+      const testTax = testProj.reduce((s, y) => s + y.tax, 0);
+      const testIRMAA = testProj.reduce((s, y) => s + y.irmaa, 0);
+      const potentialSaving = (noConvTax + noConvIRMAA) - (testTax + testIRMAA);
+      if (potentialSaving > 10000) {
+        levers.push({
+          magnitude: potentialSaving,
+          title: 'Roth Conversion Opportunity',
+          icon: '&#128260;',
+          color: 'var(--cyan)',
+          amount: fmt(potentialSaving),
+          amountLabel: 'potential lifetime tax savings',
+          desc: `You have ${fmtK(preTaxBal)} in pre-tax accounts with no conversion plan. A Smart Fill strategy could save significantly in lifetime taxes and reduce future RMDs.`,
+          action: "state.tab='inputs';state.inputTab='rothconv';render()",
+          actionLabel: 'Explore Roth Conversions',
+        });
+      }
+    }
+  }
+
+  // 2. Social Security claiming age
+  if (p.ssClaimAge && p.ssClaimAge < 70) {
+    const delay70Proj = runProjection({ ...p, ssClaimAge: 70 });
+    const delay70SS = delay70Proj.reduce((s, y) => s + y.ss, 0);
+    const curSS = proj.reduce((s, y) => s + y.ss, 0);
+    const ssDelta = delay70SS - curSS;
+    if (ssDelta > 20000) {
+      levers.push({
+        magnitude: ssDelta,
+        title: 'Social Security Timing',
+        icon: '&#128176;',
+        color: 'var(--blue)',
+        amount: fmt(ssDelta),
+        amountLabel: 'more lifetime SS income if you delay to 70',
+        desc: `You're claiming at ${p.ssClaimAge}. Delaying to 70 increases your monthly benefit by ~${Math.round((70 - p.ssClaimAge) * 8)}% but requires bridging ${70 - p.ssClaimAge} more years from savings. The tradeoff depends on longevity.`,
+        action: "state.tab='inputs';state.inputTab='ss';render()",
+        actionLabel: 'Review SS Strategy',
+      });
+    }
+  }
+
+  // 3. IRMAA surcharges
+  if (totalIRMAA > 5000) {
+    levers.push({
+      magnitude: totalIRMAA,
+      title: 'Medicare IRMAA Surcharges',
+      icon: '&#127973;',
+      color: 'var(--pink)',
+      amount: fmt(totalIRMAA),
+      amountLabel: 'lifetime Medicare surcharges',
+      desc: `Your income triggers Medicare income-related surcharges. ${totalConv > 0 ? 'Roth conversions are contributing — Smart Fill can avoid crossing IRMAA tiers.' : 'This is driven by your pre-tax withdrawals and other income.'} IRMAA uses a 2-year lookback, so decisions today affect premiums 2 years out.`,
+      action: "state.tab='inputs';state.inputTab='medicare';render()",
+      actionLabel: 'Review Medicare Costs',
+    });
+  }
+
+  // 4. Pre-tax concentration risk
+  const preTaxPct = totalAcct > 0 ? preTaxBal / totalAcct : 0;
+  if (preTaxPct > 0.6 && preTaxBal > 200000) {
+    const peakRmdPct = Math.round(peakRMD / Math.max(1, p.annualExpenses) * 100);
+    levers.push({
+      magnitude: Math.round(totalRMD * 0.22), // rough tax cost estimate
+      title: 'Pre-Tax Concentration',
+      icon: '&#9874;',
+      color: 'var(--amber)',
+      amount: Math.round(preTaxPct * 100) + '%',
+      amountLabel: 'of your portfolio is pre-tax',
+      desc: `${fmtK(preTaxBal)} in pre-tax accounts will generate forced RMDs starting at ${proj.find(y => y.rmdRequired)?.age || 73}. Peak RMD reaches ${fmtK(peakRMD)}/yr (${peakRmdPct}% of your expenses). This creates taxable income you can't control. Roth conversions before RMDs start can reduce this.`,
+      action: "state.tab='inputs';state.inputTab='rothconv';render()",
+      actionLabel: 'Explore Roth Conversions',
+    });
+  }
+
+  // 5. Expense vulnerability
+  const highExpProj = runProjection({ ...p, annualExpenses: Math.round(p.annualExpenses * 1.2) });
+  const highExpBust = highExpProj.find(y => y.netWorth <= 0)?.age;
+  if (highExpBust && !bust) {
+    levers.push({
+      magnitude: Math.round(p.annualExpenses * 0.2 * (p.endAge - p.retirementAge)),
+      title: 'Expense Sensitivity',
+      icon: '&#9888;',
+      color: 'var(--red)',
+      amount: 'Age ' + highExpBust,
+      amountLabel: 'depletion if expenses rise 20%',
+      desc: `A 20% increase in spending (to ${fmt(Math.round(p.annualExpenses * 1.2))}/yr) causes your plan to fail at age ${highExpBust}. Your margin is thin — consider building more buffer through higher savings, lower expenses, or delayed retirement.`,
+      action: "state.tab='inputs';state.inputTab='expenses';render()",
+      actionLabel: 'Review Expenses',
+    });
+  }
+
+  // 6. Healthcare gap cost (early retirees)
+  const hc = p.preMedicareHealthcare;
+  if (hc && hc.enabled && p.retirementAge < 65) {
+    const gapYears = 65 - p.retirementAge;
+    const totalHC = proj.filter(y => y.age >= p.retirementAge && y.age < 65).reduce((s, y) => s + (y.healthcare || 0), 0);
+    if (totalHC > 20000) {
+      levers.push({
+        magnitude: totalHC,
+        title: 'Pre-Medicare Healthcare Gap',
+        icon: '&#127974;',
+        color: 'var(--amber)',
+        amount: fmt(totalHC),
+        amountLabel: `total cost over ${gapYears} gap years`,
+        desc: `Retiring at ${p.retirementAge} means ${gapYears} years of self-funded healthcare before Medicare at 65. At ${fmt(hc.annualCost || 0)}/yr growing at ${hc.inflation || 5}%, this is a significant expense to plan for.`,
+        action: "state.tab='inputs';state.inputTab='healthcare';render()",
+        actionLabel: 'Review Healthcare',
+      });
+    }
+  }
+
+  // Sort by dollar magnitude, take top 5
+  levers.sort((a, b) => b.magnitude - a.magnitude);
+  const topLevers = levers.slice(0, 5);
+
+  // Count issues for verdict
+  const issueCount = topLevers.filter(l => l.color !== 'var(--green)' && l.color !== 'var(--blue)').length;
+  if (issueCount > 0 && grade === 'strong') {
+    verdictText += ` You have <strong>${issueCount}</strong> area${issueCount > 1 ? 's' : ''} worth understanding.`;
+  }
+
+  return { grade, verdictText, verdictColor, verdictIcon, levers: topLevers, bust, final, totalTax, totalIRMAA, totalRMD, peakRMD };
+}
+
 function renderDashboard(proj) {
   const p = state.params;
   const totalAcct = p.accounts.reduce((s, a) => s + a.balance, 0);
@@ -2051,6 +2246,9 @@ function renderDashboard(proj) {
   const rmdStartYr = proj.find(y => y.rmdRequired);
   const peakRMD = Math.max(...proj.map(y => y.rmd));
 
+  // Compute Plan Health
+  const health = computePlanHealth(proj);
+
   // Build net worth chart keys dynamically based on which accounts have data
   const nwKeys = [], nwColors = [], nwLabels = [];
   if (proj.some(y => y.preTax !== 0)) { nwKeys.push('preTax'); nwColors.push('#3b82f6'); nwLabels.push('Pre-Tax'); }
@@ -2058,11 +2256,50 @@ function renderDashboard(proj) {
   if (proj.some(y => y.taxable !== 0)) { nwKeys.push('taxable'); nwColors.push('#f59e0b'); nwLabels.push('Taxable'); }
   if (nwKeys.length === 0) { nwKeys.push('netWorth'); nwColors.push('#3b82f6'); nwLabels.push('Net Worth'); }
 
+  // Plan Health Verdict
+  const verdictBg = health.grade === 'critical' ? 'rgba(239,68,68,0.08)' : health.grade === 'caution' ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)';
+  const verdictBorder = health.grade === 'critical' ? 'rgba(239,68,68,0.25)' : health.grade === 'caution' ? 'rgba(245,158,11,0.25)' : 'rgba(16,185,129,0.25)';
+
+  const verdictHtml = `<div style="background:${verdictBg};border:1px solid ${verdictBorder};border-radius:10px;padding:16px 20px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <span style="font-size:20px;color:${health.verdictColor}">${health.verdictIcon}</span>
+      <span style="font-size:16px;font-weight:700;color:${health.verdictColor}">${
+        health.grade === 'critical' ? 'Your Plan Needs Attention' : health.grade === 'caution' ? 'Your Plan Has Thin Margins' : 'Your Plan Looks Strong'
+      }</span>
+    </div>
+    <div style="font-size:13.5px;color:var(--text-dim);line-height:1.7">${health.verdictText}</div>
+  </div>`;
+
+  // Big Levers cards
+  let leversHtml = '';
+  if (health.levers.length > 0) {
+    const cards = health.levers.map(lev => `
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;flex:1;min-width:220px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+          <span style="font-size:14px">${lev.icon}</span>
+          <span style="font-size:12px;font-weight:600;color:var(--text)">${lev.title}</span>
+        </div>
+        <div style="font-size:22px;font-weight:800;color:${lev.color};margin-bottom:2px">${lev.amount}</div>
+        <div style="font-size:11px;color:var(--text-faint);margin-bottom:8px">${lev.amountLabel}</div>
+        <div style="font-size:12px;color:var(--text-dim);line-height:1.6;margin-bottom:10px">${lev.desc}</div>
+        <button class="scenario-btn" style="font-size:11px;padding:4px 12px;color:${lev.color};border-color:${lev.color}" onclick="${lev.action}">${lev.actionLabel} &rarr;</button>
+      </div>
+    `).join('');
+    leversHtml = `<div style="margin-bottom:16px">
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px">Highest-Impact Areas for Your Situation</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">${cards}</div>
+    </div>`;
+  }
+
   return `
     ${!isPro() ? `<div style="background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(6,182,212,0.12));border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <div style="font-size:13px;color:var(--text)"><strong>&#128101; Demo Mode</strong> &mdash; Viewing the Johnson family sample plan. <span style="color:var(--text-dim)">Upgrade to enter your own data.</span></div>
       <button class="pro-gate-btn" onclick="document.getElementById('buyBtn').click()" style="font-size:11px;padding:6px 14px">Upgrade &mdash; $29 launch price</button>
     </div>` : ''}
+
+    ${verdictHtml}
+    ${leversHtml}
+
     <div class="stats-row">
       <div class="stat"><div class="stat-label">Current Net Worth</div><div class="stat-value" style="color:var(--blue)">${fmtK(totalAcct)}</div></div>
       <div class="stat"><div class="stat-label">Peak Net Worth</div><div class="stat-value" style="color:var(--cyan)">${fmtK(peak)}</div></div>
@@ -2586,14 +2823,17 @@ function renderInputs() {
       }
       const neverCatchesUp = breakevenAge === null && convStartIdx >= 0;
 
-      // Build tax-adjusted NW chart data
+      // Build conversion advantage chart: delta of tax-adjusted NW (with conv minus without)
+      // Positive = conversions winning, negative = still paying back upfront tax cost
       let ctW = 0, ctWO = 0;
-      const adjNwData = projWith.map((w, i) => {
+      const advantageData = projWith.map((w, i) => {
         ctW += w.tax || 0;
         ctWO += projWithout[i].tax || 0;
-        return { age: w.age, year: w.year, retired: w.retired,
-          withConv: w.netWorth - ctW, noConv: projWithout[i].netWorth - ctWO };
+        const adjWith = w.netWorth - ctW;
+        const adjWithout = projWithout[i].netWorth - ctWO;
+        return { age: w.age, year: w.year, retired: w.retired, advantage: adjWith - adjWithout };
       });
+      const advColor = (advantageData[advantageData.length - 1]?.advantage || 0) >= 0 ? '#10b981' : '#ef4444';
 
       impactHtml = `<div class="card" data-accent="cyan"><div class="card-title">Conversion Impact Analysis</div>
         <div class="stats-row" style="margin-bottom:12px">
@@ -2607,10 +2847,11 @@ function renderInputs() {
         </div>
 
         <div>${buildChart(
-          adjNwData,
-          ['noConv','withConv'],['#8b5cf6','#10b981'],['Tax-Adj NW (No Conv)','Tax-Adj NW (With Conv)'],
-          {title:'Tax-Adjusted Net Worth' + (breakevenAge > 0 ? ' — Breakeven Age ' + breakevenAge : ''),height:170}
+          advantageData,
+          ['advantage'],[advColor],['Conversion Advantage'],
+          {title:'Conversion Advantage (Tax-Adjusted)' + (breakevenAge > 0 ? ' — Breakeven Age ' + breakevenAge : breakevenAge === -1 ? ' — Always Ahead' : ''),height:170}
         )}</div>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:2px;margin-bottom:4px">Above zero = conversions winning &#183; Below zero = still recouping upfront tax cost</div>
 
         <div class="grid-2" style="margin-top:4px">
           <div>${buildChart(
@@ -2662,7 +2903,7 @@ function renderInputs() {
     const bracketLabel = hasSpouseForTax ? 'MFJ' : 'Single';
     const bracketViz = brackets.filter(b => b.max < 1e8).map((b, i) => {
       const width = Math.min(b.max - b.min, 500000);
-      const isTarget = rc.strategy === 'fillBracket' && b.rate <= (rc.targetBracket || 0.22);
+      const isTarget = (rc.strategy === 'fillBracket' || rc.strategy === 'smartFill') && b.rate <= (rc.targetBracket || 0.22);
       return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:11px">
         <div style="width:40px;text-align:right;color:var(--text-muted)">${(b.rate*100).toFixed(0)}%</div>
         <div style="flex:1;height:16px;background:var(--bg-base);border-radius:3px;overflow:hidden;position:relative">
@@ -2775,7 +3016,7 @@ function renderInputs() {
 
         <div>
           <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">${bracketLabel} Tax Brackets</div>
-          <div style="font-size:10px;color:var(--text-faint);margin-bottom:6px">${rc.strategy==='fillBracket'?'Highlighted brackets will be filled by conversions':'Target brackets for reference'}</div>
+          <div style="font-size:10px;color:var(--text-faint);margin-bottom:6px">${rc.strategy==='fillBracket'||rc.strategy==='smartFill'?'Highlighted brackets will be filled by conversions':'Target brackets for reference'}</div>
           ${bracketViz}
         </div>
       </div>
@@ -2886,15 +3127,17 @@ function renderInputs() {
               cumTaxBest += best.proj[i].tax || 0;
               taxChartData.push({ age: best.proj[i].age, year: best.proj[i].year, retired: best.proj[i].retired, noConv: cumTaxBase, withConv: cumTaxBest });
             }
-            // Tax-adjusted net worth comparison
-            const nwChartData = [];
+            // Conversion advantage delta: (best adjusted) - (baseline adjusted)
+            const optAdvantageData = [];
             let ctBest = 0, ctBase = 0;
             for (let i = 0; i < len; i++) {
               ctBest += best.proj[i].tax || 0;
               ctBase += noConvProj[i].tax || 0;
-              nwChartData.push({ age: best.proj[i].age, year: best.proj[i].year, retired: best.proj[i].retired,
-                withConv: best.proj[i].netWorth - ctBest, noConv: noConvProj[i].netWorth - ctBase });
+              const adjBest = best.proj[i].netWorth - ctBest;
+              const adjBase = noConvProj[i].netWorth - ctBase;
+              optAdvantageData.push({ age: best.proj[i].age, year: best.proj[i].year, retired: best.proj[i].retired, advantage: adjBest - adjBase });
             }
+            const optAdvColor = (optAdvantageData[optAdvantageData.length - 1]?.advantage || 0) >= 0 ? '#10b981' : '#ef4444';
             // Pre-tax vs Roth balance comparison
             const balChartData = [];
             for (let i = 0; i < len; i++) {
@@ -2905,9 +3148,9 @@ function renderInputs() {
               });
             }
             return '<div style="margin-top:16px">' + buildChart(
-                nwChartData, ['noConv','withConv'], ['#8b5cf6','#10b981'], ['Tax-Adj NW (No Conv)','Tax-Adj NW (Best Strategy)'],
-                {title:'Tax-Adjusted Net Worth' + (optBreakevenAge > 0 ? ' — Breakeven Age ' + optBreakevenAge : optBreakevenAge === -1 ? ' — Never Falls Behind' : ''), height:170}
-              ) + '</div>' +
+                optAdvantageData, ['advantage'], [optAdvColor], ['Conversion Advantage'],
+                {title:'Conversion Advantage (Tax-Adjusted)' + (optBreakevenAge > 0 ? ' — Breakeven Age ' + optBreakevenAge : optBreakevenAge === -1 ? ' — Always Ahead' : ''), height:170}
+              ) + '<div style="font-size:11px;color:var(--text-faint);margin-top:2px;margin-bottom:4px">Above zero = strategy winning &#183; Below zero = still recouping upfront tax cost</div></div>' +
               '<div class="grid-2" style="margin-top:4px">' +
               '<div>' + buildChart(
                 taxChartData, ['noConv','withConv'], ['#8b5cf6','#10b981'], ['Cumulative Tax (No Conv)','Cumulative Tax (With Conv)'],
@@ -3823,7 +4066,7 @@ function render() {
     case 'montecarlo': html = renderMonteCarlo(proj); break;
     case 'scenarios': html = renderScenarios(proj); break;
   }
-  html += '<div class="footer">RetIQ v1.3 &#183; Build 2026-02-26 14:34 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan</div>';
+  html += '<div class="footer">RetIQ v1.4 &#183; Build 2026-02-27 01:05 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan</div>';
   document.getElementById('app').innerHTML = html;
   updateHeaderHeight();
 }
