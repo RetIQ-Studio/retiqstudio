@@ -182,7 +182,7 @@ button:hover { opacity: 0.88; }
   position: absolute; top: 4px; left: 8px;
   background: var(--tooltip-bg); border-radius: 6px; padding: 6px 10px;
   font-size: 11px; color: var(--text); pointer-events: none;
-  border: 1px solid var(--border); min-width: 130px; z-index: 10;
+  border: 1px solid var(--border); min-width: 130px; max-width: calc(100% - 16px); z-index: 10;
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 .chart-tooltip-title { font-weight: 600; margin-bottom: 2px; }
@@ -224,6 +224,72 @@ button:hover { opacity: 0.88; }
   letter-spacing:.2px;
 }
 
+/* Mobile hamburger - hidden on desktop */
+.mobile-menu-btn { display: none; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 18px; line-height: 1; color: var(--text); }
+.header-secondary { display: contents; }
+
+/* ─── MOBILE RESPONSIVE ─── */
+@media (max-width: 640px) {
+  /* Header compact */
+  .header { padding: 8px 10px; gap: 4px; }
+  .logo-text { font-size: 15px; }
+
+  /* Hamburger visible, secondary items hidden */
+  .mobile-menu-btn { display: block; }
+  .header-secondary { display: none; flex-direction: column; align-items: stretch; gap: 8px; width: 100%; padding-top: 8px; border-top: 1px solid var(--border); margin-top: 4px; }
+  .header-secondary.open { display: flex; }
+  .header-secondary .save-load { justify-content: center; }
+  .header-links { justify-content: center; }
+
+  /* Main nav - horizontal scroll */
+  .nav { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px; justify-content: flex-start !important; }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav .tab { flex-shrink: 0; padding: 6px 12px; font-size: 12px; white-space: nowrap; }
+
+  /* Sub-nav (input tabs) - horizontal scroll */
+  .sub-nav { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 2px; padding: 6px 0; }
+  .sub-nav::-webkit-scrollbar { display: none; }
+  .sub-nav .tab { flex-shrink: 0; padding: 5px 10px; font-size: 11px; white-space: nowrap; }
+
+  /* Main content area */
+  .main { padding: 12px 10px; }
+
+  /* Cards */
+  .card { padding: 14px 12px; margin-bottom: 12px; border-radius: 8px; }
+  .card-title { font-size: 13px; margin-bottom: 10px; }
+
+  /* Stats row */
+  .stats-row { padding: 12px 8px; gap: 8px; }
+  .stat { min-width: 70px; }
+  .stat-value { font-size: 16px; }
+  .stat-label { font-size: 9px; }
+  .stat-sub { font-size: 9px; }
+
+  /* Grid already collapses at 700px, but reinforce */
+  .grid-2, .grid-3 { gap: 10px; }
+
+  /* Fields */
+  .field-input, select { font-size: 16px !important; } /* prevents iOS zoom; !important overrides inline styles */
+
+  /* Smaller buttons */
+  .pro-gate-btn { padding: 10px 20px; font-size: 13px; }
+
+  /* Trust line */
+  #trustLine { font-size: 10px; margin: 4px 0 6px; }
+
+  /* Strategy Report Card */
+  .card[data-accent="green"] { max-width: 100% !important; }
+
+  /* Max Spending card - stack on mobile */
+  .max-spend-card { flex-direction: column; align-items: stretch !important; gap: 10px; }
+  .max-spend-card > div:last-child { flex-direction: column; align-items: stretch; gap: 6px; }
+
+  /* Chart containers */
+
+  /* Footer */
+  .footer { font-size: 10px; padding: 16px 0 8px; }
+}
+
 
 </style>
 
@@ -255,20 +321,25 @@ button:hover { opacity: 0.88; }
     <span class="logo-text">RetIQ</span>
     <span class="logo-badge">v1.4</span>
     <span id="planBadge" class="plan-badge" title="Current plan">FREE</span>
-    <button id="installBtn" class="tab" title="Install RetIQ">Install</button>
-    <button id="buyBtn" class="tab" title="Pro unlocks: Save HTML snapshots, future Pro features">Upgrade</button>
-    <button id="activateBtn" class="tab" title="Enter or manage your license">Activate</button>
-    <div class="save-load">
-      <button onclick="exportHTML()" title="Save as HTML snapshot">⤓ HTML</button>
-      <button onclick="document.getElementById('importFile').click()" title="Load plan from JSON or HTML snapshot">⤒ Load</button>
-      <input type="file" id="importFile" accept=".json,.html,.htm" onchange="importData(event)">
-    </div>
-    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">Dark</button>
-    <div class="dollar-toggle" id="dollarToggle"></div>
-    <div style="display:flex;gap:8px;align-items:center;font-size:11px">
-      <a href="https://retiqstudio.com/features.html" target="_blank" style="color:var(--blue);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px" title="Feature list">Features</a>
-      <a href="https://retiqstudio.com/manual.html" target="_blank" style="color:var(--blue);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px" title="User manual">Manual</a>
-      <a class="share-chip" onclick="shareRetIQ()" title="Help others retire well">Share RetIQ</a>
+    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" id="mobileMenuBtn" aria-label="Menu">&#9776;</button>
+    <div class="header-secondary" id="headerSecondary">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center">
+        <button id="installBtn" class="tab" title="Install RetIQ">Install</button>
+        <button id="buyBtn" class="tab" title="Pro unlocks: Save HTML snapshots, future Pro features">Upgrade</button>
+        <button id="activateBtn" class="tab" title="Enter or manage your license">Activate</button>
+        <div class="save-load">
+          <button onclick="exportHTML()" title="Save as HTML snapshot">&#10515; HTML</button>
+          <button onclick="document.getElementById('importFile').click()" title="Load plan from JSON or HTML snapshot">&#10514; Load</button>
+          <input type="file" id="importFile" accept=".json,.html,.htm" onchange="importData(event)">
+        </div>
+        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">Dark</button>
+        <div class="dollar-toggle" id="dollarToggle"></div>
+      </div>
+      <div class="header-links" style="display:flex;gap:8px;align-items:center;justify-content:center;font-size:11px">
+        <a href="https://retiqstudio.com/features.html" target="_blank" style="color:var(--blue);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px" title="Feature list">Features</a>
+        <a href="https://retiqstudio.com/manual.html" target="_blank" style="color:var(--blue);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px" title="User manual">Manual</a>
+        <a class="share-chip" onclick="shareRetIQ()" title="Help others retire well">Share RetIQ</a>
+      </div>
     </div>
   </div>
   <div class="nav" id="mainNav" style="justify-content:center;margin-top:4px;"></div>
@@ -298,6 +369,14 @@ try {
     });
   }
 } catch(e) {}
+
+function toggleMobileMenu() {
+  const panel = document.getElementById('headerSecondary');
+  const btn = document.getElementById('mobileMenuBtn');
+  panel.classList.toggle('open');
+  btn.textContent = panel.classList.contains('open') ? '\u2715' : '\u2630';
+  setTimeout(updateHeaderHeight, 10);
+}
 
 function shareRetIQ() {
   const url = 'https://retiqstudio.com';
@@ -999,26 +1078,45 @@ function runProjection(p) {
 
     // Withdrawal phase
     let withdrawal = 0, taxableWd = 0, rmdUsed = 0, capGains = 0;
-    if (effectivelyRetired || primaryDead) {
-      const gap = Math.max(0, expenses - ss - ssdiIncome - other - pensionIncome);
-      if (rmdRequired && rmd > 0) {
-        if (qcdAmount > 0) { preTax -= qcdAmount; rmdUsed += qcdAmount; } // QCD part - not taxable
-        const rmdRemaining = Math.max(0, rmd - qcdAmount);
-        const rmdTaken = Math.min(rmdRemaining, preTax);
-        preTax -= rmdTaken; taxableWd += rmdTaken; rmdUsed += rmdTaken; withdrawal += rmdTaken;
-      }
-      let remaining = Math.max(0, gap - rmdUsed);
-      // Taxable account: only gains portion is taxed. Assume ~50% cost basis (conservative).
-      const ft = Math.min(remaining, taxable); taxable -= ft; remaining -= ft;
-      capGains = ft * 0.5; // estimated gain portion — taxed separately at preferential LTCG rates
-      const fp = Math.min(remaining, preTax); preTax -= fp; remaining -= fp; taxableWd += fp;
-      const fr = Math.min(remaining, roth); roth -= fr; remaining -= fr;
-      withdrawal += ft + fp + fr;
-    } else if (rmdRequired && rmd > 0) {
+    // Step 1: RMDs are mandatory — always taken from pre-tax (minus QCDs)
+    let rmdCash = 0; // RMD cash available for spending or reinvestment
+    if (rmdRequired && rmd > 0) {
       if (qcdAmount > 0) { preTax -= qcdAmount; rmdUsed += qcdAmount; }
       const rmdRemaining = Math.max(0, rmd - qcdAmount);
       const rmdTaken = Math.min(rmdRemaining, preTax);
-      preTax -= rmdTaken; taxableWd += rmdTaken; rmdUsed += rmdTaken; withdrawal += rmdTaken;
+      preTax -= rmdTaken; taxableWd += rmdTaken; rmdUsed += rmdTaken;
+      rmdCash = rmdTaken; // cash on hand from RMD, not yet allocated
+    }
+
+    if (effectivelyRetired || primaryDead) {
+      const gap = Math.max(0, expenses - ss - ssdiIncome - other - pensionIncome);
+      let remaining = gap;
+      // Step 2: Fill spending gap in user-configured order
+      const wdOrder = p.withdrawalOrder || ['taxable', 'pretax', 'roth'];
+      for (const src of wdOrder) {
+        if (remaining <= 0) break;
+        if (src === 'pretax') {
+          // Use RMD cash first (already withdrawn), then voluntary withdrawals
+          const fromRmd = Math.min(remaining, rmdCash);
+          rmdCash -= fromRmd; remaining -= fromRmd; withdrawal += fromRmd;
+          if (remaining > 0) {
+            const vol = Math.min(remaining, preTax); preTax -= vol; remaining -= vol;
+            taxableWd += vol; withdrawal += vol;
+          }
+        } else if (src === 'taxable') {
+          const w = Math.min(remaining, taxable); taxable -= w; remaining -= w;
+          capGains = w * 0.5; // estimated gain portion — 50% cost basis
+          withdrawal += w;
+        } else if (src === 'roth') {
+          const w = Math.min(remaining, roth); roth -= w; remaining -= w;
+          withdrawal += w;
+        }
+      }
+      // Step 3: Any RMD cash not used for spending gets reinvested into taxable
+      if (rmdCash > 0) { taxable += rmdCash; withdrawal += rmdCash; rmdCash = 0; }
+    } else if (rmdCash > 0) {
+      // Not retired but RMD required — reinvest into taxable
+      taxable += rmdCash; withdrawal += rmdCash; rmdCash = 0;
     }
 
     // Roth Conversion - Feature #3: expanded strategies
@@ -1150,6 +1248,31 @@ function runProjection(p) {
     const fedTax = fedTaxOrdinary + cgTax + niitTax;
     const stateTax = calcStateTax(Math.max(0, ordinaryInc + capGains - stdDed), p.stateCode);
     const tax = fedTax + stateTax;
+
+    // Retirement tax payment: taxes on withdrawals are funded from accounts
+    // Income sources (SS, pension, etc.) implicitly cover taxes on themselves
+    // Only the INCREMENTAL tax from account withdrawals needs to come from the portfolio
+    if ((effectivelyRetired || primaryDead) && withdrawal > 0) {
+      // Tax on income WITHOUT withdrawals (this tax is covered by income itself)
+      const incWithoutWd = earned + ssdiIncome + pensionIncome;
+      const ssWithoutWd = calcTaxableSS(ss, incWithoutWd, isSingle);
+      const ordNoWd = incWithoutWd + ssWithoutWd;
+      const taxNoWd = calcTax(Math.max(0, ordNoWd - stdDed), isSingle) + calcStateTax(Math.max(0, ordNoWd - stdDed), p.stateCode);
+      // Incremental tax from withdrawals = total tax - tax on income alone
+      let wdTax = Math.max(0, tax - taxNoWd);
+      // Pay incremental tax from accounts in withdrawal order
+      const wdOrderTax = p.withdrawalOrder || ['taxable', 'pretax', 'roth'];
+      for (const src of wdOrderTax) {
+        if (wdTax <= 0) break;
+        if (src === 'taxable') {
+          const pay = Math.min(wdTax, taxable); taxable -= pay; wdTax -= pay;
+        } else if (src === 'pretax') {
+          const pay = Math.min(wdTax, preTax); preTax -= pay; wdTax -= pay;
+        } else if (src === 'roth') {
+          const pay = Math.min(wdTax, roth); roth -= pay; wdTax -= pay;
+        }
+      }
+    }
 
     // IRMAA: 2-year MAGI lookback (your 2028 IRMAA is based on 2026 tax return)
     // Use MAGI from 2 years prior if available in projection history
@@ -1325,6 +1448,9 @@ let state = {
 
     // Long-Term Care
     longTermCare: { enabled: false, annualCost: 100000, startAge: 82, duration: 4, inflation: 5, hasInsurance: false, insuranceCoverage: 0 },
+
+    // Withdrawal order (after RMDs)
+    withdrawalOrder: ['taxable', 'pretax', 'roth'],
 
     // Roth conversion strategy
     rothConversion: {
@@ -1559,6 +1685,15 @@ function setQCD(key, val) {
   if (proGuard()) return;
   if (!state.params.charitableGiving) state.params.charitableGiving = { enabled: false, annualAmount: 10000 };
   state.params.charitableGiving[key] = val; state.mcResults = null; saveState(); render();
+}
+function moveWithdrawalOrder(idx, dir) {
+  if (proGuard()) return;
+  const order = state.params.withdrawalOrder || ['taxable', 'pretax', 'roth'];
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= order.length) return;
+  [order[idx], order[newIdx]] = [order[newIdx], order[idx]];
+  state.params.withdrawalOrder = order;
+  state.mcResults = null; state.rothOptResults = null; saveState(); render();
 }
 function setPension(which, key, val) {
   if (proGuard()) return;
@@ -1991,7 +2126,9 @@ function buildChart(data, keys, colors, labels, opts = {}) {
         ${gridLines}${zeroLine}${paths}${retLine}${xLabels}
         <rect x="${pL}" y="${pT}" width="${cW}" height="${cH}" fill="transparent"
           onmousemove="cHover(event,'${cid}','${chartDataJSON}','${colorsJSON}','${labelsJSON}',${pL},${xStep})"
-          onmouseleave="cLeave('${cid}')"/>
+          onmouseleave="cLeave('${cid}')"
+          ontouchmove="event.preventDefault();cHover(event,'${cid}','${chartDataJSON}','${colorsJSON}','${labelsJSON}',${pL},${xStep})"
+          ontouchend="cLeave('${cid}')"/>
         <line id="${cid}_h" x1="0" x2="0" y1="${pT}" y2="${pT+cH}" stroke="var(--text-muted)" stroke-width="0.4" visibility="hidden"/>
       </svg>
       <div class="chart-tooltip" id="${cid}_t" style="display:none"></div>
@@ -2002,7 +2139,8 @@ function buildChart(data, keys, colors, labels, opts = {}) {
 
 function cHover(evt, id, dataStr, colorsStr, labelsStr, pL, xStep) {
   const svg = document.getElementById(id); const rect = svg.getBoundingClientRect();
-  const x = ((evt.clientX - rect.left) / rect.width) * 500;
+  const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+  const x = ((clientX - rect.left) / rect.width) * 500;
   const data = JSON.parse(dataStr), colors = JSON.parse(colorsStr), labels = JSON.parse(labelsStr);
   const idx = Math.round((x - pL) / xStep);
   if (idx < 0 || idx >= data.length) return;
@@ -2023,7 +2161,20 @@ function cLeave(id) { document.getElementById(id+'_h').setAttribute('visibility'
 function renderNav() {
   const tabs = [['dashboard','Dashboard'],['inputs','Inputs'],['projection','Projection'],['montecarlo','Monte Carlo'],['scenarios','Scenarios']];
   document.getElementById('mainNav').innerHTML = tabs.map(([k,v]) =>
-    `<button class="tab${state.tab===k?' active':''}" onclick="state.tab='${k}';render()">${v}</button>`).join('');
+    `<button class="tab${state.tab===k?' active':''}" onclick="state.tab='${k}';closeMobileMenu();render()">${v}</button>`).join('');
+  // Scroll active main nav tab into view on mobile
+  const activeNav = document.querySelector('#mainNav .tab.active');
+  if (activeNav) activeNav.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+}
+
+function closeMobileMenu() {
+  const panel = document.getElementById('headerSecondary');
+  const btn = document.getElementById('mobileMenuBtn');
+  if (panel && panel.classList.contains('open')) {
+    panel.classList.remove('open');
+    if (btn) btn.textContent = '\u2630';
+    setTimeout(updateHeaderHeight, 10);
+  }
 }
 
 function field(label, key, opts = {}) {
@@ -2718,6 +2869,10 @@ function exportDashboardSummary() {
       <div class="strat-label">Roth Conversions</div>
       <div class="strat-value" style="color:#06b6d4">${rothLine}</div>
     </div>
+    <div class="strat-cell">
+      <div class="strat-label">Withdrawal Order</div>
+      <div class="strat-value" style="color:#64748b">${(p.withdrawalOrder || ['taxable','pretax','roth']).map(s => s === 'pretax' ? 'Pre-Tax' : s === 'taxable' ? 'Taxable' : 'Roth').join(' → ')}</div>
+    </div>
   </div>
 
   ${mcHtml}
@@ -2825,7 +2980,7 @@ function renderDashboard(proj) {
       })()}
     </div>
 
-    <div class="card" style="padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <div class="card max-spend-card" style="padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:14px">&#128200;</span>
         <div>
@@ -4215,9 +4370,29 @@ function renderInputs() {
         </label>
         <div class="field-help" style="margin-left:24px">When enabled, savings respect annual 401(k) and IRA limits with age 50+ catch-up and SECURE 2.0 age 60-63 super catch-up. Overflow goes to taxable accounts.</div>
       </div>
+      <div style="margin-top:20px;padding:14px;background:var(--bg-base);border-radius:10px;border:1px solid var(--border)">
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Retirement Withdrawal Order</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;line-height:1.5">Set the priority for which accounts fund retirement spending. Use arrows to reorder. The engine handles RMDs and tax implications automatically.</div>
+        ${(p.withdrawalOrder || ['taxable','pretax','roth']).map((src, i, arr) => {
+          const labels = { taxable: 'Taxable (Brokerage)', pretax: 'Pre-Tax (401k/IRA)', roth: 'Roth' };
+          const colors = { taxable: 'var(--amber)', pretax: 'var(--blue)', roth: 'var(--green)' };
+          const notes = { taxable: 'Only gains taxed (cap gains rate)', pretax: 'Taxable as ordinary income', roth: 'Tax-free withdrawals' };
+          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px">
+            <span style="font-size:13px;font-weight:700;color:var(--text-muted);width:18px;text-align:center">${i + 1}</span>
+            <div style="flex:1">
+              <div style="font-size:12px;font-weight:600;color:${colors[src]}">${labels[src]}</div>
+              <div style="font-size:10px;color:var(--text-faint)">${notes[src]}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <button onclick="moveWithdrawalOrder(${i},-1)" style="background:var(--bg-input);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:12px;color:${i === 0 ? 'var(--text-faint)' : 'var(--text)'};cursor:${i === 0 ? 'default' : 'pointer'};opacity:${i === 0 ? '0.3' : '1'}" ${i === 0 ? 'disabled' : ''}>&#9650;</button>
+              <button onclick="moveWithdrawalOrder(${i},1)" style="background:var(--bg-input);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:12px;color:${i === arr.length - 1 ? 'var(--text-faint)' : 'var(--text)'};cursor:${i === arr.length - 1 ? 'default' : 'pointer'};opacity:${i === arr.length - 1 ? '0.3' : '1'}" ${i === arr.length - 1 ? 'disabled' : ''}>&#9660;</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
       <div style="margin-top:16px;font-size:12px;color:var(--text-faint);line-height:1.7">
         <strong style="color:var(--text-muted)">Model notes:</strong> 2025 tax brackets (OBBB Act). Std deduction $${STD_DEDUCTION.toLocaleString()} MFJ / $${STD_DEDUCTION_SINGLE.toLocaleString()} single + senior additions. SS taxation per IRS §86. SSA 2025 bend points &amp; wage base.
-        Withdrawal order: RMD (minus QCDs) -> taxable -> pre-tax -> Roth.
+        Withdrawal order: ${(p.withdrawalOrder || ['taxable','pretax','roth']).map(s => s === 'pretax' ? 'pre-tax' : s === 'taxable' ? 'taxable' : 'Roth').join(' &rarr; ')} (configurable above).
         Taxable withdrawals taxed on estimated gains (50% cost basis) at applicable capital gains rate.
         Pension income is fully taxable. Pre-Medicare healthcare added to expenses during gap years.
         Pre-retirement expenses use a separate inflation rate and reduce available cash flow; shortfalls draw from taxable accounts.
@@ -4617,12 +4792,19 @@ function render() {
   html += '<div class="footer">RetIQ v1.4 &#183; Build 2026-02-27 01:05 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan</div>';
   document.getElementById('app').innerHTML = html;
   updateHeaderHeight();
+  // Scroll active sub-nav tab into view on mobile
+  const activeSub = document.querySelector('.sub-nav .tab.active');
+  if (activeSub) activeSub.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
 }
 function updateHeaderHeight() {
   const hdr = document.querySelector('.header');
   if (hdr) document.documentElement.style.setProperty('--header-h', hdr.offsetHeight + 'px');
 }
 window.addEventListener('resize', updateHeaderHeight);
+// Fix mobile orientation change: iOS doesn't always reflow properly
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => { updateHeaderHeight(); render(); }, 150);
+});
 render();
 updateHeaderHeight();
 

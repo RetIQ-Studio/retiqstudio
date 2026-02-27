@@ -181,7 +181,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <li><strong>Balance:</strong> Current balance.</li>
     </ul>
     <p>RetIQ enforces annual contribution limits: $23,500 for 401k (2025), plus $7,500 catch-up at 50+, plus the enhanced $11,250 catch-up for ages 60-63. Savings are allocated to accounts in order: pre-tax up to limit, then Roth up to limit, then overflow to taxable.</p>
-    <p>In retirement, withdrawals come from taxable first, then pre-tax (including RMDs), then Roth last &mdash; the tax-efficient ordering.</p>
+    <p>In retirement, RMDs are taken first (required by law), then remaining expenses are covered from your accounts in a configurable order. The default sequence &mdash; taxable, then pre-tax, then Roth last &mdash; is the conventional tax-efficient ordering. You can change this sequence in the Assumptions tab to model alternative strategies.</p>
   </div>
 
   <!-- 7 -->
@@ -362,6 +362,8 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <tr><td>Inflation</td><td>Expected average annual inflation rate</td><td>2-3%</td></tr>
       <tr><td>SS COLA</td><td>Annual Social Security cost-of-living adjustment</td><td>2%</td></tr>
     </table>
+    <h3>Retirement Withdrawal Order</h3>
+    <p>After required minimum distributions (RMDs) are taken from pre-tax accounts, remaining expenses are covered from your accounts in the order you choose. Use the arrow buttons to reorder. The default &mdash; taxable first, pre-tax second, Roth last &mdash; is the conventional wisdom that defers tax-free growth as long as possible. Alternative orderings let you model strategies like spending Roth early to preserve pre-tax for heirs, or drawing down pre-tax aggressively to reduce future RMDs beyond what Roth conversions accomplish.</p>
     <p>The real (after-inflation) return is computed as: (1 + nominal) / (1 + inflation) - 1. For example, 7% nominal with 3% inflation gives approximately 3.9% real return.</p>
   </div>
 
