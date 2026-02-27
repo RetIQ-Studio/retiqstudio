@@ -2365,56 +2365,64 @@ function buildStrategyReport(proj) {
     `<button class="scenario-btn${goal === g.id ? ' active' : ''}" style="font-size:11px;padding:5px 12px" onclick="state.reportGoal='${g.id}';render()">${g.label}</button>`
   ).join('');
 
-  // Build table
-  let rows = '';
-  // Current plan row
-  rows += `<tr style="background:rgba(59,130,246,0.06)">
-    <td style="font-weight:600;color:var(--text)">&#10003; Current Plan</td>
-    <td style="color:var(--text-faint);font-size:11px">Your current settings</td>
-    <td style="font-weight:600">${fmtK(base.endNW)}</td>
-    <td>${fmtK(base.lifeTax)}</td>
-    <td>${fmtK(base.lifeIRMAA)}</td>
-    <td>${fmtK(base.lifeSS)}</td>
-    <td>${base.bust ? '<span style="color:var(--red)">Age '+base.bust+'</span>' : '<span style="color:var(--green)">'+p.endAge+'+</span>'}</td>
-    <td style="color:var(--text-faint)">—</td>
-    <td></td>
-  </tr>`;
+  // Build strategy cards
+  function metricPill(label, value, color) {
+    return `<div style="display:inline-flex;align-items:baseline;gap:3px;font-size:11px"><span style="color:var(--text-faint)">${label}</span> <span style="font-weight:600;color:${color || 'var(--text)'}">${value}</span></div>`;
+  }
 
+  function strategyCard(label, desc, m, deltaStr, isBest, isCurrent, applyFn) {
+    const bg = isCurrent ? 'rgba(59,130,246,0.06)' : isBest ? 'rgba(16,185,129,0.06)' : 'var(--bg-card)';
+    const border = isCurrent ? 'rgba(59,130,246,0.25)' : isBest ? 'rgba(16,185,129,0.25)' : 'var(--border)';
+    const lastsStr = m.bust ? '<span style="color:var(--red)">Age ' + m.bust + '</span>' : '<span style="color:var(--green)">' + p.endAge + '+</span>';
+    const nwColor = m.endNW > 0 ? 'var(--text)' : 'var(--red)';
+
+    return `<div style="background:${bg};border:1px solid ${border};border-radius:8px;padding:10px 12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">
+          ${isCurrent ? '&#10003; ' : ''}${isBest ? '<span style="color:var(--green)">★</span> ' : ''}${label}${isBest ? ' <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(16,185,129,0.15);color:var(--green);font-weight:700">BEST</span>' : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${deltaStr !== null ? '<span style="font-size:12px;font-weight:700">' + deltaStr + '</span>' : ''}
+          ${applyFn ? '<button class="scenario-btn" style="font-size:10px;padding:3px 10px" onclick="' + applyFn + '">Apply</button>' : ''}
+        </div>
+      </div>
+      ${desc ? '<div style="font-size:11px;color:var(--text-faint);margin-bottom:6px;line-height:1.4">' + desc + '</div>' : ''}
+      <div style="display:flex;flex-wrap:wrap;gap:6px 14px">
+        ${metricPill('NW', fmtK(m.endNW), nwColor)}
+        ${metricPill('Tax', fmtK(m.lifeTax), 'var(--text-dim)')}
+        ${metricPill('IRMAA', fmtK(m.lifeIRMAA), 'var(--text-dim)')}
+        ${metricPill('SS', fmtK(m.lifeSS), 'var(--text-dim)')}
+        ${metricPill('Lasts', lastsStr, null)}
+      </div>
+    </div>`;
+  }
+
+  // Current plan card
+  let cards = strategyCard('Current Plan', '', base, null, false, true, '');
+
+  // Alternative cards
   alts.forEach((a, i) => {
     const delta = a.delta;
     const isBest = i === 0 && bestIsBetter;
-    const deltaStr = delta === 0 ? '—'
-      : ((gc.higher ? delta > 0 : delta < 0) ? '<span style="color:var(--green)">' : '<span style="color:var(--red)">') + (delta > 0 ? '+' : '') + fmtK(delta) + '</span>';
-    // Only show NW delta annotation when the selected goal isn't already net worth
-    const nwDelta = goal !== 'netWorth' ? a.metrics.endNW - base.endNW : 0;
-    const nwDeltaStr = nwDelta === 0 ? '' : ' <span style="font-size:10px;color:' + (nwDelta > 0 ? 'var(--green)' : 'var(--red)') + '">(' + (nwDelta > 0 ? '+' : '') + fmtK(nwDelta) + ')</span>';
-    // Build apply onclick — replace (not merge) params to avoid stale keys
-    const applyFn = `(function(){var o=${JSON.stringify(a.params)};for(var k in o){state.params[k]=o[k]}state.mcResults=null;saveState();render()})()`;
-
-    rows += `<tr${isBest ? ' style="background:rgba(16,185,129,0.06)"' : ''}>
-      <td style="white-space:nowrap">${isBest ? '<span style="color:var(--green);font-weight:600">★</span> ' : ''}${a.label}${isBest ? ' <span style="font-size:10px;color:var(--green);font-weight:600">BEST</span>' : ''}</td>
-      <td style="color:var(--text-faint);font-size:11px">${a.desc}</td>
-      <td>${fmtK(a.metrics.endNW)}${nwDeltaStr}</td>
-      <td>${fmtK(a.metrics.lifeTax)}</td>
-      <td>${fmtK(a.metrics.lifeIRMAA)}</td>
-      <td>${fmtK(a.metrics.lifeSS)}</td>
-      <td>${a.metrics.bust ? '<span style="color:var(--red)">Age '+a.metrics.bust+'</span>' : '<span style="color:var(--green)">'+p.endAge+'+</span>'}</td>
-      <td style="font-weight:600">${deltaStr}</td>
-      <td><button class="scenario-btn" style="font-size:10px;padding:3px 8px" onclick="${applyFn.replace(/"/g,'&quot;')}">Apply</button></td>
-    </tr>`;
+    const deltaStr = delta === 0 ? '<span style="color:var(--text-faint)">—</span>'
+      : ((gc.higher ? delta > 0 : delta < 0)
+        ? '<span style="color:var(--green)">' : '<span style="color:var(--red)">')
+        + (delta > 0 ? '+' : '') + fmtK(delta) + '</span>';
+    const applyFn = `(function(){var o=${JSON.stringify(a.params)};for(var k in o){state.params[k]=o[k]}state.mcResults=null;saveState();render()})()`.replace(/"/g,'&quot;');
+    cards += strategyCard(a.label, a.desc, a.metrics, deltaStr, isBest, false, applyFn);
   });
 
   // Insight summary
   let insight = '';
   if (bestIsBetter && best) {
     const absDelta = Math.abs(best.delta);
-    insight = `<div style="margin-top:12px;padding:12px 14px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:8px;font-size:13px;color:var(--text-dim);line-height:1.7">
+    insight = `<div style="margin-top:10px;padding:10px 12px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:8px;font-size:12px;color:var(--text-dim);line-height:1.6">
       <strong style="color:var(--green)">★ Top opportunity:</strong> <strong style="color:var(--text)">${best.label}</strong> ${gc.higher ? 'adds' : 'saves'} <strong style="color:var(--green)">${gc.fmt(absDelta)}</strong> in ${gc.label.toLowerCase()} compared to your current plan.
       ${best.metrics.bust && !base.bust ? '<br><span style="color:var(--red)">⚠ Warning: this strategy depletes your portfolio at age ' + best.metrics.bust + '.</span>' : ''}
       ${!best.metrics.bust && base.bust ? '<br><span style="color:var(--green)">✓ This strategy keeps your portfolio funded through age ' + p.endAge + '.</span>' : ''}
     </div>`;
   } else if (alts.length > 0) {
-    insight = `<div style="margin-top:12px;padding:12px 14px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:8px;font-size:13px;color:var(--text-dim);line-height:1.7">
+    insight = `<div style="margin-top:10px;padding:10px 12px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:8px;font-size:12px;color:var(--text-dim);line-height:1.6">
       <strong style="color:var(--blue)">Your current plan is already well-optimized</strong> for ${gc.label.toLowerCase()}. None of the alternatives tested improve on it. Fine-tune with the Roth Optimizer or Scenario Comparison for deeper analysis.
     </div>`;
   }
@@ -2426,30 +2434,17 @@ function buildStrategyReport(proj) {
     </div>`;
   }
 
-  return `<div class="card" data-accent="green">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+  return `<div class="card" data-accent="green" style="max-width:600px;margin-left:auto;margin-right:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
       <div class="card-title" style="margin:0">Strategy Report Card <span class="badge" style="background:rgba(16,185,129,0.15);color:var(--green)">What-If</span></div>
-      <div style="font-size:11px;color:var(--text-dim)">Tests ${alts.length} alternatives against your current plan</div>
+      <div style="font-size:11px;color:var(--text-dim)">${alts.length} alternatives tested</div>
     </div>
-    <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;line-height:1.6">
-      What matters most to you? Select a goal and see which strategy changes would have the biggest impact. Each alternative runs a full projection with all your inputs.
+    <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.5">
+      Select a goal — each card shows a full projection. <strong style="color:var(--text-dim)">&Delta;</strong> = difference in ${gc.label.toLowerCase()} vs. your current plan.
     </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${goalBtns}</div>
-    <div style="overflow-x:auto">
-      <table class="proj-table" style="font-size:12px;white-space:nowrap">
-        <thead><tr>
-          <th style="text-align:left">Strategy</th>
-          <th style="text-align:left">Description</th>
-          <th>End NW</th>
-          <th>Lifetime Tax</th>
-          <th>IRMAA</th>
-          <th>Lifetime SS</th>
-          <th>Lasts To</th>
-          <th style="color:var(--green)">Δ ${gc.label}</th>
-          <th></th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${goalBtns}</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${cards}
     </div>
     ${insight}
   </div>`;
