@@ -370,10 +370,26 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <h2>17. Dashboard</h2>
     <p>The dashboard provides a high-level summary of your plan:</p>
     <ul>
-      <li><strong>Key metrics:</strong> Final net worth, years funded, total taxes, total SS income, legacy achievement.</li>
-      <li><strong>Alert cards:</strong> Warnings about portfolio depletion, high tax years, or RMD spikes.</li>
-      <li><strong>Summary chart:</strong> Net worth trajectory with retirement age marker.</li>
+      <li><strong>Key metrics:</strong> Final net worth, peak net worth, retire age, years funded, RMD start age, IRMAA surcharges, and legacy goal tracking.</li>
+      <li><strong>Plan Health verdict:</strong> An at-a-glance assessment of your plan (Strong / Caution / Needs Attention) based on whether your portfolio lasts, your margin, and overall risk factors.</li>
+      <li><strong>Highest-impact levers:</strong> Auto-detected action items ranked by dollar impact &mdash; Roth conversion opportunities, SS timing, IRMAA surcharges, pre-tax concentration, expense sensitivity, and healthcare gap costs. Each lever card shows the dollar amount at stake, a brief explanation, and a link to the relevant input tab.</li>
+      <li><strong>Charts:</strong> Net Worth Over Time (stacked by account type), Income vs. Expenses, Taxes &amp; RMDs, and Retirement Cash Flows (SS &amp; SSDI, withdrawals, Medicare).</li>
     </ul>
+
+    <h3>Strategy Report Card</h3>
+    <p>Below the charts, the <strong>Strategy Report Card</strong> automatically tests 7&ndash;9 alternative strategies against your current plan. It answers the question: <em>&ldquo;Is there a better way to structure my plan?&rdquo;</em></p>
+    <p><strong>Choose your goal</strong> using the toggle buttons: Max Net Worth, Min Lifetime Taxes, Min Tax + IRMAA, or Max SS Income. The table re-ranks instantly when you switch goals.</p>
+    <p><strong>What it tests:</strong></p>
+    <ul>
+      <li><strong>SS Timing:</strong> Claim at 62 (early), FRA, and 70 (delayed) &mdash; skipped when SSDI is active.</li>
+      <li><strong>Roth Strategy:</strong> Smart Fill 22%, Smart Fill 24%, and No Conversions (only shows options that differ from your current strategy).</li>
+      <li><strong>Combined:</strong> SS at 70 + Smart Fill Roth 22% &mdash; the synergy play where Roth conversions fill the low-income bridge years before delayed SS starts.</li>
+      <li><strong>Retirement Age:</strong> +1 and +2 year delays (only shown if you haven&rsquo;t retired yet).</li>
+    </ul>
+    <p>Each row shows End Net Worth, Lifetime Tax, IRMAA, Lifetime SS, and whether the money lasts. The &Delta; column shows the difference from your current plan for the selected goal.</p>
+    <p>The best alternative (if one exists) gets a &#9733; BEST marker. An insight box at the bottom summarizes the top opportunity or confirms your plan is already well-optimized for your chosen goal.</p>
+    <p>Click <strong>Apply</strong> on any row to adopt that strategy immediately &mdash; it updates your inputs and the entire dashboard re-computes. Useful for quick &ldquo;what-if&rdquo; testing without manually changing multiple input tabs.</p>
+    <div class="tip"><strong>Tip:</strong> The Report Card runs a full projection for each alternative (~8 projections). This takes about 20ms on desktop and should be similarly fast on most mobile devices. If your plan has no applicable alternatives (e.g., already retired, no pre-tax accounts, SSDI active), the card shows a brief explanation instead.</div>
     <p>The dashboard updates instantly when any input changes.</p>
   </div>
 
@@ -470,6 +486,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
     <h3>Does SSDI affect my Medicare start age?</h3>
     <p>Yes. RetIQ automatically starts Medicare at SSDI Start Age + 2 years (or 65, whichever is first). This reflects the federal 24-month qualifying period. Pre-Medicare healthcare gap costs, Medicare premiums, and IRMAA all adjust accordingly. See the <a href="#ssdi">SSDI Tab</a> section for full details and scenarios.</p>
+
+    <h3>How do I find the best strategy for my situation?</h3>
+    <p>Use the <strong>Strategy Report Card</strong> on the Dashboard. It automatically tests alternative SS timing, Roth conversion, and retirement age strategies against your current plan. Choose your goal (max net worth, min taxes, etc.) and the table ranks every alternative. Click Apply on any row to adopt it instantly. For deeper Roth analysis, use the <a href="#rothconv">Roth Optimizer</a>. For stress-testing, use <a href="#scenarios">Scenario Comparison</a> and <a href="#montecarlo">Monte Carlo</a>.</p>
 
     <h3>What happens to my spouse's benefits if I'm on SSDI and die?</h3>
     <p>Your SSDI payments stop, but your surviving spouse can claim a survivor benefit based on your Social Security work record. RetIQ calculates this from your PIA (or your SSDI amount if no separate SS income was entered). The survivor receives the higher of their own SS benefit or the survivor benefit &mdash; not both.</p>

@@ -1260,6 +1260,7 @@ const fmtK = (n, yr) => {
 let state = {
   tab: 'dashboard', inputTab: 'personal', projChartKeys: ['netWorth'], projShowTable: false, mcResults: null, scenario: null, rothOptResults: null, scenarioChartKeys: ['netWorth'],
   optScoreMode: 'balanced',
+  reportGoal: 'netWorth',
   mcConfig: { numSims: 500, returnStdDev: 6, inflationStdDev: 1.5 },
   params: {
     // Demo: The Johnsons — a realistic two-income household
@@ -2237,6 +2238,223 @@ function computePlanHealth(proj) {
   return { grade, verdictText, verdictColor, verdictIcon, levers: topLevers, bust, final, totalTax, totalIRMAA, totalRMD, peakRMD };
 }
 
+function buildStrategyReport(proj) {
+  const p = state.params;
+  const goal = state.reportGoal || 'netWorth';
+  const ssdi1r = p.ssdiPrimary || {};
+  const ssdiOverridesPrimary = ssdi1r.enabled;
+  const rc = p.rothConversion || {};
+  const preTaxBal = p.accounts.filter(a => a.type === 'pretax').reduce((s, a) => s + a.balance, 0);
+
+  // Extract metrics from a projection
+  function metrics(pr) {
+    const endNW = pr[pr.length - 1].netWorth;
+    const bust = pr.find(y => y.netWorth <= 0)?.age || null;
+    const lifeTax = pr.reduce((s, y) => s + y.tax, 0);
+    const lifeIRMAA = pr.reduce((s, y) => s + y.irmaa, 0);
+    const lifeSS = pr.reduce((s, y) => s + y.ss + y.ssdi, 0);
+    const lifeRMD = pr.reduce((s, y) => s + y.rmd, 0);
+    const endRoth = pr[pr.length - 1].roth;
+    const endPreTax = pr[pr.length - 1].preTax;
+    return { endNW, bust, lifeTax, lifeIRMAA, lifeSS, lifeRMD, endRoth, endPreTax };
+  }
+
+  const base = metrics(proj);
+
+  // Build alternative strategies
+  const alts = [];
+
+  // --- SS TIMING ---
+  if (!ssdiOverridesPrimary) {
+    const fraAge = Math.round(fraMonths(p.birthYear || (new Date().getFullYear() - p.currentAge)) / 12);
+    const ssAges = [62, fraAge, 70].filter(a => a !== p.ssClaimAge);
+    for (const ssAge of ssAges) {
+      const override = { ssClaimAge: ssAge };
+      const label = ssAge === 62 ? 'SS at 62 (early)' : ssAge === fraAge ? `SS at FRA (${fraAge})` : 'SS at 70 (delayed)';
+      const desc = ssAge < p.ssClaimAge ? 'Start SS earlier — less per month but more years of income'
+        : 'Delay SS — larger monthly benefit, requires bridging from savings';
+      try {
+        const pr = runProjection({ ...p, ...override });
+        const m = metrics(pr);
+        alts.push({ label, desc, params: override, metrics: m, category: 'SS Timing' });
+      } catch(e) {}
+    }
+  }
+
+  // --- ROTH CONVERSIONS ---
+  if (preTaxBal > 30000) {
+    const rothStart = Math.max(p.retirementAge, p.currentAge);
+    const rothEnd = Math.min(rothStart + 8, 74);
+    if (rothStart <= rothEnd) {
+    // Test Smart Fill 22% if not current strategy
+    if (!rc.enabled || rc.strategy !== 'smartFill' || rc.targetBracket !== 0.22) {
+      try {
+        const pr = runProjection({ ...p, rothConversion: { enabled: true, strategy: 'smartFill', startAge: rothStart, endAge: rothEnd, targetBracket: 0.22 }});
+        alts.push({ label: 'Smart Fill Roth 22%', desc: 'IRMAA-aware conversions filling the 22% bracket', params: { rothConversion: { enabled: true, strategy: 'smartFill', startAge: rothStart, endAge: rothEnd, targetBracket: 0.22 }}, metrics: metrics(pr), category: 'Roth Strategy' });
+      } catch(e) {}
+    }
+    // Test Smart Fill 24%
+    if (!rc.enabled || rc.strategy !== 'smartFill' || rc.targetBracket !== 0.24) {
+      try {
+        const pr = runProjection({ ...p, rothConversion: { enabled: true, strategy: 'smartFill', startAge: rothStart, endAge: rothEnd, targetBracket: 0.24 }});
+        alts.push({ label: 'Smart Fill Roth 24%', desc: 'Aggressive IRMAA-aware conversions filling the 24% bracket', params: { rothConversion: { enabled: true, strategy: 'smartFill', startAge: rothStart, endAge: rothEnd, targetBracket: 0.24 }}, metrics: metrics(pr), category: 'Roth Strategy' });
+      } catch(e) {}
+    }
+    // Test no conversions if currently converting
+    if (rc.enabled) {
+      try {
+        const pr = runProjection({ ...p, rothConversion: { enabled: false }});
+        alts.push({ label: 'No Roth Conversions', desc: 'Skip conversions entirely — compare the tax cost', params: { rothConversion: { enabled: false }}, metrics: metrics(pr), category: 'Roth Strategy' });
+      } catch(e) {}
+    }
+    } // end rothStart <= rothEnd
+  }
+
+  // --- COMBINED: SS 70 + Roth ---
+  if (!ssdiOverridesPrimary && p.ssClaimAge !== 70 && preTaxBal > 30000) {
+    const rothStart = Math.max(p.retirementAge, p.currentAge);
+    const rothEnd = Math.min(rothStart + 8, 74);
+    if (rothStart <= rothEnd) {
+      try {
+        const pr = runProjection({ ...p, ssClaimAge: 70, rothConversion: { enabled: true, strategy: 'smartFill', startAge: rothStart, endAge: rothEnd, targetBracket: 0.22 }});
+        alts.push({ label: 'SS 70 + Smart Fill 22%', desc: 'Delay SS to max + Roth conversions to fill the gap years', params: { ssClaimAge: 70, rothConversion: { enabled: true, strategy: 'smartFill', startAge: rothStart, endAge: rothEnd, targetBracket: 0.22 }}, metrics: metrics(pr), category: 'Combined' });
+      } catch(e) {}
+    }
+  }
+
+  // --- RETIREMENT AGE ---
+  if (p.currentAge < p.retirementAge) {
+    for (const delta of [1, 2]) {
+      const newRetAge = p.retirementAge + delta;
+      if (newRetAge <= 70 && newRetAge < p.endAge) {
+        try {
+          const pr = runProjection({ ...p, retirementAge: newRetAge });
+          alts.push({ label: `Retire at ${newRetAge} (+${delta}yr)`, desc: `${delta} more year${delta>1?'s':''} of income, savings, and delayed withdrawals`, params: { retirementAge: newRetAge }, metrics: metrics(pr), category: 'Retirement Age' });
+        } catch(e) {}
+      }
+    }
+  }
+
+  // --- SCORING ---
+  const goalConfig = {
+    netWorth: { key: 'endNW', label: 'Max End Net Worth', unit: '$', higher: true, fmt: v => fmtK(v) },
+    minTax:   { key: 'lifeTax', label: 'Min Lifetime Taxes', unit: '$', higher: false, fmt: v => fmtK(v) },
+    minTaxIRMAA: { key: m => m.lifeTax + m.lifeIRMAA, label: 'Min Tax + IRMAA', unit: '$', higher: false, fmt: v => fmtK(v) },
+    maxIncome: { key: 'lifeSS', label: 'Max SS Income', unit: '$', higher: true, fmt: v => fmtK(v) },
+  };
+  const gc = goalConfig[goal] || goalConfig.netWorth;
+  const getScore = (m) => typeof gc.key === 'function' ? gc.key(m) : m[gc.key];
+  const baseScore = getScore(base);
+
+  // Rank alternatives
+  alts.forEach(a => { a.score = getScore(a.metrics); a.delta = a.score - baseScore; });
+  alts.sort((a, b) => gc.higher ? (b.score - a.score) : (a.score - b.score));
+
+  // Find the best alternative
+  const best = alts[0];
+  const bestIsBetter = best && (gc.higher ? best.score > baseScore : best.score < baseScore);
+
+  // Render goal selector
+  const goals = [
+    { id: 'netWorth', label: 'Max Net Worth' },
+    { id: 'minTax', label: 'Min Taxes' },
+    { id: 'minTaxIRMAA', label: 'Min Tax + IRMAA' },
+    { id: 'maxIncome', label: 'Max SS Income' },
+  ];
+  const goalBtns = goals.map(g =>
+    `<button class="scenario-btn${goal === g.id ? ' active' : ''}" style="font-size:11px;padding:5px 12px" onclick="state.reportGoal='${g.id}';render()">${g.label}</button>`
+  ).join('');
+
+  // Build table
+  let rows = '';
+  // Current plan row
+  rows += `<tr style="background:rgba(59,130,246,0.06)">
+    <td style="font-weight:600;color:var(--text)">&#10003; Current Plan</td>
+    <td style="color:var(--text-faint);font-size:11px">Your current settings</td>
+    <td style="font-weight:600">${fmtK(base.endNW)}</td>
+    <td>${fmtK(base.lifeTax)}</td>
+    <td>${fmtK(base.lifeIRMAA)}</td>
+    <td>${fmtK(base.lifeSS)}</td>
+    <td>${base.bust ? '<span style="color:var(--red)">Age '+base.bust+'</span>' : '<span style="color:var(--green)">'+p.endAge+'+</span>'}</td>
+    <td style="color:var(--text-faint)">—</td>
+    <td></td>
+  </tr>`;
+
+  alts.forEach((a, i) => {
+    const delta = a.delta;
+    const isBest = i === 0 && bestIsBetter;
+    const deltaStr = delta === 0 ? '—'
+      : ((gc.higher ? delta > 0 : delta < 0) ? '<span style="color:var(--green)">' : '<span style="color:var(--red)">') + (delta > 0 ? '+' : '') + fmtK(delta) + '</span>';
+    // Only show NW delta annotation when the selected goal isn't already net worth
+    const nwDelta = goal !== 'netWorth' ? a.metrics.endNW - base.endNW : 0;
+    const nwDeltaStr = nwDelta === 0 ? '' : ' <span style="font-size:10px;color:' + (nwDelta > 0 ? 'var(--green)' : 'var(--red)') + '">(' + (nwDelta > 0 ? '+' : '') + fmtK(nwDelta) + ')</span>';
+    // Build apply onclick — replace (not merge) params to avoid stale keys
+    const applyFn = `(function(){var o=${JSON.stringify(a.params)};for(var k in o){state.params[k]=o[k]}state.mcResults=null;saveState();render()})()`;
+
+    rows += `<tr${isBest ? ' style="background:rgba(16,185,129,0.06)"' : ''}>
+      <td style="white-space:nowrap">${isBest ? '<span style="color:var(--green);font-weight:600">★</span> ' : ''}${a.label}${isBest ? ' <span style="font-size:10px;color:var(--green);font-weight:600">BEST</span>' : ''}</td>
+      <td style="color:var(--text-faint);font-size:11px">${a.desc}</td>
+      <td>${fmtK(a.metrics.endNW)}${nwDeltaStr}</td>
+      <td>${fmtK(a.metrics.lifeTax)}</td>
+      <td>${fmtK(a.metrics.lifeIRMAA)}</td>
+      <td>${fmtK(a.metrics.lifeSS)}</td>
+      <td>${a.metrics.bust ? '<span style="color:var(--red)">Age '+a.metrics.bust+'</span>' : '<span style="color:var(--green)">'+p.endAge+'+</span>'}</td>
+      <td style="font-weight:600">${deltaStr}</td>
+      <td><button class="scenario-btn" style="font-size:10px;padding:3px 8px" onclick="${applyFn.replace(/"/g,'&quot;')}">Apply</button></td>
+    </tr>`;
+  });
+
+  // Insight summary
+  let insight = '';
+  if (bestIsBetter && best) {
+    const absDelta = Math.abs(best.delta);
+    insight = `<div style="margin-top:12px;padding:12px 14px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:8px;font-size:13px;color:var(--text-dim);line-height:1.7">
+      <strong style="color:var(--green)">★ Top opportunity:</strong> <strong style="color:var(--text)">${best.label}</strong> ${gc.higher ? 'adds' : 'saves'} <strong style="color:var(--green)">${gc.fmt(absDelta)}</strong> in ${gc.label.toLowerCase()} compared to your current plan.
+      ${best.metrics.bust && !base.bust ? '<br><span style="color:var(--red)">⚠ Warning: this strategy depletes your portfolio at age ' + best.metrics.bust + '.</span>' : ''}
+      ${!best.metrics.bust && base.bust ? '<br><span style="color:var(--green)">✓ This strategy keeps your portfolio funded through age ' + p.endAge + '.</span>' : ''}
+    </div>`;
+  } else if (alts.length > 0) {
+    insight = `<div style="margin-top:12px;padding:12px 14px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:8px;font-size:13px;color:var(--text-dim);line-height:1.7">
+      <strong style="color:var(--blue)">Your current plan is already well-optimized</strong> for ${gc.label.toLowerCase()}. None of the alternatives tested improve on it. Fine-tune with the Roth Optimizer or Scenario Comparison for deeper analysis.
+    </div>`;
+  }
+
+  if (alts.length === 0) {
+    return `<div class="card" data-accent="green">
+      <div class="card-title">Strategy Report Card <span class="badge" style="background:rgba(16,185,129,0.15);color:var(--green)">What-If</span></div>
+      <div style="font-size:13px;color:var(--text-dim);line-height:1.7">No alternative strategies to test for your current configuration. Add retirement accounts or adjust your retirement age to enable comparisons.</div>
+    </div>`;
+  }
+
+  return `<div class="card" data-accent="green">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+      <div class="card-title" style="margin:0">Strategy Report Card <span class="badge" style="background:rgba(16,185,129,0.15);color:var(--green)">What-If</span></div>
+      <div style="font-size:11px;color:var(--text-dim)">Tests ${alts.length} alternatives against your current plan</div>
+    </div>
+    <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;line-height:1.6">
+      What matters most to you? Select a goal and see which strategy changes would have the biggest impact. Each alternative runs a full projection with all your inputs.
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${goalBtns}</div>
+    <div style="overflow-x:auto">
+      <table class="proj-table" style="font-size:12px;white-space:nowrap">
+        <thead><tr>
+          <th style="text-align:left">Strategy</th>
+          <th style="text-align:left">Description</th>
+          <th>End NW</th>
+          <th>Lifetime Tax</th>
+          <th>IRMAA</th>
+          <th>Lifetime SS</th>
+          <th>Lasts To</th>
+          <th style="color:var(--green)">Δ ${gc.label}</th>
+          <th></th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    ${insight}
+  </div>`;
+}
+
 function renderDashboard(proj) {
   const p = state.params;
   const totalAcct = p.accounts.reduce((s, a) => s + a.balance, 0);
@@ -2332,6 +2550,8 @@ function renderDashboard(proj) {
         { title:'Retirement Cash Flows', height:160 }
       )}</div>
     </div>
+
+    ${buildStrategyReport(proj)}
 
     <div class="card"><div class="card-title">Plan Summary</div>
       <div style="font-size:13px;line-height:1.8;color:var(--text-dim)">
