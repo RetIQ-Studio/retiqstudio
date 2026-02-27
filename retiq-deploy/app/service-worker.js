@@ -1,5 +1,5 @@
-/* RetIQ PWA Service Worker (v1.1) */
-const CACHE_NAME = "retiq-v1-cache-2026-02-25";
+/* RetIQ PWA Service Worker (v1.5) */
+const CACHE_NAME = "retiq-v1-cache-2026-02-27";
 const ASSETS = [
   "./",
   "./index.html",
@@ -14,8 +14,14 @@ const ASSETS = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
+
+  // TRANSITIONAL: auto-activate so users running old cached pages (without
+  // the update banner) still receive this deploy.  Once all users have the
+  // banner code, REMOVE this line and bump CACHE_NAME.  Future deploys will
+  // then use the controlled "Update now" flow below.
+  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
@@ -24,6 +30,13 @@ self.addEventListener("activate", (event) => {
       Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
+});
+
+// Future update flow: page sends this when user clicks "Update now"
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("fetch", (event) => {
@@ -47,7 +60,6 @@ self.addEventListener("fetch", (event) => {
       }).catch(() => null);
 
       if (cached) {
-        // Serve cached version now, update cache in background
         fetchPromise; // fire-and-forget
         return cached;
       }
