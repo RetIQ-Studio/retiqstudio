@@ -2131,8 +2131,9 @@ function computePlanHealth(proj) {
     }
   }
 
-  // 2. Social Security claiming age
-  if (p.ssClaimAge && p.ssClaimAge < 70) {
+  // 2. Social Security claiming age (skip if SSDI overrides — auto-converts at FRA, can't delay)
+  const ssdiPlanHealth = p.ssdiPrimary || {};
+  if (p.ssClaimAge && p.ssClaimAge < 70 && !ssdiPlanHealth.enabled) {
     const delay70Proj = runProjection({ ...p, ssClaimAge: 70 });
     const delay70SS = delay70Proj.reduce((s, y) => s + y.ss, 0);
     const curSS = proj.reduce((s, y) => s + y.ss, 0);
@@ -2203,9 +2204,11 @@ function computePlanHealth(proj) {
 
   // 6. Healthcare gap cost (early retirees)
   const hc = p.preMedicareHealthcare;
-  if (hc && hc.enabled && p.retirementAge < 65) {
-    const gapYears = 65 - p.retirementAge;
-    const totalHC = proj.filter(y => y.age >= p.retirementAge && y.age < 65).reduce((s, y) => s + (y.healthcare || 0), 0);
+  const ssdiHC = p.ssdiPrimary || {};
+  const planHealthMedAge = ssdiHC.enabled ? Math.min((ssdiHC.startAge || 0) + 2, 65) : 65;
+  if (hc && hc.enabled && p.retirementAge < planHealthMedAge) {
+    const gapYears = planHealthMedAge - p.retirementAge;
+    const totalHC = proj.filter(y => y.age >= p.retirementAge && y.age < planHealthMedAge).reduce((s, y) => s + (y.healthcare || 0), 0);
     if (totalHC > 20000) {
       levers.push({
         magnitude: totalHC,
@@ -2213,8 +2216,8 @@ function computePlanHealth(proj) {
         icon: '&#127974;',
         color: 'var(--amber)',
         amount: fmt(totalHC),
-        amountLabel: `total cost over ${gapYears} gap years`,
-        desc: `Retiring at ${p.retirementAge} means ${gapYears} years of self-funded healthcare before Medicare at 65. At ${fmt(hc.annualCost || 0)}/yr growing at ${hc.inflation || 5}%, this is a significant expense to plan for.`,
+        amountLabel: `total cost over ${Math.round(gapYears)} gap years`,
+        desc: `Retiring at ${p.retirementAge} means ${Math.round(gapYears)} years of self-funded healthcare before Medicare at ${planHealthMedAge}. At ${fmt(hc.annualCost || 0)}/yr growing at ${hc.inflation || 5}%, this is a significant expense to plan for.`,
         action: "state.tab='inputs';state.inputTab='healthcare';render()",
         actionLabel: 'Review Healthcare',
       });
@@ -2322,10 +2325,10 @@ function renderDashboard(proj) {
       <div class="card" data-accent="cyan">${buildChart(proj, ['totalInc','expenses'], ['#06b6d4','#ef4444'], ['Total Income','Expenses'], { title:'Income vs Expenses', height:180 })}</div>
       <div class="card" data-accent="purple">${buildChart(proj, ['tax','rmd'], ['#8b5cf6','#ec4899'], ['Total Tax','RMD Amount'], { title:'Taxes & RMDs', height:160 })}</div>
       <div class="card" data-accent="green">${buildChart(
-        proj.filter(y => y.retired),
-        ['ss','withdrawal','medicareCost'],
+        proj.filter(y => y.retired).map(y => ({...y, ssTotal: (y.ss||0) + (y.ssdi||0)})),
+        ['ssTotal','withdrawal','medicareCost'],
         ['#10b981','#f59e0b','#ec4899'],
-        ['Social Security','Withdrawal','Medicare'],
+        ['SS & SSDI','Withdrawal','Medicare'],
         { title:'Retirement Cash Flows', height:160 }
       )}</div>
     </div>
@@ -2660,14 +2663,18 @@ function renderInputs() {
     const hc = p.preMedicareHealthcare || {};
     const ep = p.expensePhases || {};
     const retAge = Math.ceil(p.retirementAge);
-    const yearsGap = Math.max(0, 65 - retAge);
+    // SSDI-adjusted Medicare age: SSDI recipients qualify after 24-month waiting period
+    const ssdi1h = p.ssdiPrimary || {};
+    const effectiveMedAge = ssdi1h.enabled ? Math.min((ssdi1h.startAge || 0) + 2, 65) : 65;
+    const yearsGap = Math.max(0, effectiveMedAge - retAge);
     const totalHC = hc.enabled && yearsGap > 0 ? Array.from({length: yearsGap}, (_,i) => Math.round((hc.annualCost||18000) * Math.pow(1 + (hc.inflation||5)/100, i))).reduce((s,v) => s+v, 0) : 0;
 
     content += `<div class="card" data-accent="pink"><div class="card-title">Pre-Medicare Healthcare (Age Gap Coverage)</div>
       <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
         If you retire before Medicare eligibility, you need healthcare coverage until Medicare kicks in. SSDI recipients qualify for Medicare after 24 months.
         ACA marketplace plans for a couple typically cost $12,000-$25,000/year and inflate faster than general costs.
-        ${retAge >= 65 ? '<strong style="color:var(--green)">Your retirement age is 65+, so this may not apply.</strong>' : `<strong style="color:var(--amber)">You have a ${yearsGap}-year gap (age ${retAge}-65).</strong>`}
+        ${ssdi1h.enabled && effectiveMedAge < 65 ? '<strong style="color:var(--blue)">SSDI early Medicare at age ' + effectiveMedAge + ' shortens your gap.</strong> '  : ''}
+        ${retAge >= effectiveMedAge ? '<strong style="color:var(--green)">Your retirement age is ' + retAge + ', at or after Medicare eligibility (' + effectiveMedAge + '), so this may not apply.</strong>' : `<strong style="color:var(--amber)">You have a ${yearsGap}-year gap (age ${retAge}-${effectiveMedAge}).</strong>`}
       </div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);margin-bottom:14px">
         <input type="checkbox" ${hc.enabled?'checked':''} onchange="setHealthcare('enabled',this.checked)" style="width:16px;height:16px;accent-color:var(--pink)">
@@ -2682,7 +2689,7 @@ function renderInputs() {
         </div>
         ${yearsGap > 0 ? `<div class="info-box"><div class="info-box-label">Total Pre-Medicare Healthcare Cost (${yearsGap} years)</div>
           <div class="info-box-value" style="color:var(--pink)">${fmtK(totalHC)}</div>
-          <div style="font-size:11px;color:var(--text-faint);margin-top:4px">Added to expenses from age ${retAge} to 64</div></div>` : ''}
+          <div style="font-size:11px;color:var(--text-faint);margin-top:4px">Added to expenses from age ${retAge} to ${effectiveMedAge - 1}</div></div>` : ''}
       ` : ''}
     </div>
 
@@ -3293,21 +3300,24 @@ function renderInputs() {
   if (state.inputTab === 'ss') {
     const birthYear = p.birthYear || (new Date().getFullYear() - p.currentAge);
     const useManual = p.ssUseManual && p.ssManualMonthly > 0;
+    // SSDI auto-converts to SS at FRA — override user's claim age when active
+    const ssdi1ss = p.ssdiPrimary || {};
+    const effectiveClaimAge = ssdi1ss.enabled ? (ssdi1ss.endAge || 66) + 1 : p.ssClaimAge;
     const ssResult = useManual
       ? (() => {
           const fraM = fraMonths(birthYear);
-          const adj = ssaAdjustPIA(p.ssManualMonthly, p.ssClaimAge * 12, fraM);
+          const adj = ssaAdjustPIA(p.ssManualMonthly, effectiveClaimAge * 12, fraM);
           return { annual: adj*12, monthly: adj, fra: fraM/12, aime: 0, piaMonthly: p.ssManualMonthly };
         })()
-      : estimateSS({ avgIncome: p.ssAnnualIncome || p.annualIncome, claimAge: p.ssClaimAge, birthYear });
+      : estimateSS({ avgIncome: p.ssAnnualIncome || p.annualIncome, claimAge: effectiveClaimAge, birthYear });
     // claim comparison table built inline below
 
     content += `<div class="grid-2">
       <div class="card"><div class="card-title">Your Social Security</div>
-        ${(p.ssdiPrimary||{}).enabled ? `<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--text-dim);line-height:1.6">
-          <strong style="color:var(--blue)">&#9432; SSDI Active</strong> &mdash; SSDI auto-converts to regular SS at FRA (age ${(p.ssdiPrimary.endAge||66)+1}). The claim age setting below is overridden. Your projection uses FRA benefit amount.
+        ${ssdi1ss.enabled ? `<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--text-dim);line-height:1.6">
+          <strong style="color:var(--blue)">&#9432; SSDI Active</strong> &mdash; SSDI auto-converts to regular SS at FRA (age ${effectiveClaimAge}). The claim age setting below is overridden. Your projection uses FRA benefit amount.
         </div>` : ''}
-        ${field('SS Claim Age','ssClaimAge',{help:'62 (early) to 70 (max delayed credits)' + ((p.ssdiPrimary||{}).enabled ? ' — overridden by SSDI auto-conversion at FRA' : '')})}
+        ${field('SS Claim Age','ssClaimAge',{help:'62 (early) to 70 (max delayed credits)' + (ssdi1ss.enabled ? ' — overridden by SSDI auto-conversion at FRA' : '')})}
         ${(p.spouseEnabled || p.spouseAge > 0) ? field('Survivor SS Claim Age','survivorSSClaimAge',{help:'Age to start collecting survivor SS if spouse passes away. Min 60.'}) : ''}
         <div style="margin:14px 0;padding:12px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border)">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);margin-bottom:10px">
@@ -3317,41 +3327,42 @@ function renderInputs() {
           ${p.ssUseManual ? `
             ${field('Monthly Benefit at FRA from SSA','ssManualMonthly',{prefix:'$',help:'Enter the amount from your my Social Security statement at FRA. Early/late claiming adjustments are applied automatically.'})}
             ${p.ssManualMonthly > 0 ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px;padding:8px;background:var(--bg-base);border-radius:6px">
-              <strong>FRA amount:</strong> ${fmt(p.ssManualMonthly)}/mo &#183; <strong>At age ${p.ssClaimAge}:</strong> ${fmt(ssResult.monthly)}/mo
-              ${p.ssClaimAge < ssResult.fra ? ' <span style="color:var(--red)">(reduced ' + Math.round((1 - ssResult.monthly/p.ssManualMonthly)*100) + '%)</span>' :
-                p.ssClaimAge > ssResult.fra ? ' <span style="color:var(--green)">(+' + Math.round((ssResult.monthly/p.ssManualMonthly - 1)*100) + '% delayed credits)</span>' : ' <span style="color:var(--text-faint)">(at FRA)</span>'}
+              <strong>FRA amount:</strong> ${fmt(p.ssManualMonthly)}/mo &#183; <strong>At age ${effectiveClaimAge}${ssdi1ss.enabled ? ' (SSDI→SS)' : ''}:</strong> ${fmt(ssResult.monthly)}/mo
+              ${!ssdi1ss.enabled ? (effectiveClaimAge < ssResult.fra ? ' <span style="color:var(--red)">(reduced ' + Math.round((1 - ssResult.monthly/p.ssManualMonthly)*100) + '%)</span>' :
+                effectiveClaimAge > ssResult.fra ? ' <span style="color:var(--green)">(+' + Math.round((ssResult.monthly/p.ssManualMonthly - 1)*100) + '% delayed credits)</span>' : ' <span style="color:var(--text-faint)">(at FRA)</span>') : ' <span style="color:var(--blue)">(auto-conversion at FRA)</span>'}
             </div>` : ''}
           ` : `
             ${field('Avg Annual Income for SS','ssAnnualIncome',{prefix:'$',help:'Career average (top 35 yrs). Used to estimate benefit.'})}
           `}
         </div>
         <div class="info-box">
-          <div class="info-box-label">Annual Benefit at Claim Age ${p.ssClaimAge}</div>
+          <div class="info-box-label">Annual Benefit at ${ssdi1ss.enabled ? 'FRA Auto-Conversion (Age ' + effectiveClaimAge + ')' : 'Claim Age ' + effectiveClaimAge}</div>
           <div class="info-box-value" style="color:var(--green)">${fmt(ssResult.annual)}</div>
           <div style="font-size:11px;color:var(--text-faint);margin-top:4px">
             Monthly: ${fmt(ssResult.monthly)} &#183; FRA: ${ssResult.fra.toFixed(1)} &#183; Birth year: ${birthYear}
             ${useManual ? ' &#183; <strong style="color:var(--green)">SSA statement</strong>' : ' &#183; AIME: $' + ssResult.aime}
           </div>
-          ${p.ssClaimAge < ssResult.fra ? '<div style="font-size:11px;color:var(--red);margin-top:4px">Claiming before FRA (' + ssResult.fra.toFixed(1) + ') permanently reduces your benefit by ' + Math.round((1 - ssResult.monthly/(useManual ? p.ssManualMonthly : estimateSS({avgIncome: p.ssAnnualIncome||p.annualIncome, claimAge: Math.round(ssResult.fra), birthYear}).monthly))*100) + '%.</div>' : ''}
+          ${!ssdi1ss.enabled && effectiveClaimAge < ssResult.fra ? '<div style="font-size:11px;color:var(--red);margin-top:4px">Claiming before FRA (' + ssResult.fra.toFixed(1) + ') permanently reduces your benefit by ' + Math.round((1 - ssResult.monthly/(useManual ? p.ssManualMonthly : estimateSS({avgIncome: p.ssAnnualIncome||p.annualIncome, claimAge: Math.round(ssResult.fra), birthYear}).monthly))*100) + '%.</div>' : ''}
         </div>
       </div>
       <div class="card"><div class="card-title">Spouse Social Security</div>
         ${(p.spouseEnabled || p.spouseAge > 0) ? (() => {
           const spBY = p.spouseBirthYear || (new Date().getFullYear() - (p.spouseAge||0));
           const spUseManual = p.spouseSSUseManual && p.spouseSSManualMonthly > 0;
+          const ssdi2ss = p.ssdiSpouse || {};
+          const effectiveSpClaimAge = ssdi2ss.enabled ? (ssdi2ss.endAge || 66) + 1 : (p.spouseSSClaimAge || 67);
           const spResult = spUseManual
             ? (() => {
                 const fraM = fraMonths(spBY);
-                const clAge = p.spouseSSClaimAge || 67;
-                const adj = ssaAdjustPIA(p.spouseSSManualMonthly, clAge * 12, fraM);
+                const adj = ssaAdjustPIA(p.spouseSSManualMonthly, effectiveSpClaimAge * 12, fraM);
                 return { annual: adj*12, monthly: adj, fra: fraM/12 };
               })()
-            : estimateSS({avgIncome:p.spouseSSIncome||0,claimAge:p.spouseSSClaimAge||67,birthYear:spBY});
+            : estimateSS({avgIncome:p.spouseSSIncome||0,claimAge:effectiveSpClaimAge,birthYear:spBY});
           return `
-          ${(p.ssdiSpouse||{}).enabled ? `<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--text-dim);line-height:1.6">
-            <strong style="color:var(--blue)">&#9432; SSDI Active</strong> &mdash; Spouse SSDI auto-converts to regular SS at FRA (age ${(p.ssdiSpouse.endAge||66)+1}). The claim age setting below is overridden. Projection uses FRA benefit amount.
+          ${ssdi2ss.enabled ? `<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--text-dim);line-height:1.6">
+            <strong style="color:var(--blue)">&#9432; SSDI Active</strong> &mdash; Spouse SSDI auto-converts to regular SS at FRA (age ${effectiveSpClaimAge}). The claim age setting below is overridden. Projection uses FRA benefit amount.
           </div>` : ''}
-          ${field('Spouse SS Claim Age','spouseSSClaimAge',{help:'62 (early) to 70 (max delayed credits)' + ((p.ssdiSpouse||{}).enabled ? ' — overridden by SSDI auto-conversion at FRA' : '')})}
+          ${field('Spouse SS Claim Age','spouseSSClaimAge',{help:'62 (early) to 70 (max delayed credits)' + (ssdi2ss.enabled ? ' — overridden by SSDI auto-conversion at FRA' : '')})}
           ${field('Spouse Survivor SS Claim Age','spouseSurvivorSSClaimAge',{help:'Age spouse starts collecting survivor SS if you pass away. Min 60.'})}
           <div style="margin:14px 0;padding:12px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border)">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);margin-bottom:10px">
@@ -3361,19 +3372,19 @@ function renderInputs() {
             ${p.spouseSSUseManual ? `
               ${field('Spouse Monthly Benefit at FRA from SSA','spouseSSManualMonthly',{prefix:'$',help:'Enter the amount from spouse Social Security statement at FRA. Early/late claiming adjustments are applied automatically.'})}
               ${p.spouseSSManualMonthly > 0 ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px;padding:8px;background:var(--bg-base);border-radius:6px">
-                <strong>FRA amount:</strong> ${fmt(p.spouseSSManualMonthly)}/mo &#183; <strong>At age ${p.spouseSSClaimAge||67}:</strong> ${fmt(spResult.monthly)}/mo
-                ${(p.spouseSSClaimAge||67) < spResult.fra ? ' <span style="color:var(--red)">(reduced ' + Math.round((1 - spResult.monthly/p.spouseSSManualMonthly)*100) + '%)</span>' :
-                  (p.spouseSSClaimAge||67) > spResult.fra ? ' <span style="color:var(--green)">(+' + Math.round((spResult.monthly/p.spouseSSManualMonthly - 1)*100) + '% delayed credits)</span>' : ' <span style="color:var(--text-faint)">(at FRA)</span>'}
+                <strong>FRA amount:</strong> ${fmt(p.spouseSSManualMonthly)}/mo &#183; <strong>At age ${effectiveSpClaimAge}${ssdi2ss.enabled ? ' (SSDI→SS)' : ''}:</strong> ${fmt(spResult.monthly)}/mo
+                ${!ssdi2ss.enabled ? ((effectiveSpClaimAge) < spResult.fra ? ' <span style="color:var(--red)">(reduced ' + Math.round((1 - spResult.monthly/p.spouseSSManualMonthly)*100) + '%)</span>' :
+                  (effectiveSpClaimAge) > spResult.fra ? ' <span style="color:var(--green)">(+' + Math.round((spResult.monthly/p.spouseSSManualMonthly - 1)*100) + '% delayed credits)</span>' : ' <span style="color:var(--text-faint)">(at FRA)</span>') : ' <span style="color:var(--blue)">(auto-conversion at FRA)</span>'}
               </div>` : ''}
             ` : `
               ${field('Spouse Avg Annual Income for SS','spouseSSIncome',{prefix:'$',help:'Career average (top 35 yrs). Used to estimate benefit.'})}
             `}
           </div>
           <div class="info-box">
-            <div class="info-box-label">Spouse ${spUseManual ? 'SSA' : 'Est.'} Annual Benefit at Age ${p.spouseSSClaimAge||67}</div>
+            <div class="info-box-label">Spouse ${spUseManual ? 'SSA' : 'Est.'} Annual Benefit at ${ssdi2ss.enabled ? 'FRA Auto-Conversion (Age ' + effectiveSpClaimAge + ')' : 'Age ' + effectiveSpClaimAge}</div>
             <div class="info-box-value" style="color:var(--green)">${fmt(spResult.annual)}</div>
             <div style="font-size:11px;color:var(--text-faint);margin-top:4px">Monthly: ${fmt(spResult.monthly)} &#183; FRA: ${spResult.fra.toFixed(1)} &#183; Birth year: ${spBY}</div>
-            ${(p.spouseSSClaimAge||67) < spResult.fra ? '<div style="font-size:11px;color:var(--red);margin-top:4px">Claiming before FRA (' + spResult.fra.toFixed(1) + ') permanently reduces spouse benefit by ' + Math.round((1 - spResult.monthly/(spUseManual ? p.spouseSSManualMonthly : estimateSS({avgIncome:p.spouseSSIncome||0, claimAge:Math.round(spResult.fra), birthYear:spBY}).monthly))*100) + '%.</div>' : ''}
+            ${!ssdi2ss.enabled && effectiveSpClaimAge < spResult.fra ? '<div style="font-size:11px;color:var(--red);margin-top:4px">Claiming before FRA (' + spResult.fra.toFixed(1) + ') permanently reduces spouse benefit by ' + Math.round((1 - spResult.monthly/(spUseManual ? p.spouseSSManualMonthly : estimateSS({avgIncome:p.spouseSSIncome||0, claimAge:Math.round(spResult.fra), birthYear:spBY}).monthly))*100) + '%.</div>' : ''}
           </div>`;
         })()
           : '<div style="color:var(--text-faint);font-size:13px">Enable spouse in Personal tab.</div>'}
@@ -3408,14 +3419,15 @@ function renderInputs() {
       let html = `<div class="card"><div class="card-title">Your SS Claiming Age Comparison</div>
         <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">
           ${manualPIA ? 'Based on SSA FRA amount of ' + fmt(manualPIA) + '/mo' : 'Based on income of ' + fmt(p.ssAnnualIncome || p.annualIncome)} and birth year ${birthYear}
+          ${ssdi1ss.enabled ? ' · <strong style="color:var(--blue)">SSDI auto-converts at age ' + effectiveClaimAge + '</strong>' : ''}
         </div>
         <table class="ss-table">
           <thead><tr><th>Claim Age</th><th>Monthly</th><th>Annual</th><th>% of FRA</th><th>Break-even vs 62</th></tr></thead>
           <tbody>${tableData.map(r => {
             const pctFRA = fraAmt > 0 ? Math.round(r.annual / fraAmt * 100) : 0;
-            const isSelected = r.age === p.ssClaimAge;
+            const isSelected = r.age === effectiveClaimAge;
             return '<tr' + (isSelected ? ' style="background:rgba(16,185,129,0.08)"' : '') + '>' +
-              '<td' + (isSelected ? ' class="highlight"' : '') + '>' + r.age + (r.age === Math.round(ssResult.fra) ? ' (FRA)' : '') + (isSelected ? ' &#10003;' : '') + '</td>' +
+              '<td' + (isSelected ? ' class="highlight"' : '') + '>' + r.age + (r.age === Math.round(ssResult.fra) ? ' (FRA)' : '') + (isSelected ? (ssdi1ss.enabled ? ' &#9432;' : ' &#10003;') : '') + '</td>' +
               '<td>' + fmt(r.monthly) + '</td>' +
               '<td' + (isSelected ? ' class="highlight"' : '') + '>' + fmt(r.annual) + '</td>' +
               '<td>' + pctFRA + '%</td>' +
@@ -3430,6 +3442,8 @@ function renderInputs() {
         const spManualPIA = p.spouseSSUseManual && p.spouseSSManualMonthly > 0 ? p.spouseSSManualMonthly : null;
         const spFRAM = fraMonths(spBY);
         const spFRA = spFRAM / 12;
+        const ssdi2tbl = p.ssdiSpouse || {};
+        const effectiveSpTblAge = ssdi2tbl.enabled ? (ssdi2tbl.endAge || 66) + 1 : (p.spouseSSClaimAge || 67);
         const spTableData = [62,63,64,65,66,67,68,69,70].map(age => {
           let r;
           if (spManualPIA) {
@@ -3450,14 +3464,15 @@ function renderInputs() {
         html += `<div class="card"><div class="card-title">Spouse SS Claiming Age Comparison</div>
           <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">
             ${spManualPIA ? 'Based on SSA FRA amount of ' + fmt(spManualPIA) + '/mo' : 'Based on income of ' + fmt(p.spouseSSIncome||0)} and birth year ${spBY}
+            ${ssdi2tbl.enabled ? ' · <strong style="color:var(--blue)">SSDI auto-converts at age ' + effectiveSpTblAge + '</strong>' : ''}
           </div>
           <table class="ss-table">
             <thead><tr><th>Claim Age</th><th>Monthly</th><th>Annual</th><th>% of FRA</th><th>Break-even vs 62</th></tr></thead>
             <tbody>${spTableData.map(r => {
               const pctFRA = spFrAAmt > 0 ? Math.round(r.annual / spFrAAmt * 100) : 0;
-              const isSelected = r.age === (p.spouseSSClaimAge||67);
+              const isSelected = r.age === effectiveSpTblAge;
               return '<tr' + (isSelected ? ' style="background:rgba(16,185,129,0.08)"' : '') + '>' +
-                '<td' + (isSelected ? ' class="highlight"' : '') + '>' + r.age + (r.age === Math.round(spFRA) ? ' (FRA)' : '') + (isSelected ? ' &#10003;' : '') + '</td>' +
+                '<td' + (isSelected ? ' class="highlight"' : '') + '>' + r.age + (r.age === Math.round(spFRA) ? ' (FRA)' : '') + (isSelected ? (ssdi2tbl.enabled ? ' &#9432;' : ' &#10003;') : '') + '</td>' +
                 '<td>' + fmt(r.monthly) + '</td>' +
                 '<td' + (isSelected ? ' class="highlight"' : '') + '>' + fmt(r.annual) + '</td>' +
                 '<td>' + pctFRA + '%</td>' +
@@ -3690,6 +3705,7 @@ function renderProjectionTable(proj) {
     { key: 'netWorth', label: 'Net Worth', color: '#3b82f6' },
     { key: 'earned', label: 'Earned Income', color: '#06b6d4' },
     { key: 'ss', label: 'Social Security', color: '#10b981' },
+    { key: 'ssdi', label: 'SSDI', color: '#3b82f6' },
     { key: 'expenses', label: 'Expenses', color: '#ef4444' },
     { key: 'fedTax', label: 'Federal Tax', color: '#8b5cf6' },
     { key: 'stateTax', label: 'State Tax', color: '#a855f7' },
@@ -3894,6 +3910,7 @@ function renderScenarios(proj) {
     { key: 'netWorth', label: 'Net Worth', color: '#3b82f6' },
     { key: 'earned', label: 'Earned Income', color: '#06b6d4' },
     { key: 'ss', label: 'Social Security', color: '#10b981' },
+    { key: 'ssdi', label: 'SSDI', color: '#3b82f6' },
     { key: 'expenses', label: 'Expenses', color: '#ef4444' },
     { key: 'fedTax', label: 'Federal Tax', color: '#8b5cf6' },
     { key: 'stateTax', label: 'State Tax', color: '#a855f7' },
