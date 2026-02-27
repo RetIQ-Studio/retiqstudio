@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>RetIQ — Payment Complete</title>
+</head>
+<body>
+  <h1>Finalizing your purchase…</h1>
+  <p>Please wait a moment.</p>
+
+  <script>
+    (async () => {
+      const params = new URLSearchParams(location.search);
+      const sessionId = params.get("session_id");
+
+      if (!sessionId) {
+        document.body.innerHTML =
+          "<h1>Missing session_id.</h1><p>Please return to RetIQ and try again.</p><p><a href='./'>Return to RetIQ</a></p>";
+        return;
+      }
+
+      // Ask the Worker to redeem this paid session into a license key
+      const url = `https://retiq-worker.bortvin.workers.dev/redeem-session?session_id=${encodeURIComponent(sessionId)}`;
+
+      let data;
+      try {
+        const res = await fetch(url);
+        data = await res.json();
+      } catch (e) {
+        document.body.innerHTML =
+          "<h1>Network error</h1><p>Please refresh this page. If it persists, return to RetIQ and try again.</p><p><a href='./'>Return to RetIQ</a></p>";
+        return;
+      }
+
+      if (!data.license) {
+        // This can happen if the webhook hasn't written it yet (or if session id is wrong)
+        document.body.innerHTML = `
+          <h1>License not ready yet</h1>
+          <p>If you just paid, wait a few seconds and refresh this page.</p>
+          <p><small>Error: ${data.error ? String(data.error) : "unknown"}</small></p>
+          <p><a href="./">Return to RetIQ</a></p>
+        `;
+        return;
+      }
+
+      // Store locally for this browser/device
+      localStorage.setItem("retiq_license", data.license);
+      localStorage.setItem("retiq_pro", "true");
+
+      document.body.innerHTML = `
+        <h1>RetIQ Pro unlocked ✔</h1>
+        <p><strong>Your License Key:</strong> (copy and save it)</p>
+        <pre id="lic" style="font-size:1.2em; padding:12px; border:1px solid #ccc; border-radius:10px; user-select:all;">${data.license}</pre>
+        <p>
+          <button id="copyBtn">Copy license</button>
+        </p>
+        <p>You can enter this license on another device to activate RetIQ Pro.</p>
+        <p><a href="./">Return to RetIQ</a></p>
+      `;
+
+      const btn = document.getElementById("copyBtn");
+      btn.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(data.license);
+          btn.textContent = "Copied ✔";
+        } catch {
+          btn.textContent = "Copy failed (select & copy)";
+        }
+      };
+    })();
+  </script>
+</body>
+</html>

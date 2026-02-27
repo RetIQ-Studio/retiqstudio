@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /app/
+Disallow: /features.html
+Disallow: /manual.html
+Allow: /
+
+Sitemap: https://retiqstudio.com/sitemap.xml
