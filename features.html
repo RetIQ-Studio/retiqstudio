@@ -58,7 +58,7 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
       <div class="feat"><h3><span class="tag t1">Core</span> Year-by-Year Projection</h3>
         <p>A full financial projection from your current age through end of plan. Every year is modeled individually &mdash; income, savings, investment growth, expenses, withdrawals, taxes, and net worth &mdash; so you can see exactly when and why things change.</p></div>
       <div class="feat"><h3><span class="tag t1">Core</span> Multi-Account Modeling</h3>
-        <p>Track Pre-Tax (401k, 403b, 457b, IRA), Roth, and Taxable accounts separately. Each account carries its own expected return rate &mdash; great for modeling a conservative bond allocation alongside an aggressive stock portfolio. Quick Add presets let you add common account types (HSA, HYSA, Brokerage, 529, and more) with one click.</p></div>
+        <p>Track four account types independently: Pre-Tax (401k, 403b, 457b, IRA), Roth, Cash/HYS (savings, CDs, checking), and Brokerage. Each account carries its own expected return rate &mdash; great for modeling a 4% HYSA alongside a 7% equity portfolio. Cash/HYS interest is taxed as ordinary income; brokerage withdrawals trigger capital gains. Quick Add presets let you add common account types with one click.</p></div>
       <div class="feat"><h3><span class="tag t1">Core</span> Spouse Integration</h3>
         <p>Full dual-income household modeling. Independent retirement ages, income trajectories, savings rates, SS benefits, pensions, and SSDI &mdash; all flowing into a unified household projection. Includes spouse-specific account presets.</p></div>
       <div class="feat"><h3><span class="tag t1">Core</span> Inflation-Adjusted View</h3>
@@ -125,8 +125,6 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
         <p>70% of people over 65 will need some form of long-term care. Model annual LTC costs (nursing home, assisted living, or home aide), start age, duration, and LTC-specific inflation. If you have LTC insurance, enter your annual coverage and see the net out-of-pocket impact.</p></div>
       <div class="feat"><h3><span class="tag t5">Plan</span> Liabilities &amp; Debts</h3>
         <p>Track mortgages, alimony, student loans, and other recurring obligations. Each liability has a type, monthly payment, active age range, and tax-deductible flag. Payments are added to expenses during the active period and disappear after payoff.</p></div>
-      <div class="feat"><h3><span class="tag t2">Tax</span> Configurable Withdrawal Order</h3>
-        <p>Control which accounts are tapped first in retirement. After required minimum distributions, remaining expenses come from accounts in your chosen order. The default &mdash; taxable, pre-tax, Roth &mdash; is conventional wisdom, but you can reorder to model alternative strategies and see the lifetime tax impact. Found in the Assumptions tab.</p></div>
     </div>
   </div>
 
@@ -138,7 +136,7 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
       <div class="feat"><h3><span class="tag t1">Income</span> Pension / Annuity</h3>
         <p>Model defined-benefit pensions, military retirement, or annuities for both spouses independently. Configurable start age and shared COLA rate (0% for fixed pensions, 2&ndash;3% for inflation-adjusted). Pension income flows into taxable income each year it is received.</p></div>
       <div class="feat"><h3><span class="tag t1">Income</span> Contribution Limits</h3>
-        <p>When enabled, savings respect annual 401(k) and IRA limits ($23,500 + catch-up in 2025) with age 50+ catch-up and SECURE 2.0 age 60&ndash;63 super catch-up provisions. Any savings beyond the limits overflow to taxable accounts automatically.</p></div>
+        <p>When enabled, savings respect annual 401(k) and IRA limits ($23,500 + catch-up in 2025) with age 50+ catch-up and SECURE 2.0 age 60&ndash;63 super catch-up provisions. Any savings beyond the limits overflow to brokerage accounts automatically.</p></div>
       <div class="feat"><h3><span class="tag t1">Income</span> Other Retirement Income</h3>
         <p>Model additional income streams that begin at retirement &mdash; rental income, part-time work, or annuity payments &mdash; separate from pensions and Social Security.</p></div>
     </div>
@@ -150,15 +148,19 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
       <div class="feat"><h3><span class="tag t6">Export</span> HTML Snapshot</h3>
         <p>Export your entire plan as a self-contained HTML file with all inputs, charts, and projections. It opens in any browser without the app &mdash; perfect for archiving, printing, or sharing with a financial advisor.</p></div>
       <div class="feat"><h3><span class="tag t6">Export</span> CSV Projection Export</h3>
-        <p>Download the full year-by-year projection table as CSV for your own analysis in Excel or Google Sheets. Every column &mdash; income, taxes, withdrawals, account balances, RMDs, IRMAA &mdash; is included.</p></div>
+        <p>Download the full year-by-year projection table as CSV for your own analysis in Excel or Google Sheets. Every column &mdash; income, taxes, withdrawals, Cash/HYS balance, Brokerage balance, Pre-Tax balance, Roth balance, RMDs, IRMAA, cash interest &mdash; is included.</p></div>
       <div class="feat"><h3><span class="tag t6">App</span> Projection Charts</h3>
-        <p>Interactive charts with selectable categories &mdash; choose up to 3 at once from net worth, income, expenses, federal tax, state tax, withdrawals, RMDs, Roth conversions, IRMAA, pensions, healthcare, liabilities, LTC, charity, and individual account balances. Toggle the data table on and off.</p></div>
+        <p>Interactive charts with selectable categories &mdash; choose up to 3 at once from net worth, income, expenses, federal tax, state tax, withdrawals, RMDs, Roth conversions, IRMAA, pensions, healthcare, liabilities, LTC, charity, MAGI, cash interest, and individual account balances (Pre-Tax, Roth, Cash/HYS, Brokerage). Toggle the data table on and off.</p></div>
       <div class="feat"><h3><span class="tag t6">App</span> PWA &mdash; Install &amp; Offline</h3>
         <p>Install RetIQ as a standalone app on desktop or mobile. Works offline after installation. All data stays on your device and auto-saves between sessions.</p></div>
       <div class="feat"><h3><span class="tag t6">App</span> Privacy by Design</h3>
         <p>Zero telemetry. No accounts. No cloud sync. Your financial data never leaves your browser. The entire application runs client-side JavaScript with no backend dependencies beyond payment processing.</p></div>
       <div class="feat"><h3><span class="tag t6">App</span> Share RetIQ</h3>
         <p>A built-in share button uses your device's native share sheet (on mobile) or copies a link to your clipboard (on desktop). Help someone else plan their retirement &mdash; it's one click away.</p></div>
+      <div class="feat"><h3><span class="tag t6">App</span> Validation Report</h3>
+        <p>159 automated tests verify every calculation against authoritative sources &mdash; IRS publications, SSA tables, CMS Medicare data, and SECURE Act 2.0 rules. The full report is viewable inside the app under the Validation tab. Every test shows the expected value, actual result, source citation, and pass/fail status. 100% pass rate.</p></div>
+      <div class="feat"><h3><span class="tag t1">Core</span> Configurable Withdrawal Order</h3>
+        <p>Set the priority for which accounts fund retirement spending using a 4-bucket system: Cash/HYS, Brokerage, Pre-Tax, and Roth. Reorder with arrow buttons in the Assumptions tab. Cash withdrawals are tax-free (principal return); brokerage withdrawals trigger capital gains; pre-tax is taxed as ordinary income; Roth is tax-free. The engine handles RMDs and tax implications automatically regardless of order.</p></div>
     </div>
   </div>
 

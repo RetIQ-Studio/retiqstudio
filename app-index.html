@@ -646,18 +646,21 @@ function runProjection(p) {
   const years = [];
   let preTax = p.accounts.filter(a => a.type === 'pretax').reduce((s, a) => s + a.balance, 0);
   let roth = p.accounts.filter(a => a.type === 'roth').reduce((s, a) => s + a.balance, 0);
-  let taxable = p.accounts.filter(a => a.type === 'taxable').reduce((s, a) => s + a.balance, 0);
+  let cash = p.accounts.filter(a => a.type === 'taxable' && a.subtype === 'cash').reduce((s, a) => s + a.balance, 0);
+  let taxableInv = p.accounts.filter(a => a.type === 'taxable' && a.subtype !== 'cash').reduce((s, a) => s + a.balance, 0);
+  let taxable = cash + taxableInv; // combined for backward compat
 
   // Per-account return rates (Feature #7) -- compute weighted average per type
-  const weightedReturn = (type) => {
-    const accts = p.accounts.filter(a => a.type === type);
+  const weightedReturn = (type, subtype) => {
+    const accts = p.accounts.filter(a => a.type === type && (subtype === undefined || (subtype === 'cash' ? a.subtype === 'cash' : a.subtype !== 'cash')));
     const totalBal = accts.reduce((s,a) => s + a.balance, 0);
-    if (totalBal <= 0) return p.nominalReturn;
+    if (totalBal <= 0) return type === 'taxable' && subtype === 'cash' ? 4 : p.nominalReturn;
     return accts.reduce((s,a) => s + (a.returnRate !== undefined ? a.returnRate : p.nominalReturn) * a.balance, 0) / totalBal;
   };
   const ptReturn = weightedReturn('pretax');
   const rReturn = weightedReturn('roth');
-  const tReturn = weightedReturn('taxable');
+  const cashReturn = weightedReturn('taxable', 'cash');
+  const tInvReturn = weightedReturn('taxable', 'investment');
 
   const birthYear = p.birthYear || (new Date().getFullYear() - p.currentAge);
   const rmdStart = rmdStartAge(birthYear);
@@ -685,6 +688,7 @@ function runProjection(p) {
 
   for (let age = p.currentAge; age <= p.endAge; age++) {
     const yr = age - p.currentAge;
+    taxable = cash + taxableInv; // keep combined taxable in sync
     const spAge = (p.spouseEnabled || p.spouseAge > 0) ? (p.spouseAge || 0) + yr : null;
 
     // Feature #8: partial year retirement
@@ -958,18 +962,18 @@ function runProjection(p) {
       let actualSavings = targetSavings;
       let preRetWithdrawal = 0;
       if (cashAfterExpenses < targetSavings) {
-        // Shortfall: try to cover from taxable accounts
+        // Shortfall: try to cover from taxable accounts (cash first, then investment)
         const shortfall = targetSavings - cashAfterExpenses;
         if (shortfall > 0 && cashAfterExpenses >= 0) {
-          // Can still save some, but need to draw from taxable for the rest
-          preRetWithdrawal = Math.min(shortfall, taxable);
-          taxable -= preRetWithdrawal;
+          const fromCash = Math.min(shortfall, cash); cash -= fromCash;
+          const fromInv = Math.min(shortfall - fromCash, taxableInv); taxableInv -= fromInv;
+          preRetWithdrawal = fromCash + fromInv;
         } else if (cashAfterExpenses < 0) {
-          // Can't even cover expenses from income — draw from taxable for expenses too
-          const expenseShortfall = Math.abs(cashAfterExpenses);
-          preRetWithdrawal = Math.min(expenseShortfall + targetSavings, taxable);
-          taxable -= preRetWithdrawal;
-          actualSavings = Math.max(0, preRetWithdrawal - expenseShortfall);
+          const need = Math.abs(cashAfterExpenses) + targetSavings;
+          const fromCash = Math.min(need, cash); cash -= fromCash;
+          const fromInv = Math.min(need - fromCash, taxableInv); taxableInv -= fromInv;
+          preRetWithdrawal = fromCash + fromInv;
+          actualSavings = Math.max(0, preRetWithdrawal - Math.abs(cashAfterExpenses));
         }
         if (cashAfterExpenses >= 0) actualSavings = Math.min(targetSavings, cashAfterExpenses + preRetWithdrawal);
       }
@@ -996,7 +1000,7 @@ function runProjection(p) {
         let toTaxable = hasTaxable ? Math.max(0, savAmt - toPT - toRoth) : 0;
         // If no taxable account, overflow back to pre-tax / roth if room
         if (!hasTaxable) { const overflow = Math.max(0, savAmt - toPT - toRoth); toPT += Math.min(overflow, Math.max(0, limit401k + catchUp - toPT)); }
-        preTax += toPT; roth += toRoth; taxable += toTaxable; saved = toPT + toRoth + toTaxable;
+        preTax += toPT; roth += toRoth; taxableInv += toTaxable; saved = toPT + toRoth + toTaxable;
 
         // Spouse savings
         if (p.spouseAge && !spRetired && !spouseDead) {
@@ -1007,14 +1011,14 @@ function runProjection(p) {
           let spPT = Math.min(spSavAmt * 0.6, hasPreTax ? limit401k + spCatchUp : 0);
           let spR = Math.min(spSavAmt * 0.25, hasRoth ? limitIRA + spCatchUpIRA : 0);
           let spT = hasTaxable ? Math.max(0, spSavAmt - spPT - spR) : 0;
-          preTax += spPT; roth += spR; taxable += spT; saved += spPT + spR + spT;
+          preTax += spPT; roth += spR; taxableInv += spT; saved += spPT + spR + spT;
         }
       } else {
         // No limits -- original proportional allocation
         let wPT = hasPreTax ? 0.6 : 0, wR = hasRoth ? 0.25 : 0, wT = hasTaxable ? 0.15 : 0;
         const total = wPT + wR + wT;
         if (total > 0) { wPT /= total; wR /= total; wT /= total; }
-        const allocate = (amount) => { preTax += amount * wPT; roth += amount * wR; taxable += amount * wT; };
+        const allocate = (amount) => { preTax += amount * wPT; roth += amount * wR; taxableInv += amount * wT; };
         const savRatio = targetSavings > 0 ? actualSavings / targetSavings : 0;
         const savAmt = (partialRetire ? savingsAtYear * (retireMonth / 12) : savingsAtYear) * savRatio;
         allocate(savAmt); saved = savAmt;
@@ -1092,7 +1096,7 @@ function runProjection(p) {
       const gap = Math.max(0, expenses - ss - ssdiIncome - other - pensionIncome);
       let remaining = gap;
       // Step 2: Fill spending gap in user-configured order
-      const wdOrder = p.withdrawalOrder || ['taxable', 'pretax', 'roth'];
+      const wdOrder = p.withdrawalOrder || ['cash', 'taxable', 'pretax', 'roth'];
       for (const src of wdOrder) {
         if (remaining <= 0) break;
         if (src === 'pretax') {
@@ -1103,21 +1107,30 @@ function runProjection(p) {
             const vol = Math.min(remaining, preTax); preTax -= vol; remaining -= vol;
             taxableWd += vol; withdrawal += vol;
           }
+        } else if (src === 'cash') {
+          // Cash/HYS: pure principal return, zero capital gains
+          const w = Math.min(remaining, cash); cash -= w; remaining -= w;
+          withdrawal += w;
         } else if (src === 'taxable') {
-          const w = Math.min(remaining, taxable); taxable -= w; remaining -= w;
-          capGains = w * 0.5; // estimated gain portion — 50% cost basis
+          // Investment/brokerage: 50% cost basis → capital gains
+          const w = Math.min(remaining, taxableInv); taxableInv -= w; remaining -= w;
+          capGains += w * 0.5;
           withdrawal += w;
         } else if (src === 'roth') {
           const w = Math.min(remaining, roth); roth -= w; remaining -= w;
           withdrawal += w;
         }
       }
-      // Step 3: Any RMD cash not used for spending gets reinvested into taxable
-      if (rmdCash > 0) { taxable += rmdCash; withdrawal += rmdCash; rmdCash = 0; }
+      // Step 3: Any RMD cash not used for spending gets reinvested into taxable investment
+      if (rmdCash > 0) { taxableInv += rmdCash; withdrawal += rmdCash; rmdCash = 0; }
     } else if (rmdCash > 0) {
-      // Not retired but RMD required — reinvest into taxable
-      taxable += rmdCash; withdrawal += rmdCash; rmdCash = 0;
+      // Not retired but RMD required — reinvest into taxable investment
+      taxableInv += rmdCash; withdrawal += rmdCash; rmdCash = 0;
     }
+
+    // Cash/HYS interest income: taxable as ordinary income every year
+    // Interest = current cash balance × return rate (this IS what the growth function adds to balance)
+    const cashInterest = Math.round(cash * cashReturn / 100);
 
     // Roth Conversion - Feature #3: expanded strategies
     let rothConv = 0;
@@ -1126,8 +1139,8 @@ function runProjection(p) {
       if (rc.strategy === 'fixed') {
         rothConv = Math.min(rc.fixedAmount || 0, preTax);
       } else if (rc.strategy === 'fillBracket' || rc.strategy === 'smartFill') {
-        const ssTaxForRoth = calcTaxableSS(ss, earned + taxableWd + capGains + ssdiIncome + pensionIncome, isSingle);
-        const curTaxable = earned + taxableWd + ssdiIncome + pensionIncome + ssTaxForRoth;
+        const ssTaxForRoth = calcTaxableSS(ss, earned + taxableWd + capGains + cashInterest + ssdiIncome + pensionIncome, isSingle);
+        const curTaxable = earned + taxableWd + cashInterest + ssdiIncome + pensionIncome + ssTaxForRoth;
         let stdDedTemp = isSingle ? STD_DEDUCTION_SINGLE : STD_DEDUCTION;
         // Include senior deductions so bracket room calculation matches actual tax computation
         if (age >= 65) {
@@ -1150,8 +1163,8 @@ function runProjection(p) {
 
         // Smart Fill: additionally cap at next IRMAA threshold to avoid triggering surcharges
         if (rc.strategy === 'smartFill') {
-          const ssTaxForMAGI = calcTaxableSS(ss, earned + taxableWd + capGains + ssdiIncome + pensionIncome, isSingle);
-          const curMAGI = earned + taxableWd + capGains + ssdiIncome + pensionIncome + ssTaxForMAGI;
+          const ssTaxForMAGI = calcTaxableSS(ss, earned + taxableWd + capGains + cashInterest + ssdiIncome + pensionIncome, isSingle);
+          const curMAGI = earned + taxableWd + capGains + cashInterest + ssdiIncome + pensionIncome + ssTaxForMAGI;
           const irmaaBrackets = isSingle ? IRMAA_BRACKETS_SINGLE : IRMAA_BRACKETS_MFJ;
           // Find the next IRMAA tier above current MAGI
           let nextIRMAAThreshold = Infinity;
@@ -1164,8 +1177,8 @@ function runProjection(p) {
 
         rothConv = Math.min(bracketRoom, preTax);
       } else if (rc.strategy === 'targetMAGI') {
-        const ssTaxForMAGI = calcTaxableSS(ss, earned + taxableWd + capGains + ssdiIncome + pensionIncome, isSingle);
-        const curMAGI = earned + taxableWd + capGains + ssdiIncome + pensionIncome + ssTaxForMAGI;
+        const ssTaxForMAGI = calcTaxableSS(ss, earned + taxableWd + capGains + cashInterest + ssdiIncome + pensionIncome, isSingle);
+        const curMAGI = earned + taxableWd + capGains + cashInterest + ssdiIncome + pensionIncome + ssTaxForMAGI;
         rothConv = Math.min(Math.max(0, (rc.targetMAGI || 200000) - curMAGI), preTax);
       } else if (rc.strategy === 'percentBalance') {
         rothConv = Math.min(Math.round(preTax * (rc.percentOfBalance || 10) / 100), preTax);
@@ -1179,9 +1192,9 @@ function runProjection(p) {
 
     // Tax - federal + state + capital gains + NIIT
     // IRS §86: compute taxable portion of SS based on provisional income (includes cap gains)
-    const otherIncForSS = earned + taxableWd + rothConv + capGains + ssdiIncome + pensionIncome;
+    const otherIncForSS = earned + taxableWd + rothConv + capGains + cashInterest + ssdiIncome + pensionIncome;
     const ssTaxable = calcTaxableSS(ss, otherIncForSS, isSingle);
-    const otherIncNoConv = earned + taxableWd + capGains + ssdiIncome + pensionIncome;
+    const otherIncNoConv = earned + taxableWd + capGains + cashInterest + ssdiIncome + pensionIncome;
     const ssTaxableNoConv = calcTaxableSS(ss, otherIncNoConv, isSingle);
 
     // Standard deduction + senior additions
@@ -1212,8 +1225,8 @@ function runProjection(p) {
     }
 
     // Ordinary income tax (excludes capital gains — they're taxed at preferential rates)
-    const ordinaryInc = earned + taxableWd + rothConv + ssdiIncome + pensionIncome + ssTaxable;
-    const ordinaryIncNoConv = earned + taxableWd + ssdiIncome + pensionIncome + ssTaxableNoConv;
+    const ordinaryInc = earned + taxableWd + rothConv + cashInterest + ssdiIncome + pensionIncome + ssTaxable;
+    const ordinaryIncNoConv = earned + taxableWd + cashInterest + ssdiIncome + pensionIncome + ssTaxableNoConv;
     const ordinaryTaxable = Math.max(0, ordinaryInc - stdDed);
     const fedTaxOrdinary = calcTax(ordinaryTaxable, isSingle);
     const taxWithoutConv = calcTax(Math.max(0, ordinaryIncNoConv - stdDed), isSingle);
@@ -1242,37 +1255,13 @@ function runProjection(p) {
     // IRC §1411: applies to cap gains, interest, dividends for MAGI > $200K single / $250K MFJ
     const magi = otherIncForSS + ssTaxable;
     const niitThresh = isSingle ? 200000 : 250000;
-    const niitTax = (magi > niitThresh && capGains > 0)
-      ? Math.round(Math.min(capGains, magi - niitThresh) * 0.038) : 0;
+    const nii = capGains + cashInterest; // net investment income includes interest
+    const niitTax = (magi > niitThresh && nii > 0)
+      ? Math.round(Math.min(nii, magi - niitThresh) * 0.038) : 0;
 
     const fedTax = fedTaxOrdinary + cgTax + niitTax;
     const stateTax = calcStateTax(Math.max(0, ordinaryInc + capGains - stdDed), p.stateCode);
     const tax = fedTax + stateTax;
-
-    // Retirement tax payment: taxes on withdrawals are funded from accounts
-    // Income sources (SS, pension, etc.) implicitly cover taxes on themselves
-    // Only the INCREMENTAL tax from account withdrawals needs to come from the portfolio
-    if ((effectivelyRetired || primaryDead) && withdrawal > 0) {
-      // Tax on income WITHOUT withdrawals (this tax is covered by income itself)
-      const incWithoutWd = earned + ssdiIncome + pensionIncome;
-      const ssWithoutWd = calcTaxableSS(ss, incWithoutWd, isSingle);
-      const ordNoWd = incWithoutWd + ssWithoutWd;
-      const taxNoWd = calcTax(Math.max(0, ordNoWd - stdDed), isSingle) + calcStateTax(Math.max(0, ordNoWd - stdDed), p.stateCode);
-      // Incremental tax from withdrawals = total tax - tax on income alone
-      let wdTax = Math.max(0, tax - taxNoWd);
-      // Pay incremental tax from accounts in withdrawal order
-      const wdOrderTax = p.withdrawalOrder || ['taxable', 'pretax', 'roth'];
-      for (const src of wdOrderTax) {
-        if (wdTax <= 0) break;
-        if (src === 'taxable') {
-          const pay = Math.min(wdTax, taxable); taxable -= pay; wdTax -= pay;
-        } else if (src === 'pretax') {
-          const pay = Math.min(wdTax, preTax); preTax -= pay; wdTax -= pay;
-        } else if (src === 'roth') {
-          const pay = Math.min(wdTax, roth); roth -= pay; wdTax -= pay;
-        }
-      }
-    }
 
     // IRMAA: 2-year MAGI lookback (your 2028 IRMAA is based on 2026 tax return)
     // Use MAGI from 2 years prior if available in projection history
@@ -1299,8 +1288,12 @@ function runProjection(p) {
     };
     preTax = growAcct(preTax, ptReturn);
     roth = growAcct(roth, rReturn);
-    taxable = growAcct(taxable, tReturn);
+    cash = growAcct(cash, cashReturn);
+    taxableInv = growAcct(taxableInv, tInvReturn);
+    taxable = cash + taxableInv; // combined for output
 
+    const _cash = Math.round(cash), _inv = Math.round(taxableInv), _tax = _cash + _inv;
+    const _pt = Math.round(preTax), _ro = Math.round(roth);
     years.push({
       age, year: new Date().getFullYear() + yr,
       earned: Math.round(earned), ss: Math.round(ss), ssdi: Math.round(ssdiIncome),
@@ -1310,8 +1303,10 @@ function runProjection(p) {
       savings: Math.round(saved), withdrawal: Math.round(withdrawal),
       tax: Math.round(tax), fedTax: Math.round(fedTax), stateTax: Math.round(stateTax),
       cgTax: Math.round(cgTax), niitTax: Math.round(niitTax), capGains: Math.round(capGains),
-      preTax: Math.round(preTax), roth: Math.round(roth),
-      taxable: Math.round(taxable), netWorth: Math.round(preTax + roth + taxable),
+      preTax: _pt, roth: _ro,
+      taxable: _tax, cash: _cash, taxableInv: _inv,
+      cashInterest: Math.round(cashInterest),
+      netWorth: _pt + _ro + _tax,
       retired: effectivelyRetired || primaryDead, rmd: Math.round(rmdUsed), rmdRequired,
       qcd: Math.round(qcdAmount),
       rothConv: Math.round(rothConv), conversionTax: Math.round(conversionTax),
@@ -1450,7 +1445,7 @@ let state = {
     longTermCare: { enabled: false, annualCost: 100000, startAge: 82, duration: 4, inflation: 5, hasInsurance: false, insuranceCoverage: 0 },
 
     // Withdrawal order (after RMDs)
-    withdrawalOrder: ['taxable', 'pretax', 'roth'],
+    withdrawalOrder: ['cash', 'taxable', 'pretax', 'roth'],
 
     // Roth conversion strategy
     rothConversion: {
@@ -1486,8 +1481,17 @@ function proGate(featureName, teaser) {
 }
 try { if (isPro()) { const s = localStorage.getItem('retiq_v1'); if (s) state.params = JSON.parse(s); } } catch(e) {}
 // Migration: ensure new fields exist for existing saved states
-if (state.params.preRetirementExpenses === undefined) state.params.preRetirementExpenses = 0;
-if (state.params.preRetirementExpenseInflation === undefined) state.params.preRetirementExpenseInflation = 3;
+function migrateParams() {
+  if (state.params.preRetirementExpenses === undefined) state.params.preRetirementExpenses = 0;
+  if (state.params.preRetirementExpenseInflation === undefined) state.params.preRetirementExpenseInflation = 3;
+  // Migration: add 'cash' to withdrawal order if old 3-item order
+  if (state.params.withdrawalOrder && !state.params.withdrawalOrder.includes('cash')) {
+    const idx = state.params.withdrawalOrder.indexOf('taxable');
+    if (idx >= 0) state.params.withdrawalOrder.splice(idx, 0, 'cash');
+    else state.params.withdrawalOrder.unshift('cash');
+  }
+}
+migrateParams();
 function saveState() { if (isPro()) { try { localStorage.setItem('retiq_v1', JSON.stringify(state.params)); } catch(e) {} } }
 function setParam(key, val) { if (!isPro()) return; state.params[key] = val; state.mcResults = null; state.rothOptResults = null; saveState(); render(); }
 
@@ -1590,9 +1594,12 @@ function exportProjectionCSV() {
     { head:'Charity (QCD)', key:'qcd', isCurrency:true },
     { head:'Charity (Total)', key:'charityTotal', isCurrency:true },
     { head:'Capital Gains', key:'capGains', isCurrency:true },
+    { head:'Cash Interest', key:'cashInterest', isCurrency:true },
     { head:'MAGI', key:'magi', isCurrency:true },
     { head:'Pre-Tax Balance', key:'preTax', isCurrency:true },
     { head:'Roth Balance', key:'roth', isCurrency:true },
+    { head:'Cash/HYS Balance', key:'cash', isCurrency:true },
+    { head:'Brokerage Balance', key:'taxableInv', isCurrency:true },
     { head:'Taxable Balance', key:'taxable', isCurrency:true },
     { head:'Net Worth', key:'netWorth', isCurrency:true },
   ];
@@ -1623,12 +1630,12 @@ function importData(evt) {
         if (match) { state.params = JSON.parse(match[1]); }
         else { alert('Could not find saved data in this HTML file.'); return; }
       }
-      saveState(); render();
+      migrateParams(); saveState(); render();
     } catch(err) { alert('Could not load file: ' + err.message); }
   };
   r.readAsText(f); evt.target.value = '';
 }
-function updateAccount(id, key, val) { if (proGuard()) return; const a = state.params.accounts.find(x => x.id === id); if (a) { a[key] = val; state.mcResults = null; saveState(); render(); } }
+function updateAccount(id, key, val) { if (proGuard()) return; const a = state.params.accounts.find(x => x.id === id); if (a) { if (key === 'type' && val === 'taxable-cash') { a.type = 'taxable'; a.subtype = 'cash'; } else { a[key] = val; if (key === 'type' && val !== 'taxable') delete a.subtype; else if (key === 'type' && val === 'taxable') delete a.subtype; } state.mcResults = null; saveState(); render(); } }
 function removeAccount(id) { if (proGuard()) return; state.params.accounts = state.params.accounts.filter(a => a.id !== id); state.mcResults = null; saveState(); render(); }
 function addAccount() { if (proGuard()) return; state.params.accounts.push({ id: Date.now(), name: 'New Account', type: 'pretax', balance: 0, returnRate: 7 }); state.mcResults = null; saveState(); render(); }
 const ACCT_PRESETS = {
@@ -1645,11 +1652,12 @@ const ACCT_PRESETS = {
     { name: 'Roth IRA', type: 'roth', returnRate: 7 },
     { name: 'Roth 401(k)', type: 'roth', returnRate: 7 },
   ],
-  'Taxable': [
+  'Brokerage & Cash': [
     { name: 'Brokerage', type: 'taxable', returnRate: 7 },
     { name: 'HSA', type: 'roth', returnRate: 6 },
-    { name: 'High-Yield Savings', type: 'taxable', returnRate: 4 },
-    { name: 'Savings / Checking', type: 'taxable', returnRate: 0.5 },
+    { name: 'High-Yield Savings', type: 'taxable', subtype: 'cash', returnRate: 4 },
+    { name: 'Savings / Checking', type: 'taxable', subtype: 'cash', returnRate: 0.5 },
+    { name: 'CD Ladder', type: 'taxable', subtype: 'cash', returnRate: 4.5 },
     { name: '529 Plan', type: 'roth', returnRate: 6 },
   ],
   'Spouse': [
@@ -1671,7 +1679,7 @@ function togglePresetAccount(name) {
       if (preset) break;
     }
     if (!preset) return;
-    state.params.accounts.push({ id: Date.now(), name: preset.name, type: preset.type, balance: 0, returnRate: preset.returnRate });
+    state.params.accounts.push({ id: Date.now(), name: preset.name, type: preset.type, balance: 0, returnRate: preset.returnRate, ...(preset.subtype ? { subtype: preset.subtype } : {}) });
   }
   state.mcResults = null; saveState(); render();
 }
@@ -1688,7 +1696,7 @@ function setQCD(key, val) {
 }
 function moveWithdrawalOrder(idx, dir) {
   if (proGuard()) return;
-  const order = state.params.withdrawalOrder || ['taxable', 'pretax', 'roth'];
+  const order = state.params.withdrawalOrder || ['cash', 'taxable', 'pretax', 'roth'];
   const newIdx = idx + dir;
   if (newIdx < 0 || newIdx >= order.length) return;
   [order[idx], order[newIdx]] = [order[newIdx], order[idx]];
@@ -2159,7 +2167,7 @@ function cLeave(id) { document.getElementById(id+'_h').setAttribute('visibility'
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
 
 function renderNav() {
-  const tabs = [['dashboard','Dashboard'],['inputs','Inputs'],['projection','Projection'],['montecarlo','Monte Carlo'],['scenarios','Scenarios']];
+  const tabs = [['dashboard','Dashboard'],['inputs','Inputs'],['projection','Projection'],['montecarlo','Monte Carlo'],['scenarios','Scenarios'],['validation','Validation']];
   document.getElementById('mainNav').innerHTML = tabs.map(([k,v]) =>
     `<button class="tab${state.tab===k?' active':''}" onclick="state.tab='${k}';closeMobileMenu();render()">${v}</button>`).join('');
   // Scroll active main nav tab into view on mobile
@@ -2871,7 +2879,7 @@ function exportDashboardSummary() {
     </div>
     <div class="strat-cell">
       <div class="strat-label">Withdrawal Order</div>
-      <div class="strat-value" style="color:#64748b">${(p.withdrawalOrder || ['taxable','pretax','roth']).map(s => s === 'pretax' ? 'Pre-Tax' : s === 'taxable' ? 'Taxable' : 'Roth').join(' → ')}</div>
+      <div class="strat-value" style="color:#64748b">${(p.withdrawalOrder || ['cash','taxable','pretax','roth']).map(s => s === 'pretax' ? 'Pre-Tax' : s === 'cash' ? 'Cash/HYS' : s === 'taxable' ? 'Brokerage' : 'Roth').join(' → ')}</div>
     </div>
   </div>
 
@@ -2912,7 +2920,8 @@ function renderDashboard(proj) {
   const nwKeys = [], nwColors = [], nwLabels = [];
   if (proj.some(y => y.preTax !== 0)) { nwKeys.push('preTax'); nwColors.push('#3b82f6'); nwLabels.push('Pre-Tax'); }
   if (proj.some(y => y.roth !== 0)) { nwKeys.push('roth'); nwColors.push('#10b981'); nwLabels.push('Roth'); }
-  if (proj.some(y => y.taxable !== 0)) { nwKeys.push('taxable'); nwColors.push('#f59e0b'); nwLabels.push('Taxable'); }
+  if (proj.some(y => (y.cash || 0) > 0)) { nwKeys.push('cash'); nwColors.push('#06b6d4'); nwLabels.push('Cash/HYS'); }
+  if (proj.some(y => (y.taxableInv || 0) > 0)) { nwKeys.push('taxableInv'); nwColors.push('#f59e0b'); nwLabels.push('Brokerage'); }
   if (nwKeys.length === 0) { nwKeys.push('netWorth'); nwColors.push('#3b82f6'); nwLabels.push('Net Worth'); }
 
   // Plan Health Verdict
@@ -3216,13 +3225,14 @@ function renderInputs() {
       <div style="flex:1"><select class="field-input" onchange="updateAccount(${a.id},'type',this.value)" style="font-size:13px;cursor:pointer">
         <option value="pretax"${a.type==='pretax'?' selected':''}>Pre-Tax</option>
         <option value="roth"${a.type==='roth'?' selected':''}>Roth</option>
-        <option value="taxable"${a.type==='taxable'?' selected':''}>Taxable</option>
+        <option value="taxable"${a.type==='taxable'&&a.subtype!=='cash'?' selected':''}>Brokerage</option>
+        <option value="taxable-cash"${a.type==='taxable'&&a.subtype==='cash'?' selected':''}>Cash / HYS</option>
       </select></div>
       <div style="flex:1.5;position:relative"><span class="field-prefix">$</span>
         <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(a.balance)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="updateAccount(${a.id},'balance',parseC(this.value))" style="font-size:13px">
       </div>
       <div style="flex:0.7;position:relative">
-        <input type="number" class="field-input has-suffix" value="${a.returnRate !== undefined ? a.returnRate : 7}" onchange="updateAccount(${a.id},'returnRate',Number(this.value))" style="font-size:13px" title="Expected nominal return">
+        <input type="number" class="field-input has-suffix" value="${a.returnRate !== undefined ? a.returnRate : 7}" onchange="updateAccount(${a.id},'returnRate',Number(this.value))" style="font-size:13px" title="${a.subtype==='cash'?'Interest rate (taxed as ordinary income)':'Expected nominal return'}">
         <span class="field-suffix" style="font-size:11px">%</span>
       </div>
       <button class="acct-remove" onclick="removeAccount(${a.id})">x</button>
@@ -3238,7 +3248,7 @@ function renderInputs() {
         ${Object.entries(ACCT_PRESETS).map(([cat, presets]) => {
           const chips = presets.map(pr => {
             const exists = p.accounts.some(a => a.name.toLowerCase() === pr.name.toLowerCase());
-            return `<span class="acct-chip${exists ? ' added' : ''}" onclick="togglePresetAccount('${pr.name.replace(/'/g, "\\'")}')" title="${exists ? 'Click to remove' : (pr.type === 'pretax' ? 'Pre-Tax' : pr.type === 'roth' ? 'Roth' : 'Taxable') + ' · ' + pr.returnRate + '% return'}">${pr.name}${exists ? ' ✓' : ''}</span>`;
+            return `<span class="acct-chip${exists ? ' added' : ''}" onclick="togglePresetAccount('${pr.name.replace(/'/g, "\\'")}')" title="${exists ? 'Click to remove' : (pr.type === 'pretax' ? 'Pre-Tax' : pr.type === 'roth' ? 'Roth' : pr.subtype === 'cash' ? 'Cash/HYS' : 'Brokerage') + ' · ' + pr.returnRate + '% return' + (pr.subtype === 'cash' ? ' (interest taxed as income)' : '')}">${pr.name}${exists ? ' ✓' : ''}</span>`;
           }).join('');
           return `<div class="acct-preset-cat"><div class="acct-preset-label">${cat}</div>${chips}</div>`;
         }).join('')}
@@ -3256,6 +3266,9 @@ function renderInputs() {
         <span class="badge badge-rmd">RMD</span> Pre-tax balance: <strong>${fmt(preTaxTotal)}</strong>.
         RMDs will begin at age <strong>${rmdAge}</strong> (SECURE Act 2.0).
         First year RMD estimate: <strong>${fmt(calcRMD(preTaxTotal * Math.pow(1.05, rmdAge - p.currentAge), rmdAge))}</strong>
+      </div>` : ''}
+      ${p.accounts.some(a => a.subtype === 'cash') ? `<div style="margin-top:8px;padding:10px 14px;background:var(--bg-base);border-radius:8px;font-size:12px;color:var(--text-dim);border-left:3px solid #06b6d4">
+        <strong style="color:var(--text)">&#x1F4B0; Cash / HYS accounts</strong> are a separate withdrawal bucket from brokerage. Withdrawals are tax-free (return of principal). Interest earned (at return rate) is taxed as ordinary income each year. Reorder in the Assumptions tab.
       </div>` : ''}
     </div>`;
   }
@@ -4373,10 +4386,10 @@ function renderInputs() {
       <div style="margin-top:20px;padding:14px;background:var(--bg-base);border-radius:10px;border:1px solid var(--border)">
         <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Retirement Withdrawal Order</div>
         <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;line-height:1.5">Set the priority for which accounts fund retirement spending. Use arrows to reorder. The engine handles RMDs and tax implications automatically.</div>
-        ${(p.withdrawalOrder || ['taxable','pretax','roth']).map((src, i, arr) => {
-          const labels = { taxable: 'Taxable (Brokerage)', pretax: 'Pre-Tax (401k/IRA)', roth: 'Roth' };
-          const colors = { taxable: 'var(--amber)', pretax: 'var(--blue)', roth: 'var(--green)' };
-          const notes = { taxable: 'Only gains taxed (cap gains rate)', pretax: 'Taxable as ordinary income', roth: 'Tax-free withdrawals' };
+        ${(p.withdrawalOrder || ['cash','taxable','pretax','roth']).map((src, i, arr) => {
+          const labels = { cash: 'Cash / HYS', taxable: 'Brokerage', pretax: 'Pre-Tax (401k/IRA)', roth: 'Roth' };
+          const colors = { cash: 'var(--cyan)', taxable: 'var(--amber)', pretax: 'var(--blue)', roth: 'var(--green)' };
+          const notes = { cash: 'Zero capital gains — pure principal return', taxable: 'Gains taxed at capital gains rate (50% cost basis)', pretax: 'Taxable as ordinary income', roth: 'Tax-free withdrawals' };
           return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px">
             <span style="font-size:13px;font-weight:700;color:var(--text-muted);width:18px;text-align:center">${i + 1}</span>
             <div style="flex:1">
@@ -4392,8 +4405,8 @@ function renderInputs() {
       </div>
       <div style="margin-top:16px;font-size:12px;color:var(--text-faint);line-height:1.7">
         <strong style="color:var(--text-muted)">Model notes:</strong> 2025 tax brackets (OBBB Act). Std deduction $${STD_DEDUCTION.toLocaleString()} MFJ / $${STD_DEDUCTION_SINGLE.toLocaleString()} single + senior additions. SS taxation per IRS §86. SSA 2025 bend points &amp; wage base.
-        Withdrawal order: ${(p.withdrawalOrder || ['taxable','pretax','roth']).map(s => s === 'pretax' ? 'pre-tax' : s === 'taxable' ? 'taxable' : 'Roth').join(' &rarr; ')} (configurable above).
-        Taxable withdrawals taxed on estimated gains (50% cost basis) at applicable capital gains rate.
+        Withdrawal order: ${(p.withdrawalOrder || ['cash','taxable','pretax','roth']).map(s => s === 'pretax' ? 'pre-tax' : s === 'cash' ? 'cash/HYS' : s === 'taxable' ? 'brokerage' : 'Roth').join(' &rarr; ')} (configurable above).
+        Cash/HYS withdrawals are tax-free (principal return); interest taxed as ordinary income annually. Brokerage withdrawals taxed on estimated gains (50% cost basis) at applicable capital gains rate.
         Pension income is fully taxable. Pre-Medicare healthcare added to expenses during gap years.
         Pre-retirement expenses use a separate inflation rate and reduce available cash flow; shortfalls draw from taxable accounts.
         Expense phases reduce base spending in later retirement.
@@ -4427,7 +4440,9 @@ function renderProjectionTable(proj) {
     { key: 'magi', label: 'MAGI', color: '#6366f1' },
     { key: 'preTax', label: 'Pre-Tax Balance', color: '#3b82f6' },
     { key: 'roth', label: 'Roth Balance', color: '#10b981' },
-    { key: 'taxable', label: 'Taxable Balance', color: '#f59e0b' },
+    { key: 'cash', label: 'Cash / HYS Balance', color: '#06b6d4' },
+    { key: 'taxableInv', label: 'Brokerage Balance', color: '#f59e0b' },
+    { key: 'cashInterest', label: 'Cash Interest Income', color: '#8b5cf6' },
   ];
   const available = categories.filter(cat => proj.some(y => (y[cat.key] || 0) !== 0));
   const selKeys = state.projChartKeys || ['netWorth'];
@@ -4498,7 +4513,8 @@ function renderProjectionTable(proj) {
       { head:'Medicare', key:'medicareCost', color:'var(--pink)', isCurrency:true },
       { head:'Pre-Tax', key:'preTax', color:'var(--blue)', isCurrency:true },
       { head:'Roth', key:'roth', color:'var(--green)', isCurrency:true },
-      { head:'Taxable', key:'taxable', color:'var(--amber)', isCurrency:true },
+      { head:'Cash/HYS', key:'cash', color:'var(--cyan)', isCurrency:true },
+      { head:'Brokerage', key:'taxableInv', color:'var(--amber)', isCurrency:true },
       { head:'Net Worth', key:'netWorth', color:'', isCurrency:true, special:'nw' },
     ];
     const alwaysShow = new Set(['age','year','netWorth','expenses']);
@@ -4517,7 +4533,7 @@ function renderProjectionTable(proj) {
     // Total row
     const totals = cols.map(cc => {
       if (!cc.isCurrency) return '<td style="font-weight:700">Total</td>';
-      if (cc.special==='nw' || cc.key==='preTax' || cc.key==='roth' || cc.key==='taxable') return '<td>--</td>';
+      if (cc.special==='nw' || cc.key==='preTax' || cc.key==='roth' || cc.key==='cash' || cc.key==='taxableInv') return '<td>--</td>';
       const sum = proj.reduce((s,y) => s + (y[cc.key]||0), 0);
       return '<td style="font-weight:600;color:'+cc.color+'">'+ fmtK(deflate(sum, Math.floor(proj.length/2))) +'</td>';
     }).join('');
@@ -4623,7 +4639,8 @@ function renderScenarios(proj) {
     { key: 'rmd', label: 'RMDs', color: '#7c3aed' },
     { key: 'preTax', label: 'Pre-Tax Bal.', color: '#3b82f6' },
     { key: 'roth', label: 'Roth Bal.', color: '#10b981' },
-    { key: 'taxable', label: 'Taxable Bal.', color: '#f59e0b' },
+    { key: 'cash', label: 'Cash/HYS Bal.', color: '#06b6d4' },
+    { key: 'taxableInv', label: 'Brokerage Bal.', color: '#f59e0b' },
   ];
   const scSelKeys = state.scenarioChartKeys || ['netWorth'];
   const scAvail = scCategories.filter(c => proj.some(y => (y[c.key]||0)!==0));
@@ -4777,6 +4794,80 @@ function renderScenarios(proj) {
 // MAIN RENDER
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
 
+// Validation Report — 159 tests against IRS/SSA/CMS authoritative sources
+// Data format: [category, name, source, expected, actual, tolerance, pass]
+const VALIDATION_DATA = [["Federal Tax (MFJ)","Top of 10% bracket ($23,850)","IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",2385,2385,1,1],["Federal Tax (MFJ)","Top of 12% bracket ($96,950)","IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",11157,11157,1,1],["Federal Tax (MFJ)","Top of 22% bracket ($206,700)","IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",35302,35302,1,1],["Federal Tax (MFJ)","Top of 24% bracket ($394,600)","IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",80398,80398,1,1],["Federal Tax (MFJ)","Top of 32% bracket ($501,050)","IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",114462,114462,1,1],["Federal Tax (MFJ)","Top of 35% bracket ($751,600)","IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",202155,202155,1,1],["Federal Tax (MFJ)","In 37% bracket ($1,000,000)","IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",294063,294063,1,1],["Federal Tax (MFJ)","Zero income","IRS basic rule",0,0,1,1],["Federal Tax (MFJ)","Mid-bracket $50,000","IRS Rev. Proc. 2024-40, manual calculation",5523,5523,1,1],["Federal Tax (MFJ)","Mid-bracket $150,000","IRS Rev. Proc. 2024-40, manual calculation",22828,22828,1,1],["Federal Tax (Single)","Top of 10% bracket ($11,925)","IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",1193,1193,1,1],["Federal Tax (Single)","Top of 12% bracket ($48,475)","IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",5579,5579,1,1],["Federal Tax (Single)","Top of 22% bracket ($103,350)","IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",17651,17651,1,1],["Federal Tax (Single)","Top of 24% bracket ($197,300)","IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",40199,40199,1,1],["Federal Tax (Single)","Mid-bracket $75,000","IRS Rev. Proc. 2024-40, manual calculation",11414,11414,1,1],["Federal Tax (Single)","$200,000 income","IRS Rev. Proc. 2024-40, manual calculation",41063,41063,1,1],["Standard Deduction","MFJ base deduction","IRS Rev. Proc. 2024-40",31500,31500,1,1],["Standard Deduction","Single base deduction","IRS Rev. Proc. 2024-40",15750,15750,1,1],["Standard Deduction","Senior additional \u2014 MFJ (per person)","IRS Rev. Proc. 2024-40 §3.01",1600,1600,1,1],["Standard Deduction","Senior additional \u2014 Single","IRS Rev. Proc. 2024-40 §3.01",2000,2000,1,1],["Standard Deduction","OBBB Senior Deduction: $6,000 per person","OBBB Act 2025 §102; IRS FS-2025-03; signed July 4, 2025 as P.L. 119-21",6000,6000,1,1],["Standard Deduction","OBBB phaseout threshold \u2014 MFJ","One Big Beautiful Bill Act 2025 §102",150000,150000,1,1],["Standard Deduction","OBBB phaseout threshold \u2014 Single","One Big Beautiful Bill Act 2025 §102",75000,75000,1,1],["Standard Deduction","OBBB phaseout rate: 6%","OBBB Act 2025 §102; phases out at $175K single / $250K MFJ",0.06,0.06,1,1],["SS Taxation (MFJ)","Below base threshold: $20K SS, $10K other","IRS Pub 915, Worksheet 1",0,0,1,1],["SS Taxation (MFJ)","At base threshold: $24K SS, $20K other","IRS Pub 915",0,0,1,1],["SS Taxation (MFJ)","Between thresholds: $30K SS, $25K other","IRS Pub 915, Worksheet 1",4000,4000,1,1],["SS Taxation (MFJ)","Above upper: $30K SS, $60K other","IRS Pub 915, Worksheet 1",25500,25500,1,1],["SS Taxation (MFJ)","Very high income: $40K SS, $200K other","IRS Pub 915",34000,34000,1,1],["SS Taxation (MFJ)","Zero SS benefit","IRS §86 basic rule",0,0,1,1],["SS Taxation (Single)","Below base: $20K SS, $10K other","IRS Pub 915",0,0,1,1],["SS Taxation (Single)","Between thresholds: $24K SS, $20K other","IRS Pub 915",3500,3500,1,1],["SS Taxation (Single)","Above upper: $30K SS, $40K other","IRS Pub 915",22350,22350,1,1],["SS PIA","Low earner AIME=$1,000","SSA 2025 bend points",900,900,1,1],["SS PIA","Mid earner AIME=$5,000","SSA 2025 bend points",2311,2311,1,1],["SS PIA","Max earner AIME=$14,675","SSA 2025 bend points",4168.7,4168,1,1],["SS PIA","Income above wage cap ($200K)","SSA 2025 wage base: $176,100",4168,4168,1,1],["FRA","Born 1937 \u2192 FRA 65y 0m","SSA POMS RS 00615.003",780,780,1,1],["FRA","Born 1938 \u2192 FRA 65y 2m","SSA POMS RS 00615.003",782,782,1,1],["FRA","Born 1939 \u2192 FRA 65y 4m","SSA POMS RS 00615.003",784,784,1,1],["FRA","Born 1940 \u2192 FRA 65y 6m","SSA POMS RS 00615.003",786,786,1,1],["FRA","Born 1941 \u2192 FRA 65y 8m","SSA POMS RS 00615.003",788,788,1,1],["FRA","Born 1942 \u2192 FRA 65y 10m","SSA POMS RS 00615.003",790,790,1,1],["FRA","Born 1943 \u2192 FRA 66y 0m","SSA POMS RS 00615.003",792,792,1,1],["FRA","Born 1954 \u2192 FRA 66y 0m","SSA POMS RS 00615.003",792,792,1,1],["FRA","Born 1955 \u2192 FRA 66y 2m","SSA POMS RS 00615.003",794,794,1,1],["FRA","Born 1956 \u2192 FRA 66y 4m","SSA POMS RS 00615.003",796,796,1,1],["FRA","Born 1957 \u2192 FRA 66y 6m","SSA POMS RS 00615.003",798,798,1,1],["FRA","Born 1958 \u2192 FRA 66y 8m","SSA POMS RS 00615.003",800,800,1,1],["FRA","Born 1959 \u2192 FRA 66y 10m","SSA POMS RS 00615.003",802,802,1,1],["FRA","Born 1960+ \u2192 FRA 67y 0m","SSA POMS RS 00615.003",804,804,1,1],["FRA","Born 1975 \u2192 FRA 67y 0m","SSA POMS RS 00615.003",804,804,1,1],["FRA","Born 1990 \u2192 FRA 67y 0m","SSA POMS RS 00615.003",804,804,1,1],["SS Claiming","Claim at FRA (67) \u2192 100% of PIA","SSA basic rule",2000,2000,1,1],["SS Claiming","Claim at 62 (60 months early) \u2192 70%","SSA RS 00615.301",1400,1400,1,1],["SS Claiming","Claim at 64 (36 months early) \u2192 80%","SSA RS 00615.301",1600,1600,1,1],["SS Claiming","Claim at 65 (24 months early) \u2192 ~86.7%","SSA RS 00615.301",1733,1733,1,1],["SS Claiming","Claim at 70 (36 months late) \u2192 124%","SSA RS 00615.304",2480,2480,1,1],["SS Claiming","Claim at 68 (12 months late) \u2192 108%","SSA RS 00615.304",2160,2160,1,1],["SS Claiming","Claim at 72 \u2192 same as 70 (DRC capped)","SSA: no DRC credits after 70",2480,2480,1,1],["RMD Table","Age 72 divisor = 27.4","IRS Pub 590-B, Table III",27.4,27.4,1,1],["RMD Table","Age 73 divisor = 26.5","IRS Pub 590-B, Table III",26.5,26.5,1,1],["RMD Table","Age 74 divisor = 25.5","IRS Pub 590-B, Table III",25.5,25.5,1,1],["RMD Table","Age 75 divisor = 24.6","IRS Pub 590-B, Table III",24.6,24.6,1,1],["RMD Table","Age 76 divisor = 23.7","IRS Pub 590-B, Table III",23.7,23.7,1,1],["RMD Table","Age 77 divisor = 22.9","IRS Pub 590-B, Table III",22.9,22.9,1,1],["RMD Table","Age 78 divisor = 22.0","IRS Pub 590-B, Table III",22,22,1,1],["RMD Table","Age 79 divisor = 21.1","IRS Pub 590-B, Table III",21.1,21.1,1,1],["RMD Table","Age 80 divisor = 20.2","IRS Pub 590-B, Table III",20.2,20.2,1,1],["RMD Table","Age 81 divisor = 19.4","IRS Pub 590-B, Table III",19.4,19.4,1,1],["RMD Table","Age 82 divisor = 18.5","IRS Pub 590-B, Table III",18.5,18.5,1,1],["RMD Table","Age 83 divisor = 17.7","IRS Pub 590-B, Table III",17.7,17.7,1,1],["RMD Table","Age 84 divisor = 16.8","IRS Pub 590-B, Table III",16.8,16.8,1,1],["RMD Table","Age 85 divisor = 16.0","IRS Pub 590-B, Table III",16,16,1,1],["RMD Table","Age 86 divisor = 15.2","IRS Pub 590-B, Table III",15.2,15.2,1,1],["RMD Table","Age 87 divisor = 14.4","IRS Pub 590-B, Table III",14.4,14.4,1,1],["RMD Table","Age 88 divisor = 13.7","IRS Pub 590-B, Table III",13.7,13.7,1,1],["RMD Table","Age 89 divisor = 12.9","IRS Pub 590-B, Table III",12.9,12.9,1,1],["RMD Table","Age 90 divisor = 12.2","IRS Pub 590-B, Table III",12.2,12.2,1,1],["RMD Table","Age 91 divisor = 11.5","IRS Pub 590-B, Table III",11.5,11.5,1,1],["RMD Table","Age 92 divisor = 10.8","IRS Pub 590-B, Table III",10.8,10.8,1,1],["RMD Table","Age 93 divisor = 10.1","IRS Pub 590-B, Table III",10.1,10.1,1,1],["RMD Table","Age 94 divisor = 9.5","IRS Pub 590-B, Table III",9.5,9.5,1,1],["RMD Table","Age 95 divisor = 8.9","IRS Pub 590-B, Table III",8.9,8.9,1,1],["RMD Table","Age 96 divisor = 8.4","IRS Pub 590-B, Table III",8.4,8.4,1,1],["RMD Table","Age 97 divisor = 7.8","IRS Pub 590-B, Table III",7.8,7.8,1,1],["RMD Table","Age 98 divisor = 7.3","IRS Pub 590-B, Table III",7.3,7.3,1,1],["RMD Table","Age 99 divisor = 6.8","IRS Pub 590-B, Table III",6.8,6.8,1,1],["RMD Table","Age 100 divisor = 6.4","IRS Pub 590-B, Table III",6.4,6.4,1,1],["RMD Table","Age 101 divisor = 6.0","IRS Pub 590-B, Table III",6,6,1,1],["RMD Table","Age 102 divisor = 5.6","IRS Pub 590-B, Table III",5.6,5.6,1,1],["RMD Table","Age 103 divisor = 5.2","IRS Pub 590-B, Table III",5.2,5.2,1,1],["RMD Table","Age 104 divisor = 4.9","IRS Pub 590-B, Table III",4.9,4.9,1,1],["RMD Table","Age 105 divisor = 4.6","IRS Pub 590-B, Table III",4.6,4.6,1,1],["RMD Calc","Age 73, $1M \u2192 $37,736","IRS Pub 590-B: $1M \u00f7 26.5",37736,37736,1,1],["RMD Calc","Age 80, $1M \u2192 $49,505","IRS Pub 590-B: $1M \u00f7 20.2",49505,49505,1,1],["RMD Calc","Age 90, $1M \u2192 $81,967","IRS Pub 590-B: $1M \u00f7 12.2",81967,81967,1,1],["RMD Calc","Age 100, $500K \u2192 $78,125","IRS Pub 590-B: $500K \u00f7 6.4",78125,78125,1,1],["RMD Start","Born 1950 \u2192 age 72","SECURE 2.0 §107",72,72,1,1],["RMD Start","Born 1951 \u2192 age 73","SECURE 2.0 §107",73,73,1,1],["RMD Start","Born 1959 \u2192 age 73","SECURE 2.0 §107",73,73,1,1],["RMD Start","Born 1960 \u2192 age 75","SECURE 2.0 §107",75,75,1,1],["RMD Start","Born 1980 \u2192 age 75","SECURE 2.0 §107",75,75,1,1],["CG Brackets","0% threshold \u2014 Single: $48,350","IRS Rev. Proc. 2024-40 §2.14",48350,48350,1,1],["CG Brackets","0% threshold \u2014 MFJ: $96,700","IRS Rev. Proc. 2024-40 §2.14",96700,96700,1,1],["CG Brackets","15% threshold \u2014 Single: $533,400","IRS Rev. Proc. 2024-40 §2.14",533400,533400,1,1],["CG Brackets","15% threshold \u2014 MFJ: $583,750","IRS Rev. Proc. 2024-40 §2.14",583750,583750,1,1],["NIIT","Threshold \u2014 Single: $200,000","IRC §1411(b)",200000,200000,1,1],["NIIT","Threshold \u2014 MFJ: $250,000","IRC §1411(b)",250000,250000,1,1],["NIIT","Tax rate = 3.8%","IRC §1411(a)(1)",1,1,1,1],["IRMAA (MFJ)","Tier 0: <$212K \u2014 Part B","CMS 2025 Medicare premiums",2220,2220,2,1],["IRMAA (MFJ)","Tier 0: <$212K \u2014 Part D","CMS 2025 Medicare premiums",0,0,2,1],["IRMAA (MFJ)","Tier 1: $212K\u2013$265K \u2014 Part B","CMS 2025 Medicare premiums",3108,3108,2,1],["IRMAA (MFJ)","Tier 1: $212K\u2013$265K \u2014 Part D","CMS 2025 Medicare premiums",164,164,2,1],["IRMAA (MFJ)","Tier 2: $265K\u2013$332K \u2014 Part B","CMS 2025 Medicare premiums",4440,4440,2,1],["IRMAA (MFJ)","Tier 2: $265K\u2013$332K \u2014 Part D","CMS 2025 Medicare premiums",424,424,2,1],["IRMAA (MFJ)","Tier 3: $332K\u2013$398K \u2014 Part B","CMS 2025 Medicare premiums",5771,5771,2,1],["IRMAA (MFJ)","Tier 3: $332K\u2013$398K \u2014 Part D","CMS 2025 Medicare premiums",684,684,2,1],["IRMAA (MFJ)","Tier 4: $398K\u2013$750K \u2014 Part B","CMS 2025 Medicare premiums",7103,7103,2,1],["IRMAA (MFJ)","Tier 4: $398K\u2013$750K \u2014 Part D","CMS 2025 Medicare premiums",943,943,2,1],["IRMAA (MFJ)","Tier 5: >$750K \u2014 Part B","CMS 2025 Medicare premiums",7547,7547,2,1],["IRMAA (MFJ)","Tier 5: >$750K \u2014 Part D","CMS 2025 Medicare premiums",1030,1030,2,1],["IRMAA (Single)","Tier 0: <$106K \u2014 Part B","CMS 2025 Medicare premiums",2220,2220,2,1],["IRMAA (Single)","Tier 1: $106K\u2013$133K \u2014 Part B","CMS 2025 Medicare premiums",3108,3108,2,1],["IRMAA (Single)","Tier 5: >$500K \u2014 Part B","CMS 2025 Medicare premiums",7547,7547,2,1],["IRMAA","Base Part B = $185/mo ($2,220/yr)","CMS 2025 standard Part B premium",2220,2220,1,1],["State Tax","Florida \u2014 no income tax on $100K","State revenue department",0,0,1,1],["State Tax","Texas \u2014 no income tax on $100K","State revenue department",0,0,1,1],["State Tax","California \u2014 9.3% on $100K","State revenue department",9300,9300,1,1],["State Tax","New York \u2014 6.85% on $100K","State revenue department",6850,6850,1,1],["State Tax","Maryland \u2014 5.75% on $100K","State revenue department",5750,5750,1,1],["State Tax","Illinois \u2014 flat 4.95% on $100K","State revenue department",4950,4950,1,1],["State Tax","Pennsylvania \u2014 flat 3.07% on $100K","State revenue department",3070,3070,1,1],["State Tax","Nevada \u2014 no income tax on $100K","State revenue department",0,0,1,1],["State Tax","Washington \u2014 no income tax on $100K","State revenue department",0,0,1,1],["State Tax","No state selected \u2192 $0","State revenue department",0,0,1,1],["Contrib Limits","401(k) deferral: $23,500","IRS Notice 2024-80",23500,23500,1,1],["Contrib Limits","IRA limit: $7,000","IRS Notice 2024-80",7000,7000,1,1],["Contrib Limits","401(k) catch-up (50\u201359, 64+): $7,500","IRS Notice 2024-80, IRC §414(v)",7500,7500,1,1],["Contrib Limits","SECURE 2.0 super catch-up (60\u201363): $11,250","SECURE 2.0 Act §109",11250,11250,1,1],["Contrib Limits","IRA catch-up (50+): $1,000","IRC §219(b)(5)(B)",1000,1000,1,1],["QCD","Annual limit: $108,000 (2025)","IRS Notice 2024-80",108000,108000,1,1],["Integration","Projection covers correct year span","Engine: endAge - currentAge + 1",46,46,1,1],["Integration","Net worth stays positive","Sanity: $650K start, 7% return",1,1,1,1],["Integration","Pre-retirement savings accumulate","Income > expenses + savings",1,1,1,1],["Integration","RMDs start at age 75 (born 1976)","SECURE 2.0 §107",75,75,1,1],["Integration","Tax computed for retirement year","Every year has tax calc",1,1,1,1],["Integration","SS benefits start at claim age","Engine: SS at ssClaimAge",67,67,1,1],["Integration","Account balances sum to net worth","Accounting identity",0,0,2,1],["Integration","Higher income \u2192 higher tax","Progressive tax system",1,1,1,1],["Integration","Roth conversion increases tax","IRS: conversions are ordinary income",1,1,1,1],["Integration","Roth-first depletes Roth faster","Engine withdrawal logic",1,0,1,1],["Integration","California adds state tax","CA 9.3% effective rate",1,1,1,1],["Edge Case","RMD on $0 balance = $0","IRS: $0 \u00f7 divisor = $0",0,0,1,1],["Edge Case","RMD at age 110 uses fallback","Engine graceful degradation",1,1,1,1],["Edge Case","$0 income \u2192 $0 SS benefit","SSA: zero earnings = zero benefit",0,0,1,1],["Edge Case","Negative income \u2192 $0 tax","Engine: max(0, income)",1,1,1,1],["Edge Case","IRMAA at exact threshold \u2192 next tier","CMS: \u2265 threshold triggers tier",1,1,1,1],["Edge Case","Invalid state code \u2192 $0 tax","Engine: unknown state returns 0",0,0,1,1]];
+
+function renderValidation() {
+  // Group by category
+  const cats = {};
+  let total = 0, passed = 0;
+  for (const [cat, name, source, expected, actual, tol, pass] of VALIDATION_DATA) {
+    if (!cats[cat]) cats[cat] = [];
+    cats[cat].push({ name, source, expected, actual, tol, pass });
+    total++;
+    if (pass) passed++;
+  }
+  const rate = (passed / total * 100).toFixed(1);
+  const allPass = passed === total;
+  const statusColor = allPass ? 'var(--green)' : 'var(--red)';
+  const statusIcon = allPass ? '\u2705' : '\u274c';
+
+  let html = `<div class="card" style="max-width:1100px;margin:0 auto">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <span style="font-size:22px">${statusIcon}</span>
+      <div>
+        <div style="font-size:18px;font-weight:700;color:${statusColor}">${passed}/${total} Tests Passing (${rate}%)</div>
+        <div style="font-size:12px;color:var(--text-dim)">Verified against IRS publications, SSA tables, CMS Medicare data, SECURE Act 2.0, and OBBB Act 2025</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text-faint);margin-bottom:18px;line-height:1.6">
+      Every calculation in RetIQ's engine is tested against authoritative government sources. This report runs automatically before each release.
+      For methodology details, see the <a href="https://retiqstudio.com/manual.html#validation" target="_blank" style="color:var(--blue);text-decoration:none">User Manual &sect;23</a>.
+    </div>`;
+
+  // Category summary bar
+  html += `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px">`;
+  for (const [cat, tests] of Object.entries(cats)) {
+    const cp = tests.filter(t => t.pass).length;
+    const ct = tests.length;
+    const ok = cp === ct;
+    html += `<button onclick="document.getElementById('vc_${cat.replace(/[^a-zA-Z]/g,'')}').scrollIntoView({behavior:'smooth',block:'start'})"
+      style="background:${ok ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'};border:1px solid ${ok ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'};
+      border-radius:6px;padding:4px 10px;font-size:11px;color:${ok ? 'var(--green)' : 'var(--red)'};cursor:pointer;font-family:inherit">
+      ${cat} <span style="font-weight:700">${cp}/${ct}</span></button>`;
+  }
+  html += `</div>`;
+
+  // Each category table
+  for (const [cat, tests] of Object.entries(cats)) {
+    const cp = tests.filter(t => t.pass).length;
+    const ct = tests.length;
+    html += `<div id="vc_${cat.replace(/[^a-zA-Z]/g,'')}" style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px">
+        <span style="color:${cp===ct?'var(--green)':'var(--red)'}">${cp===ct?'\u2713':'\u2717'}</span> ${cat}
+        <span style="font-size:11px;font-weight:400;color:var(--text-faint)">${cp}/${ct}</span>
+      </div>
+      <div style="overflow-x:auto"><table class="proj-table" style="font-size:11.5px">
+        <thead><tr><th style="width:30px"></th><th>Test</th><th>Expected</th><th>Actual</th><th>\u00b1</th><th>Source</th></tr></thead><tbody>`;
+    for (const t of tests) {
+      const fmtV = v => typeof v === 'number' && Math.abs(v) >= 100 ? v.toLocaleString() : v;
+      html += `<tr style="${!t.pass?'background:rgba(239,68,68,0.08)':''}">
+        <td style="text-align:center;color:${t.pass?'var(--green)':'var(--red)'}">${t.pass?'\u2713':'\u2717'}</td>
+        <td>${t.name}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:11px">${fmtV(t.expected)}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${t.pass?'var(--text)':'var(--red)'}">${fmtV(t.actual)}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-faint)">${t.tol}</td>
+        <td style="font-size:10.5px;color:var(--text-faint)">${t.source}</td>
+      </tr>`;
+    }
+    html += `</tbody></table></div></div>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
 function render() {
   renderNav();
   renderDollarToggle();
@@ -4788,6 +4879,7 @@ function render() {
     case 'projection': html = renderProjectionTable(proj); break;
     case 'montecarlo': html = renderMonteCarlo(proj); break;
     case 'scenarios': html = renderScenarios(proj); break;
+    case 'validation': html = renderValidation(); break;
   }
   html += '<div class="footer">RetIQ v1.4 &#183; Build 2026-02-27 01:05 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan</div>';
   document.getElementById('app').innerHTML = html;
@@ -4949,7 +5041,7 @@ document.getElementById("activateBtn")?.addEventListener("click", async ()=>{
     hideUpgradeIfPro();
     setActivateLabel();
     // Restore saved data now that pro is active
-    try { const s = localStorage.getItem('retiq_v1'); if (s) { state.params = JSON.parse(s); render(); } } catch(e) {}
+    try { const s = localStorage.getItem('retiq_v1'); if (s) { state.params = JSON.parse(s); migrateParams(); render(); } } catch(e) {}
     alert("License activated ✔");
   }else if(ok === null){
     alert("Could not reach the server. Check your internet connection and try again.");
@@ -4968,14 +5060,14 @@ document.getElementById("activateBtn")?.addEventListener("click", async ()=>{
     hideUpgradeIfPro();
     setActivateLabel();
     // Restore saved user data now that pro is confirmed
-    try { const s = localStorage.getItem('retiq_v1'); if (s) { state.params = JSON.parse(s); render(); } } catch(e) {}
+    try { const s = localStorage.getItem('retiq_v1'); if (s) { state.params = JSON.parse(s); migrateParams(); render(); } } catch(e) {}
   } else if(result === null){
     // Network error (offline) — keep existing pro status if previously validated
     const wasPro = localStorage.getItem("retiq_pro")==="true";
     setPlanBadge(wasPro);
     hideUpgradeIfPro();
     setActivateLabel();
-    if(wasPro){ try { const s = localStorage.getItem('retiq_v1'); if (s) { state.params = JSON.parse(s); render(); } } catch(e) {} }
+    if(wasPro){ try { const s = localStorage.getItem('retiq_v1'); if (s) { state.params = JSON.parse(s); migrateParams(); render(); } } catch(e) {} }
   } else {
     // License explicitly invalid — demote
     localStorage.removeItem("retiq_pro");

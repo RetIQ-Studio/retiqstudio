@@ -85,6 +85,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <li><a href="#scenarios">Scenario Comparison</a></li>
       <li><a href="#saveload">Save &amp; Load</a></li>
       <li><a href="#install">Install &amp; Licensing</a></li>
+      <li><a href="#validation">Validation Report</a></li>
       <li><a href="#faq">FAQ</a></li>
     </ol>
   </div>
@@ -98,7 +99,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <li>Go to the <strong>Personal</strong> tab and enter your current age, retirement age, and birth year.</li>
       <li>Switch to <strong>Income</strong> and enter your current gross income and annual savings.</li>
       <li>In <strong>Expenses</strong>, enter your estimated annual spending.</li>
-      <li>Under <strong>Accounts</strong>, add your investment accounts with current balances and types (Pre-Tax, Roth, Taxable).</li>
+      <li>Under <strong>Accounts</strong>, add your investment accounts with current balances and types (Pre-Tax, Roth, Cash/HYS, or Brokerage).</li>
       <li>Click <strong>Dashboard</strong> in the top navigation to see your projection immediately.</li>
     </ol>
     <div class="tip"><strong>Tip:</strong> RetIQ auto-saves to your browser's local storage. Your data persists between sessions automatically. Use Save/Load for backup or to transfer between devices.</div>
@@ -158,7 +159,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <h2>5. Expenses Tab</h2>
     <p>RetIQ models expenses in two distinct phases: working years and retirement.</p>
 
-    <p><strong>Pre-Retirement Expenses:</strong> Your annual living costs during working years &mdash; housing, food, transportation, childcare, insurance, and discretionary spending. These are deducted from your after-tax income alongside savings contributions and taxes. If your income can't cover expenses + savings + taxes, the shortfall is drawn from taxable accounts. A real-time cash flow breakdown shows your surplus or shortfall.</p>
+    <p><strong>Pre-Retirement Expenses:</strong> Your annual living costs during working years &mdash; housing, food, transportation, childcare, insurance, and discretionary spending. These are deducted from your after-tax income alongside savings contributions and taxes. If your income can't cover expenses + savings + taxes, the shortfall is drawn from cash and brokerage accounts. A real-time cash flow breakdown shows your surplus or shortfall.</p>
 
     <p><strong>Pre-Retirement Expense Inflation:</strong> A separate inflation rate for your working-years costs (default 3%). This lets you model faster or slower cost growth independently of the general inflation rate used elsewhere.</p>
 
@@ -177,11 +178,12 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Add each investment account with:</p>
     <ul>
       <li><strong>Name:</strong> Label for identification (e.g., "Vanguard 401k", "Fidelity Roth").</li>
-      <li><strong>Type:</strong> Pre-Tax (traditional 401k/IRA), Roth (Roth 401k/IRA), or Taxable (brokerage).</li>
+      <li><strong>Type:</strong> Pre-Tax (traditional 401k/IRA), Roth (Roth 401k/IRA), Cash/HYS (savings, checking, CDs), or Brokerage (taxable investment accounts).</li>
       <li><strong>Balance:</strong> Current balance.</li>
     </ul>
-    <p>RetIQ enforces annual contribution limits: $23,500 for 401k (2025), plus $7,500 catch-up at 50+, plus the enhanced $11,250 catch-up for ages 60-63. Savings are allocated to accounts in order: pre-tax up to limit, then Roth up to limit, then overflow to taxable.</p>
-    <p>In retirement, RMDs are taken first (required by law), then remaining expenses are covered from your accounts in a configurable order. The default sequence &mdash; taxable, then pre-tax, then Roth last &mdash; is the conventional tax-efficient ordering. You can change this sequence in the Assumptions tab to model alternative strategies.</p>
+    <p>Cash/HYS and Brokerage are tracked as separate buckets with different tax treatment. Cash/HYS earns interest taxed as ordinary income, but withdrawals are tax-free (principal return). Brokerage withdrawals trigger capital gains at 50% estimated cost basis.</p>
+    <p>RetIQ enforces annual contribution limits: $23,500 for 401k (2025), plus $7,500 catch-up at 50+, plus the enhanced $11,250 catch-up for ages 60-63. Savings are allocated to accounts in order: pre-tax up to limit, then Roth up to limit, then overflow to brokerage.</p>
+    <p>In retirement, withdrawals follow a configurable 4-bucket order (default: Cash/HYS &rarr; Brokerage &rarr; Pre-Tax &rarr; Roth). Reorder in the Assumptions tab using the arrow buttons. RMDs are always taken from pre-tax regardless of withdrawal order.</p>
   </div>
 
   <!-- 7 -->
@@ -362,9 +364,21 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <tr><td>Inflation</td><td>Expected average annual inflation rate</td><td>2-3%</td></tr>
       <tr><td>SS COLA</td><td>Annual Social Security cost-of-living adjustment</td><td>2%</td></tr>
     </table>
-    <h3>Retirement Withdrawal Order</h3>
-    <p>After required minimum distributions (RMDs) are taken from pre-tax accounts, remaining expenses are covered from your accounts in the order you choose. Use the arrow buttons to reorder. The default &mdash; taxable first, pre-tax second, Roth last &mdash; is the conventional wisdom that defers tax-free growth as long as possible. Alternative orderings let you model strategies like spending Roth early to preserve pre-tax for heirs, or drawing down pre-tax aggressively to reduce future RMDs beyond what Roth conversions accomplish.</p>
     <p>The real (after-inflation) return is computed as: (1 + nominal) / (1 + inflation) - 1. For example, 7% nominal with 3% inflation gives approximately 3.9% real return.</p>
+
+    <h3>Contribution Limits</h3>
+    <p>Toggle contribution limit enforcement on or off. When enabled, annual savings respect 401(k) and IRA limits with age 50+ catch-up and SECURE 2.0 age 60&ndash;63 super catch-up. Overflow goes to brokerage accounts.</p>
+
+    <h3>Retirement Withdrawal Order</h3>
+    <p>Set the priority for which accounts fund retirement spending. The default order is Cash/HYS &rarr; Brokerage &rarr; Pre-Tax &rarr; Roth. Use the arrow buttons to reorder. Each bucket has different tax treatment:</p>
+    <ul>
+      <li><strong>Cash / HYS:</strong> Zero capital gains &mdash; pure principal return. Interest is taxed annually as ordinary income regardless of withdrawals.</li>
+      <li><strong>Brokerage:</strong> Gains taxed at capital gains rate (estimated 50% cost basis).</li>
+      <li><strong>Pre-Tax (401k/IRA):</strong> Fully taxable as ordinary income.</li>
+      <li><strong>Roth:</strong> Tax-free withdrawals.</li>
+    </ul>
+    <p>RMDs are always taken from pre-tax accounts regardless of this order. The withdrawal order only affects discretionary spending above RMDs.</p>
+    <div class="tip"><strong>Tip:</strong> Drawing Cash/HYS first preserves tax-advantaged growth in Roth and pre-tax accounts. Experiment with different orders to see the tax impact in the Projection table.</div>
   </div>
 
   <!-- 17 -->
@@ -375,7 +389,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <li><strong>Key metrics:</strong> Final net worth, peak net worth, retire age, years funded, RMD start age, IRMAA surcharges, and legacy goal tracking.</li>
       <li><strong>Plan Health verdict:</strong> An at-a-glance assessment of your plan (Strong / Caution / Needs Attention) based on whether your portfolio lasts, your margin, and overall risk factors.</li>
       <li><strong>Highest-impact levers:</strong> Auto-detected action items ranked by dollar impact &mdash; Roth conversion opportunities, SS timing, IRMAA surcharges, pre-tax concentration, expense sensitivity, and healthcare gap costs. Each lever card shows the dollar amount at stake, a brief explanation, and a link to the relevant input tab.</li>
-      <li><strong>Charts:</strong> Net Worth Over Time (stacked by account type), Income vs. Expenses, Taxes &amp; RMDs, and Retirement Cash Flows (SS &amp; SSDI, withdrawals, Medicare).</li>
+      <li><strong>Charts:</strong> Net Worth Over Time (stacked by account type: Pre-Tax, Roth, Cash/HYS, and Brokerage), Income vs. Expenses, Taxes &amp; RMDs, and Retirement Cash Flows (SS &amp; SSDI, withdrawals, Medicare).</li>
     </ul>
 
     <h3>Strategy Report Card</h3>
@@ -417,7 +431,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
   <div class="sec" id="projection">
     <h2>18. Projection Table</h2>
     <p>The year-by-year projection table is the core output. Each row is one year of your plan. Columns include:</p>
-    <p>Age, Year, Earned Income, Social Security, Pension, Expenses, Tax, RMD, Roth Conversion, Pre-Tax Balance, Roth Balance, Taxable Balance, Net Worth, Medicare, IRMAA, QCD, and more depending on what features are enabled.</p>
+    <p>Age, Year, Earned Income, Social Security, SSDI, Pension, Expenses, Federal Tax, State Tax, Withdrawals, RMD, QCD, Charity, Roth Conversion, IRMAA, Medicare, Pre-Tax Balance, Roth Balance, Cash/HYS Balance, Brokerage Balance, and Net Worth. Columns with all-zero values are hidden automatically.</p>
     <p>The header row is sticky so column labels remain visible while scrolling. A totals row at the bottom sums lifetime values. The table scrolls both horizontally and vertically.</p>
     <p>Use the <strong>Today's $ / Future $</strong> toggle in the header to view values in inflation-adjusted or nominal terms.</p>
     <div class="tip"><strong>Tip:</strong> Use the CSV Export button (in the Projection view) to download the table for analysis in Excel or Google Sheets.</div>
@@ -477,8 +491,24 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
   </div>
 
   <!-- 23 -->
+  <div class="sec" id="validation">
+    <h2>23. Validation Report</h2>
+    <p>RetIQ includes a built-in Validation tab that runs 159 automated tests against every calculation in the engine. Each test compares the engine's output to values derived from authoritative sources:</p>
+    <ul>
+      <li><strong>IRS:</strong> Rev. Proc. 2024-40 (2025 tax brackets, standard deduction, capital gains thresholds), Pub 590-B (RMD Uniform Lifetime Table), Pub 915 (SS taxation worksheets), Notice 2024-80 (QCD limits, contribution limits), IRC &sect;1411 (NIIT).</li>
+      <li><strong>SSA:</strong> 2025 bend points and wage base, FRA schedules (POMS RS 00615.003), early reduction rates (RS 00615.301), delayed retirement credits (RS 00615.304).</li>
+      <li><strong>CMS:</strong> 2025 Medicare Part B/D premiums, IRMAA brackets and surcharges.</li>
+      <li><strong>SECURE Act 2.0:</strong> RMD start ages (&sect;107), super catch-up contributions (&sect;109).</li>
+      <li><strong>OBBB Act 2025:</strong> Senior standard deduction (&sect;102), updated bracket structure (P.L. 119-21).</li>
+    </ul>
+    <p>Tests cover 21 categories: federal tax (MFJ and single), standard deduction, SS taxation, SS PIA and FRA, SS claiming adjustments, RMD table and calculations, capital gains brackets, NIIT, IRMAA (MFJ and single), state tax, contribution limits, QCD, integration tests, and edge cases.</p>
+    <p>The full report &mdash; with every test name, expected value, actual value, tolerance, source citation, and pass/fail status &mdash; is viewable inside the app under the <strong>Validation</strong> tab in the main navigation.</p>
+    <div class="tip"><strong>Why this matters:</strong> Retirement planning communities like Bogleheads will quickly identify and publicize any calculation error. The validation suite ensures every number matches its authoritative source before each release. If you find a discrepancy, please report it.</div>
+  </div>
+
+  <!-- 24 -->
   <div class="sec" id="faq">
-    <h2>23. FAQ</h2>
+    <h2>24. FAQ</h2>
 
     <h3>Is my data secure?</h3>
     <p>Yes. RetIQ runs entirely in your browser. No financial data is ever sent to any server. The only network calls are for license verification (your email and key only) and optional PWA updates.</p>
@@ -501,6 +531,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <h3>Can I use RetIQ on my phone?</h3>
     <p>Yes. RetIQ is fully responsive. Install it as a PWA on iOS or Android for the best mobile experience.</p>
 
+    <h3>What is the difference between Cash/HYS and Brokerage?</h3>
+    <p>Cash/HYS accounts (high-yield savings, CDs, checking) earn interest taxed as ordinary income each year, but withdrawals are tax-free because you are withdrawing principal. Brokerage accounts hold investments whose withdrawals trigger capital gains taxes on the appreciated portion (modeled at 50% cost basis). RetIQ tracks them as separate buckets with independent return rates, withdrawal priorities, and tax treatment.</p>
+
     <h3>How do I reset all my data?</h3>
     <p>Clear your browser's local storage for retiqstudio.com, or use your browser's developer tools (Application &gt; Local Storage &gt; Clear). A fresh reload will start with default values.</p>
 
@@ -509,6 +542,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
     <h3>How do I find the best strategy for my situation?</h3>
     <p>Use the <strong>Strategy Report Card</strong> on the Dashboard. It automatically tests alternative SS timing, Roth conversion, and retirement age strategies against your current plan. Choose your goal (max net worth, min taxes, etc.) and the table ranks every alternative. Click Apply on any row to adopt it instantly. For deeper Roth analysis, use the <a href="#rothconv">Roth Optimizer</a>. For stress-testing, use <a href="#scenarios">Scenario Comparison</a> and <a href="#montecarlo">Monte Carlo</a>.</p>
+
+    <h3>How can I verify the calculations are correct?</h3>
+    <p>Open the <strong>Validation</strong> tab in the app's main navigation. It displays 159 automated tests grouped by category, each showing the expected value (from IRS/SSA/CMS sources), the engine's actual result, and a pass/fail status. See the <a href="#validation">Validation Report</a> section for details on sources and methodology.</p>
 
     <h3>What happens to my spouse's benefits if I'm on SSDI and die?</h3>
     <p>Your SSDI payments stop, but your surviving spouse can claim a survivor benefit based on your Social Security work record. RetIQ calculates this from your PIA (or your SSDI amount if no separate SS income was entered). The survivor receives the higher of their own SS benefit or the survivor benefit &mdash; not both.</p>
