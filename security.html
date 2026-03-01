@@ -172,12 +172,12 @@
   <div class="principle">
     <div class="ic">&#128272;</div>
     <h4>Browser-Enforced Lockdown</h4>
-    <p>A strict <code>Content-Security-Policy</code> header tells your browser exactly which domains RetIQ is allowed to contact. If the app tried to send data anywhere unauthorized, your browser would block it — even if the app's code were compromised.</p>
+    <p>A strict <code>Content-Security-Policy</code> header tells your browser exactly which domains RetIQ is allowed to contact. Even if the code were somehow modified, your browser would block any unauthorized connections. This is a browser-enforced guarantee, not a promise.</p>
   </div>
   <div class="principle">
-    <div class="ic">&#128737;</div>
-    <h4>Browser-Enforced Boundaries</h4>
-    <p>A strict Content Security Policy (CSP) tells your browser exactly which domains RetIQ is allowed to contact. Even if the code were somehow modified, your browser would block any unauthorized connections. This is a hardware-level guarantee, not a promise.</p>
+    <div class="ic">&#128214;</div>
+    <h4>Source-Available Code</h4>
+    <p>RetIQ's complete source code is published on <a href="https://github.com/RetIQ-Studio/retiqstudio" target="_blank" style="color:var(--accent2)">GitHub</a> under the <strong>Business Source License 1.1</strong>. You can read every line, verify every calculation, and audit every network call. Transparency isn't a feature — it's the foundation.</p>
   </div>
 </div>
 
@@ -361,7 +361,7 @@
 </div>
 
 <div class="callout verify">
-  <strong>For advanced users:</strong> RetIQ is a single HTML file. You can right-click and <strong>View Page Source</strong> to read the entire application. Every calculation, every network call, every localStorage write is visible in the source code. There is no minified or obfuscated code hiding additional behavior.
+  <strong>For advanced users:</strong> RetIQ is a single HTML file with embedded JavaScript. The full source is published on <a href="https://github.com/RetIQ-Studio/retiqstudio" target="_blank" style="color:var(--accent2)">GitHub</a> under the Business Source License 1.1. You can also right-click and <strong>View Page Source</strong> in your browser to read the running application. Every calculation, every network call, every localStorage write is visible. There is no minified or obfuscated code hiding additional behavior.
 </div>
 
 
@@ -408,8 +408,8 @@
   </tr>
   <tr>
     <td>Source code visible</td>
-    <td class="yes">Yes — View Source</td>
-    <td class="no">No — server-side code</td>
+    <td class="yes">Yes &mdash; <a href="https://github.com/RetIQ-Studio/retiqstudio" target="_blank" style="color:inherit">GitHub</a> + View Source</td>
+    <td class="no">No &mdash; server-side code</td>
   </tr>
   <tr>
     <td>Content Security Policy</td>
@@ -460,7 +460,7 @@
 
 <div class="faq">
   <div class="faq-q">Can I inspect the code myself?</div>
-  <div class="faq-a">Yes. RetIQ is a single, unminified HTML file with no hidden or obfuscated code. Right-click anywhere in the app and select <strong>View Page Source</strong> to read every line of JavaScript that runs on your device. The Content Security Policy, @font-face declarations, and all calculation logic are right there in plain text.</div>
+  <div class="faq-a">Yes. RetIQ's full source code is published on <a href="https://github.com/RetIQ-Studio/retiqstudio" target="_blank" style="color:var(--accent2)">GitHub</a> under the <strong>Business Source License 1.1</strong> (BSL 1.1). You can read every line, verify the calculations, and audit the network behavior. BSL 1.1 is a source-available license: anyone can view, copy, and modify the code for non-production use. After four years, each version automatically converts to a GPL-compatible open-source license. You can also right-click in the app and select <strong>View Page Source</strong> to inspect the running code directly in your browser.</div>
 </div>
 
 <div class="faq">

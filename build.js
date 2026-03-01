@@ -38,10 +38,10 @@ const APP_DIR = path.join(DEPLOY, 'app');
 // App files → retiq-deploy/app/
 const APP_SUPPORT = ['offline.html', 'success.html'];
 const APP_COPY = ['service-worker.js', 'manifest.webmanifest'];
-const APP_COPY_DIRS = ['icons'];
+const APP_COPY_DIRS = ['icons', 'fonts'];
 
 // Site files → retiq-deploy/ (root)
-const SITE_FILES = ['manual.html', 'features.html', 'terms.html', 'privacy.html'];
+const SITE_FILES = ['manual.html', 'features.html', 'terms.html', 'privacy.html', 'security.html', 'validation.html'];
 const SITE_COPY = ['robots.txt'];
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -220,7 +220,8 @@ for (const dir of APP_COPY_DIRS) {
   const distDir = path.join(APP_DIR, dir);
   if (fs.existsSync(srcDir)) {
     fs.cpSync(srcDir, distDir, { recursive: true });
-    console.log(`  app/${dir}/: copied`);
+    const fileCount = fs.readdirSync(distDir).filter(f => !f.startsWith('.')).length;
+    console.log(`  app/${dir}/: ${fileCount} files copied`);
   } else {
     console.log(`  app/${dir}/: skipped (not found)`);
   }
