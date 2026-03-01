@@ -53,7 +53,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 <body>
 <div class="wrap">
   <div class="top-bar">
-    <div><a href="./app/">&#8592; Back to RetIQ App</a> &middot; <a href="./features.html">Features</a></div>
+    <div><a href="./app/">&#8592; Back to RetIQ App</a> &middot; <a href="./features.html">Features</a> &middot; <a href="./security.html">Security</a></div>
     <button class="btn" onclick="window.print()">&#11015; Download PDF</button>
   </div>
 
@@ -131,7 +131,6 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <tr><td>Plan End Age</td><td>Age at which the projection ends. Default 95. Set higher for conservative planning.</td></tr>
       <tr><td>Birth Year</td><td>Used to determine FRA for Social Security and RMD start age.</td></tr>
       <tr><td>Filing Status</td><td>Tax filing status. Married Filing Jointly (MFJ) is used for household projections. Changes to Single after a spouse passes in survivor scenarios.</td></tr>
-      <tr><td>State Tax Rate</td><td>Flat-rate approximation for state income tax. Enter 0% for states with no income tax (FL, TX, NV, etc.).</td></tr>
     </table>
     <h3>Spouse Section</h3>
     <p>Check "Include Spouse" to enable dual-household modeling. Enter the spouse's age, retirement age, birth year, and life expectancy independently. The spouse's income, savings, SS, pension, and SSDI all have their own inputs in their respective tabs.</p>
@@ -182,7 +181,10 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <li><strong>Balance:</strong> Current balance.</li>
     </ul>
     <p>Cash/HYS and Brokerage are tracked as separate buckets with different tax treatment. Cash/HYS earns interest taxed as ordinary income, but withdrawals are tax-free (principal return). Brokerage withdrawals trigger capital gains at 50% estimated cost basis.</p>
-    <p>RetIQ enforces annual contribution limits: $23,500 for 401k (2025), plus $7,500 catch-up at 50+, plus the enhanced $11,250 catch-up for ages 60-63. Savings are allocated to accounts in order: pre-tax up to limit, then Roth up to limit, then overflow to brokerage.</p>
+
+    <h3>Contribution Limits</h3>
+    <p>A checkbox at the bottom of the Accounts tab toggles contribution limit enforcement. When enabled, annual savings respect 401(k) limits ($23,500 in 2025), plus $7,500 catch-up at 50+, plus the enhanced $11,250 catch-up for ages 60&ndash;63 (SECURE Act 2.0). IRA limits ($7,000 + catch-up) also apply. Savings are allocated in order: pre-tax up to limit, then Roth up to limit, then overflow to brokerage.</p>
+
     <p>In retirement, withdrawals follow a configurable 4-bucket order (default: Cash/HYS &rarr; Brokerage &rarr; Pre-Tax &rarr; Roth). Reorder in the Assumptions tab using the arrow buttons. RMDs are always taken from pre-tax regardless of withdrawal order.</p>
   </div>
 
@@ -363,11 +365,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <tr><td>Nominal Return</td><td>Expected average annual investment return before inflation</td><td>6-8%</td></tr>
       <tr><td>Inflation</td><td>Expected average annual inflation rate</td><td>2-3%</td></tr>
       <tr><td>SS COLA</td><td>Annual Social Security cost-of-living adjustment</td><td>2%</td></tr>
+      <tr><td>State for Tax Purposes</td><td>Select your state from the dropdown. All 50 states and DC are available with flat effective rates. Choose "None" for federal-only projections.</td><td>Your state</td></tr>
     </table>
     <p>The real (after-inflation) return is computed as: (1 + nominal) / (1 + inflation) - 1. For example, 7% nominal with 3% inflation gives approximately 3.9% real return.</p>
-
-    <h3>Contribution Limits</h3>
-    <p>Toggle contribution limit enforcement on or off. When enabled, annual savings respect 401(k) and IRA limits with age 50+ catch-up and SECURE 2.0 age 60&ndash;63 super catch-up. Overflow goes to brokerage accounts.</p>
 
     <h3>Retirement Withdrawal Order</h3>
     <p>Set the priority for which accounts fund retirement spending. The default order is Cash/HYS &rarr; Brokerage &rarr; Pre-Tax &rarr; Roth. Use the arrow buttons to reorder. Each bucket has different tax treatment:</p>
@@ -485,9 +485,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <h3>Installing the PWA</h3>
     <p>Click the "Install" button in the header (when available) to add RetIQ to your home screen or desktop. The installed app works offline and launches like a native application.</p>
     <h3>Free vs. Pro</h3>
-    <p>The free demo lets you explore every feature with sample data. Pro ($29 launch price, $49 after launch) unlocks full customization, data saving, and exports. Your license is tied to your email and can be activated on multiple devices.</p>
+    <p>The free demo lets you explore every feature with sample data. Pro ($29 launch price, $49 after launch) unlocks full customization, data saving, and exports. Your license key can be activated on multiple devices.</p>
     <h3>Activating a License</h3>
-    <p>After purchase, click "Activate" in the header and enter your license key (sent to your email). The app verifies the key and unlocks Pro features. License verification requires an internet connection the first time; after that, the status is cached locally.</p>
+    <p>After purchase, Stripe sends a receipt and license key to the email you provide at checkout. Click "Activate" in the RetIQ header and enter the license key. The app verifies the key with a single API call and unlocks Pro features. License verification requires an internet connection the first time; after that, the status is cached locally. RetIQ itself never sees or stores your email &mdash; only the license key.</p>
   </div>
 
   <!-- 23 -->
@@ -503,7 +503,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     </ul>
     <p>Tests cover 21 categories: federal tax (MFJ and single), standard deduction, SS taxation, SS PIA and FRA, SS claiming adjustments, RMD table and calculations, capital gains brackets, NIIT, IRMAA (MFJ and single), state tax, contribution limits, QCD, integration tests, and edge cases.</p>
     <p>The full report &mdash; with every test name, expected value, actual value, tolerance, source citation, and pass/fail status &mdash; is viewable inside the app under the <strong>Validation</strong> tab in the main navigation.</p>
-    <div class="tip"><strong>Why this matters:</strong> Retirement planning communities like Bogleheads will quickly identify and publicize any calculation error. The validation suite ensures every number matches its authoritative source before each release. If you find a discrepancy, please report it.</div>
+    <div class="tip"><strong>Transparency:</strong> The validation suite runs automatically before each release to ensure every calculation matches its authoritative source. You can run these same tests yourself in the <strong>Validation</strong> tab or inspect the full report at <a href="https://retiqstudio.com/validation.html" style="color:var(--accent)">retiqstudio.com/validation.html</a>. If you find a discrepancy, please report it — accuracy is our highest priority.</div>
   </div>
 
   <!-- 24 -->
@@ -511,7 +511,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <h2>24. FAQ</h2>
 
     <h3>Is my data secure?</h3>
-    <p>Yes. RetIQ runs entirely in your browser. No financial data is ever sent to any server. The only network calls are for license verification (your email and key only) and optional PWA updates.</p>
+    <p>Yes. RetIQ runs entirely in your browser. No financial data is ever sent to any server. The only network calls are for license verification (license key only) and optional PWA updates. For a complete audit of every network request, storage key, and privacy measure, see the <a href="https://retiqstudio.com/security.html" style="color:var(--accent)">Privacy &amp; Security Transparency</a> page.</p>
 
     <h3>Which tax brackets does RetIQ use?</h3>
     <p>2025 Married Filing Jointly federal brackets. State tax uses a simplified effective rate based on the state you select from the dropdown in the Assumptions tab (all 50 states and DC are available). The brackets are applied to computed taxable income each year.</p>

@@ -1,5 +1,5 @@
-/* RetIQ PWA Service Worker (v1.5) */
-const CACHE_NAME = "retiq-v1-cache-2026-02-27";
+/* RetIQ PWA Service Worker (v1.6) */
+const CACHE_NAME = "retiq-v1-cache-2026-03-01";
 const ASSETS = [
   "./",
   "./index.html",
@@ -9,7 +9,14 @@ const ASSETS = [
   "./icons/icon-180.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
-  "./icons/icon-512-maskable.png"
+  "./icons/icon-512-maskable.png",
+  "./fonts/dm-sans-v17-latin-300.woff2",
+  "./fonts/dm-sans-v17-latin-regular.woff2",
+  "./fonts/dm-sans-v17-latin-500.woff2",
+  "./fonts/dm-sans-v17-latin-600.woff2",
+  "./fonts/dm-sans-v17-latin-700.woff2",
+  "./fonts/jetbrains-mono-v24-latin-regular.woff2",
+  "./fonts/jetbrains-mono-v24-latin-500.woff2"
 ];
 
 self.addEventListener("install", (event) => {

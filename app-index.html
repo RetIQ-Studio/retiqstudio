@@ -4,8 +4,35 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RetIQ — Retirement Planner</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src  'self' 'unsafe-inline';
+  style-src   'self' 'unsafe-inline';
+  font-src    'self';
+  connect-src 'self' https://retiq-worker.bortvin.workers.dev;
+  img-src     'self' data: blob:;
+  object-src  'none';
+  frame-src   'none';
+  base-uri    'self';
+  form-action 'none';
+">
 <style>
+/* Self-hosted fonts — zero external requests */
+@font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 300; font-display: swap;
+  src: url('./fonts/dm-sans-v17-latin-300.woff2') format('woff2'); }
+@font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('./fonts/dm-sans-v17-latin-regular.woff2') format('woff2'); }
+@font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 500; font-display: swap;
+  src: url('./fonts/dm-sans-v17-latin-500.woff2') format('woff2'); }
+@font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 600; font-display: swap;
+  src: url('./fonts/dm-sans-v17-latin-600.woff2') format('woff2'); }
+@font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 700; font-display: swap;
+  src: url('./fonts/dm-sans-v17-latin-700.woff2') format('woff2'); }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('./fonts/jetbrains-mono-v24-latin-regular.woff2') format('woff2'); }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 500; font-display: swap;
+  src: url('./fonts/jetbrains-mono-v24-latin-500.woff2') format('woff2'); }
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 /* -- THEME VARIABLES -- */
@@ -338,6 +365,7 @@ button:hover { opacity: 0.88; }
       <div class="header-links" style="display:flex;gap:8px;align-items:center;justify-content:center;font-size:11px">
         <a href="https://retiqstudio.com/features.html" target="_blank" style="color:var(--blue);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px" title="Feature list">Features</a>
         <a href="https://retiqstudio.com/manual.html" target="_blank" style="color:var(--blue);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px" title="User manual">Manual</a>
+        <a href="https://retiqstudio.com/security.html" target="_blank" style="color:var(--green);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px" title="Privacy &amp; security transparency">&#128737; Security</a>
         <a class="share-chip" onclick="shareRetIQ()" title="Help others retire well">Share RetIQ</a>
       </div>
     </div>
@@ -3270,6 +3298,13 @@ function renderInputs() {
       ${p.accounts.some(a => a.subtype === 'cash') ? `<div style="margin-top:8px;padding:10px 14px;background:var(--bg-base);border-radius:8px;font-size:12px;color:var(--text-dim);border-left:3px solid #06b6d4">
         <strong style="color:var(--text)">&#x1F4B0; Cash / HYS accounts</strong> are a separate withdrawal bucket from brokerage. Withdrawals are tax-free (return of principal). Interest earned (at return rate) is taxed as ordinary income each year. Reorder in the Assumptions tab.
       </div>` : ''}
+      <div style="margin-top:14px;padding:12px 14px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border)">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);margin-bottom:4px">
+          <input type="checkbox" ${p.enforceContribLimits!==false?'checked':''} onchange="setParam('enforceContribLimits',this.checked)" style="width:16px;height:16px;accent-color:var(--blue)">
+          Enforce Contribution Limits (401k: $23,500 + catch-up; IRA: $7,000 + catch-up)
+        </label>
+        <div class="field-help" style="margin-left:24px">When enabled, savings respect annual 401(k) and IRA limits with age 50+ catch-up and SECURE 2.0 age 60-63 super catch-up. Overflow goes to taxable accounts.</div>
+      </div>
     </div>`;
   }
 
@@ -4376,13 +4411,6 @@ function renderInputs() {
           <div class="field-help">${p.stateCode && p.stateCode !== 'none' ? STATE_TAXES[p.stateCode]?.name + ' -- flat rate ' + STATE_TAXES[p.stateCode]?.rate + '%' : 'Federal taxes only'}</div>
         </div>
       </div>
-      <div style="margin-top:16px">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);margin-bottom:8px">
-          <input type="checkbox" ${p.enforceContribLimits!==false?'checked':''} onchange="setParam('enforceContribLimits',this.checked)" style="width:16px;height:16px;accent-color:var(--blue)">
-          Enforce Contribution Limits (401k: $23,500 + catch-up; IRA: $7,000 + catch-up)
-        </label>
-        <div class="field-help" style="margin-left:24px">When enabled, savings respect annual 401(k) and IRA limits with age 50+ catch-up and SECURE 2.0 age 60-63 super catch-up. Overflow goes to taxable accounts.</div>
-      </div>
       <div style="margin-top:20px;padding:14px;background:var(--bg-base);border-radius:10px;border:1px solid var(--border)">
         <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Retirement Withdrawal Order</div>
         <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;line-height:1.5">Set the priority for which accounts fund retirement spending. Use arrows to reorder. The engine handles RMDs and tax implications automatically.</div>
@@ -4881,7 +4909,7 @@ function render() {
     case 'scenarios': html = renderScenarios(proj); break;
     case 'validation': html = renderValidation(); break;
   }
-  html += '<div class="footer">RetIQ v1.4 &#183; Build 2026-02-27 01:05 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan</div>';
+  html += '<div class="footer">RetIQ v1.4 &#183; Build 2026-02-27 01:05 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retiqstudio.com/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a></div>';
   document.getElementById('app').innerHTML = html;
   updateHeaderHeight();
   // Scroll active sub-nav tab into view on mobile
