@@ -345,7 +345,7 @@ button:hover { opacity: 0.88; }
 
 <div class="header" style="flex-direction:column;align-items:stretch;">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;">
-    <span class="logo-text">RetIQ</span>
+    <a href="https://retirementiq.app/" class="logo-text" style="text-decoration:none;color:inherit">RetIQ</a>
     <span class="logo-badge">v1.4</span>
     <span id="planBadge" class="plan-badge" title="Current plan">FREE</span>
     <button class="mobile-menu-btn" onclick="toggleMobileMenu()" id="mobileMenuBtn" aria-label="Menu">&#9776;</button>
@@ -363,9 +363,9 @@ button:hover { opacity: 0.88; }
         <div class="dollar-toggle" id="dollarToggle"></div>
       </div>
       <div class="header-links" style="display:flex;gap:8px;align-items:center;justify-content:center;font-size:11px">
-        <a href="https://retiqstudio.com/features.html" target="_blank" style="color:var(--blue);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px" title="Feature list">Features</a>
-        <a href="https://retiqstudio.com/manual.html" target="_blank" style="color:var(--blue);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px" title="User manual">Manual</a>
-        <a href="https://retiqstudio.com/security.html" target="_blank" style="color:var(--green);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px" title="Privacy &amp; security transparency">&#128737; Security</a>
+        <a href="https://retirementiq.app/features.html" target="_blank" style="color:var(--blue);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px" title="Feature list">Features</a>
+        <a href="https://retirementiq.app/manual.html" target="_blank" style="color:var(--blue);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px" title="User manual">Manual</a>
+        <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px" title="Privacy &amp; security transparency">&#128737; Security</a>
         <a href="https://github.com/RetIQ-Studio/retiqstudio" target="_blank" style="color:var(--text-dim);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px" title="Source code on GitHub (BSL 1.1)">&#128214; Source</a>
         <a class="share-chip" onclick="shareRetIQ()" title="Help others retire well">Share RetIQ</a>
       </div>
@@ -408,7 +408,7 @@ function toggleMobileMenu() {
 }
 
 function shareRetIQ() {
-  const url = 'https://retiqstudio.com';
+  const url = 'https://retirementiq.app';
   const text = 'RetIQ — Privacy-first retirement planner with Roth optimization, Monte Carlo simulation, and tax modeling. No subscriptions.';
   if (navigator.share) {
     navigator.share({ title: 'RetIQ — Retirement Planning', text: text, url: url }).catch(() => {});
@@ -1508,7 +1508,12 @@ function proGate(featureName, teaser) {
       <div style="font-size:11px;color:var(--text-faint);margin-top:10px">$29 launch price &middot; $49 after 7 days</div>
     </div></div></div>`;
 }
-try { if (isPro()) { const s = localStorage.getItem('retiq_v1'); if (s) state.params = JSON.parse(s); } } catch(e) {}
+// Load state: prefer embedded snapshot data (exported HTML), then localStorage
+try {
+  const snap = document.getElementById('retiq-snapshot-data');
+  if (snap) { state.params = JSON.parse(snap.textContent); }
+  else if (isPro()) { const s = localStorage.getItem('retiq_v1'); if (s) state.params = JSON.parse(s); }
+} catch(e) {}
 // Migration: ensure new fields exist for existing saved states
 function migrateParams() {
   if (state.params.preRetirementExpenses === undefined) state.params.preRetirementExpenses = 0;
@@ -1586,13 +1591,14 @@ function exportData() {
 }
 function exportHTML() {
   if (!isPro()) { document.getElementById('buyBtn').click(); return; }
-  // Embed current params into the HTML so the snapshot is self-contained
+  // Embed current params as a marked data block in the HTML
   const stateJSON = JSON.stringify(state.params).replace(/<\//g, '<\\/');
-  const html = document.documentElement.outerHTML.replace(
-    /try\s*\{\s*const\s+s\s*=\s*localStorage\.getItem\('retiq_v1'\).*?\}\s*catch\(e\)\s*\{\}/,
-    `try { state.params = ${stateJSON}; } catch(e) {}`
+  const dataBlock = '<script id="retiq-snapshot-data" type="application/json">' + stateJSON + '<\/script>';
+  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML.replace(
+    '</head>',
+    dataBlock + '\n</head>'
   );
-  const b = new Blob(['<!DOCTYPE html>\n' + html], { type: 'text/html' });
+  const b = new Blob([html], { type: 'text/html' });
   const d = new Date().toISOString().slice(0,10);
   const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `retiq-${d}.html`; a.click();
 }
@@ -1654,9 +1660,12 @@ function importData(evt) {
       if (f.name.endsWith('.json')) {
         state.params = JSON.parse(text);
       } else if (f.name.endsWith('.html') || f.name.endsWith('.htm')) {
-        // Extract embedded state from HTML snapshot
-        const match = text.match(/state\.params\s*=\s*(\{[\s\S]*?\});\s*\}\s*catch/);
-        if (match) { state.params = JSON.parse(match[1]); }
+        // Method 1: New snapshot data block (v1.4+)
+        const dataMatch = text.match(/<script\s+id="retiq-snapshot-data"\s+type="application\/json">([\s\S]*?)<\/script>/);
+        // Method 2: Legacy inline state assignment (pre-v1.4)
+        const legacyMatch = !dataMatch && text.match(/state\.params\s*=\s*(\{[\s\S]*?\});\s*\}\s*catch/);
+        const jsonStr = dataMatch ? dataMatch[1] : legacyMatch ? legacyMatch[1] : null;
+        if (jsonStr) { state.params = JSON.parse(jsonStr); }
         else { alert('Could not find saved data in this HTML file.'); return; }
       }
       migrateParams(); saveState(); render();
@@ -2919,7 +2928,7 @@ function exportDashboardSummary() {
 
   <hr>
   <div class="footer">
-    <span>RetIQ &middot; retiqstudio.com &middot; Not financial advice &middot; All projections are estimates based on your inputs and assumptions</span>
+    <span>RetIQ &middot; retirementiq.app &middot; Not financial advice &middot; All projections are estimates based on your inputs and assumptions</span>
     <span>Generated ${displayTs}</span>
   </div>
 </div>
@@ -4852,7 +4861,7 @@ function renderValidation() {
     </div>
     <div style="font-size:12px;color:var(--text-faint);margin-bottom:18px;line-height:1.6">
       Every calculation in RetIQ's engine is tested against authoritative government sources. This report runs automatically before each release.
-      For methodology details, see the <a href="https://retiqstudio.com/manual.html#validation" target="_blank" style="color:var(--blue);text-decoration:none">User Manual &sect;23</a>.
+      For methodology details, see the <a href="https://retirementiq.app/manual.html#validation" target="_blank" style="color:var(--blue);text-decoration:none">User Manual &sect;23</a>.
     </div>`;
 
   // Category summary bar
@@ -4910,7 +4919,7 @@ function render() {
     case 'scenarios': html = renderScenarios(proj); break;
     case 'validation': html = renderValidation(); break;
   }
-  html += '<div class="footer">RetIQ v1.4 &#183; Build 2026-02-27 01:05 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retiqstudio.com/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a> &#183; <a href="https://github.com/RetIQ-Studio/retiqstudio" target="_blank" style="color:var(--text-dim);text-decoration:none">Source (BSL 1.1)</a></div>';
+  html += '<div class="footer">RetIQ v1.4 &#183; Build 2026-02-27 01:05 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a> &#183; <a href="https://github.com/RetIQ-Studio/retiqstudio" target="_blank" style="color:var(--text-dim);text-decoration:none">Source (BSL 1.1)</a></div>';
   document.getElementById('app').innerHTML = html;
   updateHeaderHeight();
   // Scroll active sub-nav tab into view on mobile

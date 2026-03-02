@@ -228,7 +228,7 @@
   <tr>
     <td class="domain">default-src</td>
     <td><code>'self'</code></td>
-    <td>By default, only load resources from retiqstudio.com itself</td>
+    <td>By default, only load resources from retirementiq.app itself</td>
   </tr>
   <tr>
     <td class="domain">script-src</td>
@@ -243,7 +243,7 @@
   <tr>
     <td class="domain">font-src</td>
     <td><code>'self'</code></td>
-    <td>Font files from retiqstudio.com only — self-hosted, no CDN</td>
+    <td>Font files from retirementiq.app only — self-hosted, no CDN</td>
   </tr>
   <tr>
     <td class="domain">connect-src</td>
@@ -280,7 +280,7 @@
 
 <!-- ═══════════ LOCAL STORAGE ═══════════ -->
 <h2>What's Stored on Your Device</h2>
-<p>RetIQ uses your browser's <code>localStorage</code> to save your settings and plan data. This storage is <strong>sandboxed by your browser</strong> — only pages from <code>retiqstudio.com</code> running in your browser can read it, and even then, it never leaves your device. Below is every key RetIQ writes:</p>
+<p>RetIQ uses your browser's <code>localStorage</code> to save your settings and plan data. This storage is <strong>sandboxed by your browser</strong> — only pages from <code>retirementiq.app</code> running in your browser can read it, and even then, it never leaves your device. Below is every key RetIQ writes:</p>
 
 <div class="manifest">
 <table class="store">
@@ -349,11 +349,11 @@
   <div class="step">
     <strong>Open DevTools → Network tab.</strong> In Chrome or Edge, press <code>F12</code> (or <code>Cmd+Opt+I</code> on Mac), then click the <strong>Network</strong> tab. In Firefox, press <code>F12</code> and select <strong>Network</strong>. In Safari, enable the Develop menu in Preferences, then press <code>Cmd+Opt+I</code>.</div>
   <div class="step">
-    <strong>Reload RetIQ and watch.</strong> You'll see requests only to <code>retiqstudio.com</code> — the app itself, its fonts, and its icons. No external domains are contacted. Zero.</div>
+    <strong>Reload RetIQ and watch.</strong> You'll see requests only to <code>retirementiq.app</code> — the app itself, its fonts, and its icons. No external domains are contacted. Zero.</div>
   <div class="step">
     <strong>Use the app — change inputs, run projections, run Monte Carlo.</strong> Watch the Network tab. You will see <strong>zero</strong> new network requests. All calculations happen locally in your browser.</div>
   <div class="step">
-    <strong>Check localStorage.</strong> In DevTools, go to <strong>Application</strong> (Chrome/Edge) or <strong>Storage</strong> (Firefox) → <strong>Local Storage</strong> → <code>retiqstudio.com</code>. You'll see exactly the keys listed above and nothing else.</div>
+    <strong>Check localStorage.</strong> In DevTools, go to <strong>Application</strong> (Chrome/Edge) or <strong>Storage</strong> (Firefox) → <strong>Local Storage</strong> → <code>retirementiq.app</code>. You'll see exactly the keys listed above and nothing else.</div>
   <div class="step">
     <strong>Go offline.</strong> Turn off Wi-Fi or enable airplane mode. RetIQ continues to work perfectly — projections, charts, Monte Carlo — because nothing depends on a server connection.</div>
   <div class="step">
@@ -444,7 +444,7 @@
 </div>
 
 <div class="faq">
-  <div class="faq-q">What if retiqstudio.com gets hacked?</div>
+  <div class="faq-q">What if retirementiq.app gets hacked?</div>
   <div class="faq-a">A compromised website is a serious concern for any web app. Here's what limits the risk with RetIQ: your financial data exists only in your browser's localStorage. An attacker who compromises the web server could serve malicious JavaScript that attempts to read localStorage and exfiltrate data. However, RetIQ works as a <strong>Progressive Web App</strong> — once installed, it runs from a local cache and doesn't re-download from the server on each visit. For maximum security, you can: (1) use RetIQ in offline/airplane mode after initial install, (2) save your plan as an HTML or JSON file and clear RetIQ's localStorage when you're done, or (3) review the source code in your browser before entering sensitive data.</div>
 </div>
 
@@ -465,7 +465,7 @@
 
 <div class="faq">
   <div class="faq-q">How can I completely delete my data?</div>
-  <div class="faq-a">Open your browser's Developer Tools → Application (or Storage) → Local Storage → retiqstudio.com, and delete all entries. Alternatively, clear your browser's site data for retiqstudio.com. Because RetIQ never transmits your data to any server, clearing your browser data is a complete and permanent deletion — there are no server-side copies, backups, or residual records to worry about.</div>
+  <div class="faq-a">Open your browser's Developer Tools → Application (or Storage) → Local Storage → retirementiq.app, and delete all entries. Alternatively, clear your browser's site data for retirementiq.app. Because RetIQ never transmits your data to any server, clearing your browser data is a complete and permanent deletion — there are no server-side copies, backups, or residual records to worry about.</div>
 </div>
 
 

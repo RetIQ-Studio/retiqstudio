@@ -4,7 +4,7 @@
 
 No accounts. No cloud. No subscriptions. Your financial data never leaves your device.
 
-🔗 **[retiqstudio.com](https://retiqstudio.com)** · 📖 **[User Manual](https://retiqstudio.com/manual.html)** · 🛡 **[Security & Privacy](https://retiqstudio.com/security.html)** · ✅ **[Validation Report](https://retiqstudio.com/validation.html)**
+🔗 **[retirementiq.app](https://retirementiq.app)** · 📖 **[User Manual](https://retirementiq.app/manual.html)** · 🛡 **[Security & Privacy](https://retirementiq.app/security.html)** · ✅ **[Validation Report](https://retirementiq.app/validation.html)**
 
 ---
 
@@ -28,7 +28,7 @@ It's built as a single HTML file with no external dependencies beyond self-hoste
 
 **Additional Modeling** — Pensions with COLA, SSDI for both spouses, pre-retirement healthcare gap costs, long-term care, QCD/charity, liabilities (mortgage, alimony, student loans), expense phases, legacy goals, and other retirement income streams.
 
-**Privacy & Security** — Zero telemetry, no analytics, no cookies, no tracking, no accounts. Self-hosted fonts (no Google CDN). Strict Content Security Policy enforced by your browser. All data in localStorage on your device. See the full [Privacy & Security Transparency](https://retiqstudio.com/security.html) page for a verifiable audit.
+**Privacy & Security** — Zero telemetry, no analytics, no cookies, no tracking, no accounts. Self-hosted fonts (no Google CDN). Strict Content Security Policy enforced by your browser. All data in localStorage on your device. See the full [Privacy & Security Transparency](https://retirementiq.app/security.html) page for a verifiable audit.
 
 ## Validation
 
@@ -40,7 +40,7 @@ RetIQ includes 159 automated tests that verify every calculation against authori
 - **SECURE Act 2.0:** RMD start ages (§107), super catch-up contributions (§109)
 - **OBBB Act 2025:** Senior standard deduction (§102), updated bracket structure (P.L. 119-21)
 
-The full report — with every test name, expected value, actual result, tolerance, source citation, and pass/fail status — is viewable inside the app under the **Validation** tab or at [retiqstudio.com/validation.html](https://retiqstudio.com/validation.html).
+The full report — with every test name, expected value, actual result, tolerance, source citation, and pass/fail status — is viewable inside the app under the **Validation** tab or at [retirementiq.app/validation.html](https://retirementiq.app/validation.html).
 
 ## Privacy Architecture
 
@@ -50,11 +50,11 @@ RetIQ makes **zero network requests** during normal use (data entry, projections
 |------|--------|-----------|
 | License activation | Cloudflare Worker | License key only |
 | Purchase (if you buy Pro) | Stripe checkout | Redirect — no financial data from RetIQ |
-| PWA update check | retiqstudio.com | Standard HTTP request |
+| PWA update check | retirementiq.app | Standard HTTP request |
 
 Your financial data — income, balances, expenses, tax info, Social Security — **never leaves your browser**. A strict Content Security Policy is enforced at the browser level, preventing the app from contacting unauthorized domains even if the code were modified.
 
-You can verify all of this yourself with browser DevTools. See [Security & Privacy Transparency](https://retiqstudio.com/security.html) for step-by-step instructions.
+You can verify all of this yourself with browser DevTools. See [Security & Privacy Transparency](https://retirementiq.app/security.html) for step-by-step instructions.
 
 ## Tech Stack
 
@@ -116,14 +116,14 @@ Tests run via Node.js against the calculation engine extracted from app-index.ht
 
 This project is licensed under the **[Business Source License 1.1](./LICENSE)** (BSL 1.1).
 
-You are free to view, copy, modify, and redistribute the code for **non-production use**. Production use requires a license purchase at [retiqstudio.com](https://retiqstudio.com).
+You are free to view, copy, modify, and redistribute the code for **non-production use**. Production use requires a license purchase at [retirementiq.app](https://retirementiq.app).
 
 Each version automatically converts to a GPL-compatible open-source license four years after its release date.
 
 ## Links
 
-- **App:** [retiqstudio.com](https://retiqstudio.com)
-- **Manual:** [retiqstudio.com/manual.html](https://retiqstudio.com/manual.html)
-- **Features:** [retiqstudio.com/features.html](https://retiqstudio.com/features.html)
-- **Security:** [retiqstudio.com/security.html](https://retiqstudio.com/security.html)
-- **Validation:** [retiqstudio.com/validation.html](https://retiqstudio.com/validation.html)
+- **App:** [retirementiq.app](https://retirementiq.app)
+- **Manual:** [retirementiq.app/manual.html](https://retirementiq.app/manual.html)
+- **Features:** [retirementiq.app/features.html](https://retirementiq.app/features.html)
+- **Security:** [retirementiq.app/security.html](https://retirementiq.app/security.html)
+- **Validation:** [retirementiq.app/validation.html](https://retirementiq.app/validation.html)

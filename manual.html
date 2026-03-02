@@ -95,7 +95,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <h2>1. Quick Start</h2>
     <p>RetIQ runs entirely in your browser. There is no account to create and no data is sent to any server. To get started:</p>
     <ol>
-      <li>Open <strong>retiqstudio.com/app</strong> in any modern browser (Chrome, Safari, Edge, Firefox).</li>
+      <li>Open <strong>retirementiq.app/app</strong> in any modern browser (Chrome, Safari, Edge, Firefox).</li>
       <li>Go to the <strong>Personal</strong> tab and enter your current age, retirement age, and birth year.</li>
       <li>Switch to <strong>Income</strong> and enter your current gross income and annual savings.</li>
       <li>In <strong>Expenses</strong>, enter your estimated annual spending.</li>
@@ -503,7 +503,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     </ul>
     <p>Tests cover 21 categories: federal tax (MFJ and single), standard deduction, SS taxation, SS PIA and FRA, SS claiming adjustments, RMD table and calculations, capital gains brackets, NIIT, IRMAA (MFJ and single), state tax, contribution limits, QCD, integration tests, and edge cases.</p>
     <p>The full report &mdash; with every test name, expected value, actual value, tolerance, source citation, and pass/fail status &mdash; is viewable inside the app under the <strong>Validation</strong> tab in the main navigation.</p>
-    <div class="tip"><strong>Transparency:</strong> The validation suite runs automatically before each release to ensure every calculation matches its authoritative source. You can run these same tests yourself in the <strong>Validation</strong> tab or inspect the full report at <a href="https://retiqstudio.com/validation.html" style="color:var(--accent)">retiqstudio.com/validation.html</a>. If you find a discrepancy, please report it — accuracy is our highest priority.</div>
+    <div class="tip"><strong>Transparency:</strong> The validation suite runs automatically before each release to ensure every calculation matches its authoritative source. You can run these same tests yourself in the <strong>Validation</strong> tab or inspect the full report at <a href="https://retirementiq.app/validation.html" style="color:var(--accent)">retirementiq.app/validation.html</a>. If you find a discrepancy, please report it — accuracy is our highest priority.</div>
   </div>
 
   <!-- 24 -->
@@ -511,7 +511,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <h2>24. FAQ</h2>
 
     <h3>Is my data secure?</h3>
-    <p>Yes. RetIQ runs entirely in your browser. No financial data is ever sent to any server. The only network calls are for license verification (license key only) and optional PWA updates. The full source code is published on <a href="https://github.com/RetIQ-Studio/retiqstudio" style="color:var(--accent)">GitHub</a> under the Business Source License 1.1 so you can verify this yourself. For a complete audit of every network request, storage key, and privacy measure, see the <a href="https://retiqstudio.com/security.html" style="color:var(--accent)">Privacy &amp; Security Transparency</a> page.</p>
+    <p>Yes. RetIQ runs entirely in your browser. No financial data is ever sent to any server. The only network calls are for license verification (license key only) and optional PWA updates. The full source code is published on <a href="https://github.com/RetIQ-Studio/retiqstudio" style="color:var(--accent)">GitHub</a> under the Business Source License 1.1 so you can verify this yourself. For a complete audit of every network request, storage key, and privacy measure, see the <a href="https://retirementiq.app/security.html" style="color:var(--accent)">Privacy &amp; Security Transparency</a> page.</p>
 
     <h3>Which tax brackets does RetIQ use?</h3>
     <p>2025 Married Filing Jointly federal brackets. State tax uses a simplified effective rate based on the state you select from the dropdown in the Assumptions tab (all 50 states and DC are available). The brackets are applied to computed taxable income each year.</p>
@@ -535,7 +535,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Cash/HYS accounts (high-yield savings, CDs, checking) earn interest taxed as ordinary income each year, but withdrawals are tax-free because you are withdrawing principal. Brokerage accounts hold investments whose withdrawals trigger capital gains taxes on the appreciated portion (modeled at 50% cost basis). RetIQ tracks them as separate buckets with independent return rates, withdrawal priorities, and tax treatment.</p>
 
     <h3>How do I reset all my data?</h3>
-    <p>Clear your browser's local storage for retiqstudio.com, or use your browser's developer tools (Application &gt; Local Storage &gt; Clear). A fresh reload will start with default values.</p>
+    <p>Clear your browser's local storage for retirementiq.app, or use your browser's developer tools (Application &gt; Local Storage &gt; Clear). A fresh reload will start with default values.</p>
 
     <h3>Does SSDI affect my Medicare start age?</h3>
     <p>Yes. RetIQ automatically starts Medicare at SSDI Start Age + 2 years (or 65, whichever is first). This reflects the federal 24-month qualifying period. Pre-Medicare healthcare gap costs, Medicare premiums, and IRMAA all adjust accordingly. See the <a href="#ssdi">SSDI Tab</a> section for full details and scenarios.</p>
@@ -550,7 +550,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Your SSDI payments stop, but your surviving spouse can claim a survivor benefit based on your Social Security work record. RetIQ calculates this from your PIA (or your SSDI amount if no separate SS income was entered). The survivor receives the higher of their own SS benefit or the survivor benefit &mdash; not both.</p>
   </div>
 
-  <div class="footer">RetIQ v1.4 &middot; retiqstudio.com &middot; Not financial advice &middot; All computation runs locally in your browser</div>
+  <div class="footer">RetIQ v1.4 &middot; retirementiq.app &middot; Not financial advice &middot; All computation runs locally in your browser</div>
 </div>
 </body>
 </html>
