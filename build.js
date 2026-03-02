@@ -41,7 +41,7 @@ const APP_COPY = ['service-worker.js', 'manifest.webmanifest'];
 const APP_COPY_DIRS = ['icons', 'fonts'];
 
 // Site files → retiq-deploy/ (root)
-const SITE_FILES = ['manual.html', 'features.html', 'terms.html', 'privacy.html', 'security.html', 'validation.html'];
+const SITE_FILES = ['index.html', 'manual.html', 'features.html', 'terms.html', 'privacy.html', 'security.html', 'validation.html'];
 const SITE_COPY = ['robots.txt'];
 
 // ── Helpers ──────────────────────────────────────────────────────────
