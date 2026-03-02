@@ -5038,55 +5038,173 @@ document.getElementById("buyBtn")?.addEventListener("click", async ()=>{
   else alert("Could not start checkout. Please try again.");
 });
 
-// ---- Activate / Manage ----
-document.getElementById("activateBtn")?.addEventListener("click", async ()=>{
-  const current = localStorage.getItem("retiq_license");
-  const isPro = localStorage.getItem("retiq_pro")==="true" && current;
+// ---- Activate / Manage Modal ----
+function openActivateModal() {
+  const existing = document.getElementById("retiqActivateModal");
+  if (existing) existing.remove();
 
-  if(isPro){
-    const action = prompt(
-      `RetIQ Pro is active.\n\nLicense on this device:\n${current}\n\nType:\nCOPY  (copy key)\nFORGET (remove from this device)\nCANCEL`
-    );
-    if(!action) return;
-    const a = action.trim().toUpperCase();
-    if(a==="COPY"){
-      try{ await navigator.clipboard.writeText(current); alert("Copied ✔"); }
-      catch{ alert("Copy failed — select and copy manually:\n"+current); }
-      return;
-    }
-    if(a==="FORGET"){
+  const current = localStorage.getItem("retiq_license");
+  const isPro = localStorage.getItem("retiq_pro") === "true" && current;
+
+  const overlay = document.createElement("div");
+  overlay.id = "retiqActivateModal";
+  overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;";
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+  const card = document.createElement("div");
+  card.style.cssText = "max-width:420px;width:100%;background:#0b1220;color:#e5e7eb;border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.35);font-family:system-ui,-apple-system,sans-serif;";
+
+  if (isPro) {
+    // ── Pro management view ──
+    card.innerHTML = `
+      <div style="font-weight:800;font-size:16px;margin-bottom:12px;">Manage License</div>
+      <p style="font-size:13px;color:#94a3b8;margin:0 0 8px;">RetIQ Pro is active.</p>
+      <div style="background:#0f172a;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 14px;font-family:monospace;font-size:15px;letter-spacing:1px;color:#38bdf8;margin:0 0 16px;word-break:break-all;">${current}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="amCopy" style="flex:1;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:#1e3a5f;color:#e5e7eb;cursor:pointer;">Copy Key</button>
+        <button id="amForget" style="flex:1;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:#7f1d1d;color:#fecaca;cursor:pointer;">Remove from Device</button>
+        <button id="amClose" style="flex:1;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:transparent;color:#e5e7eb;cursor:pointer;">Close</button>
+      </div>
+    `;
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+
+    document.getElementById("amCopy").onclick = async () => {
+      try { await navigator.clipboard.writeText(current); document.getElementById("amCopy").textContent = "Copied ✔"; }
+      catch { alert("Copy failed — select and copy manually:\n" + current); }
+    };
+    document.getElementById("amForget").onclick = () => {
+      if (!confirm("Remove license from this device? Your saved data will be cleared.")) return;
       localStorage.removeItem("retiq_license");
       localStorage.removeItem("retiq_pro");
       localStorage.removeItem("retiq_v1");
       setPlanBadge(false);
       hideUpgradeIfPro();
       setActivateLabel();
-      alert("This device is now Free. Your saved data has been cleared.");
+      overlay.remove();
+      alert("This device is now Free.");
       location.reload();
-      return;
-    }
-    return;
-  }
+    };
+    document.getElementById("amClose").onclick = () => overlay.remove();
 
-  const key = prompt("Enter your RetIQ license key:");
-  if(!key) return;
-  const normalized = key.trim().toUpperCase();
-  const ok = await validateLicense(normalized);
-  if(ok === true){
-    localStorage.setItem("retiq_license", normalized);
-    localStorage.setItem("retiq_pro", "true");
-    setPlanBadge(true);
-    hideUpgradeIfPro();
-    setActivateLabel();
-    // Restore saved data now that pro is active
-    try { const s = localStorage.getItem('retiq_v1'); if (s) { state.params = JSON.parse(s); migrateParams(); render(); } } catch(e) {}
-    alert("License activated ✔");
-  }else if(ok === null){
-    alert("Could not reach the server. Check your internet connection and try again.");
-  }else{
-    alert("Invalid license key");
+  } else {
+    // ── Activation view (license entry + recovery) ──
+    card.innerHTML = `
+      <div style="font-weight:800;font-size:16px;margin-bottom:12px;">Activate License</div>
+      <div id="amActivateView">
+        <label style="font-size:13px;color:#94a3b8;display:block;margin-bottom:6px;">Enter your license key:</label>
+        <input id="amKeyInput" type="text" placeholder="RTIQ-XXXX-XXXX-XXXX" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:#0f172a;color:#e5e7eb;font-family:monospace;font-size:15px;letter-spacing:1px;margin-bottom:12px;" />
+        <div id="amKeyMsg" style="font-size:12px;margin-bottom:10px;min-height:16px;"></div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
+          <button id="amActivate" style="flex:1;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:#2563eb;color:white;cursor:pointer;font-weight:600;">Activate</button>
+          <button id="amCancel" style="flex:1;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:transparent;color:#e5e7eb;cursor:pointer;">Cancel</button>
+        </div>
+        <div style="border-top:1px solid rgba(255,255,255,.1);padding-top:12px;">
+          <a href="#" id="amShowRecover" style="font-size:12px;color:#60a5fa;text-decoration:none;">Lost your license key? Recover via email →</a>
+        </div>
+      </div>
+      <div id="amRecoverView" style="display:none;">
+        <label style="font-size:13px;color:#94a3b8;display:block;margin-bottom:6px;">Enter the email you used at checkout:</label>
+        <input id="amEmailInput" type="email" placeholder="you@example.com" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:#0f172a;color:#e5e7eb;font-size:14px;margin-bottom:12px;" />
+        <div id="amRecoverMsg" style="font-size:12px;margin-bottom:10px;min-height:16px;"></div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
+          <button id="amRecover" style="flex:1;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:#2563eb;color:white;cursor:pointer;font-weight:600;">Send Recovery Email</button>
+          <button id="amBackToKey" style="flex:1;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:transparent;color:#e5e7eb;cursor:pointer;">Back</button>
+        </div>
+      </div>
+    `;
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+
+    const keyInput = document.getElementById("amKeyInput");
+    const keyMsg = document.getElementById("amKeyMsg");
+    keyInput.focus();
+
+    // Activate license
+    document.getElementById("amActivate").onclick = async () => {
+      const key = keyInput.value.trim().toUpperCase();
+      if (!key) { keyMsg.style.color = "#f87171"; keyMsg.textContent = "Please enter a license key."; return; }
+      keyMsg.style.color = "#60a5fa"; keyMsg.textContent = "Verifying…";
+      const ok = await validateLicense(key);
+      if (ok === true) {
+        localStorage.setItem("retiq_license", key);
+        localStorage.setItem("retiq_pro", "true");
+        setPlanBadge(true);
+        hideUpgradeIfPro();
+        setActivateLabel();
+        try { const s = localStorage.getItem('retiq_v1'); if (s) { state.params = JSON.parse(s); migrateParams(); render(); } } catch(e) {}
+        overlay.remove();
+        alert("License activated ✔");
+      } else if (ok === null) {
+        keyMsg.style.color = "#f87171"; keyMsg.textContent = "Could not reach server. Check your connection.";
+      } else {
+        keyMsg.style.color = "#f87171"; keyMsg.textContent = "Invalid license key.";
+      }
+    };
+
+    // Enter key submits
+    keyInput.addEventListener("keydown", (e) => { if (e.key === "Enter") document.getElementById("amActivate").click(); });
+
+    // Cancel
+    document.getElementById("amCancel").onclick = () => overlay.remove();
+
+    // Show recovery view
+    document.getElementById("amShowRecover").onclick = (e) => {
+      e.preventDefault();
+      document.getElementById("amActivateView").style.display = "none";
+      document.getElementById("amRecoverView").style.display = "block";
+      document.getElementById("amEmailInput").focus();
+    };
+
+    // Back to key entry
+    document.getElementById("amBackToKey").onclick = () => {
+      document.getElementById("amRecoverView").style.display = "none";
+      document.getElementById("amActivateView").style.display = "block";
+      keyInput.focus();
+    };
+
+    // Send recovery email
+    document.getElementById("amRecover").onclick = async () => {
+      const email = document.getElementById("amEmailInput").value.trim();
+      const recoverMsg = document.getElementById("amRecoverMsg");
+      if (!email || !email.includes("@")) {
+        recoverMsg.style.color = "#f87171"; recoverMsg.textContent = "Please enter a valid email.";
+        return;
+      }
+      const btn = document.getElementById("amRecover");
+      btn.disabled = true; btn.textContent = "Sending…";
+      recoverMsg.style.color = "#60a5fa"; recoverMsg.textContent = "";
+      try {
+        const r = await fetch(`${RETIQ_API}/recover-license`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email })
+        });
+        const d = await r.json();
+        if (d.error === "rate_limited") {
+          recoverMsg.style.color = "#f87171";
+          recoverMsg.textContent = d.message || "Too many requests. Try again later.";
+        } else if (d.ok) {
+          recoverMsg.style.color = "#4ade80";
+          recoverMsg.textContent = d.message;
+        } else {
+          recoverMsg.style.color = "#f87171";
+          recoverMsg.textContent = "Something went wrong. Please try again.";
+        }
+      } catch {
+        recoverMsg.style.color = "#f87171";
+        recoverMsg.textContent = "Could not reach server. Check your connection.";
+      }
+      btn.disabled = false; btn.textContent = "Send Recovery Email";
+    };
+
+    // Enter key in email field
+    document.getElementById("amEmailInput").addEventListener("keydown", (e) => { if (e.key === "Enter") document.getElementById("amRecover").click(); });
   }
-});
+}
+
+document.getElementById("activateBtn")?.addEventListener("click", () => openActivateModal());
+  
 
 // Auto-restore license on load
 (async ()=>{
