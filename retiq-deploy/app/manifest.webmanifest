@@ -2,9 +2,9 @@
   "name": "RetIQ",
   "short_name": "RetIQ",
   "description": "RetIQ is a privacy-focused retirement planning calculator for individuals and couples.",
-  "id": "/",
-  "start_url": "/",
-  "scope": "/",
+  "id": "/app/",
+  "start_url": "/app/",
+  "scope": "/app/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone"],
   "orientation": "portrait-primary",
@@ -15,45 +15,28 @@
 
   "icons": [
     {
-      "src": "/icons/icon-180.png",
+      "src": "/app/icons/icon-180.png",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-192.png",
+      "src": "/app/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "/app/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512-maskable.png",
+      "src": "/app/icons/icon-512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
-    }
-  ],
-
-  "screenshots": [
-    {
-      "src": "/screenshots/desktop.png",
-      "sizes": "1280x800",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "RetIQ desktop planner interface"
-    },
-    {
-      "src": "/screenshots/mobile.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "RetIQ mobile planning view"
     }
   ],
 
@@ -61,16 +44,16 @@
     {
       "name": "New Plan",
       "short_name": "New",
-      "url": "/?new=1",
+      "url": "/app/?new=1",
       "description": "Start a new retirement plan"
     },
     {
       "name": "Open Saved Plan",
       "short_name": "Open",
-      "url": "/?open=1",
+      "url": "/app/?open=1",
       "description": "Load an existing plan"
     }
- ],
+  ],
 
   "prefer_related_applications": false
 }
