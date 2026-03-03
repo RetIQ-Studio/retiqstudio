@@ -142,6 +142,12 @@ button:hover { opacity: 0.88; }
 .field-input.has-prefix { padding-left: 24px; }
 .field-input.has-suffix { padding-right: 32px; }
 .field-help { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
+.info-tip { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; font-size: 11px; color: var(--text-muted); cursor: pointer; vertical-align: middle; margin-left: 4px; border-radius: 50%; transition: color 0.2s; }
+.info-tip:hover { color: var(--blue); }
+.info-tip-content { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: max-content; max-width: 280px; padding: 10px 12px; background: var(--tooltip-bg); border: 1px solid var(--border); border-radius: 8px; font-size: 12px; font-weight: 400; line-height: 1.5; color: var(--text); box-shadow: 0 4px 16px rgba(0,0,0,0.25); z-index: 100; white-space: normal; text-transform: none; letter-spacing: normal; }
+.info-tip-content::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: var(--border); }
+.info-tip:hover .info-tip-content, .info-tip.active .info-tip-content { display: block; }
+@media (max-width: 640px) { .info-tip-content { left: auto; right: -8px; transform: none; } .info-tip-content::after { left: auto; right: 12px; transform: none; } }
 
 .acct-header { display: flex; gap: 8px; margin-bottom: 8px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
 .acct-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
@@ -1741,6 +1747,11 @@ function moveWithdrawalOrder(idx, dir) {
   state.params.withdrawalOrder = order;
   state.mcResults = null; state.rothOptResults = null; saveState(); render();
 }
+function resetWithdrawalOrder() {
+  if (proGuard()) return;
+  state.params.withdrawalOrder = ['cash', 'taxable', 'pretax', 'roth'];
+  state.mcResults = null; state.rothOptResults = null; saveState(); render();
+}
 function setPension(which, key, val) {
   if (proGuard()) return;
   if (!state.params[which]) state.params[which] = { enabled: false, annualAmount: 0, startAge: 65, cola: 0, name: which === 'pension' ? 'Pension' : 'Spouse Pension' };
@@ -2223,6 +2234,10 @@ function closeMobileMenu() {
   }
 }
 
+function tip(text) {
+  return `<span class="info-tip" onclick="event.stopPropagation();this.classList.toggle('active')">&#9432;<span class="info-tip-content">${text}</span></span>`;
+}
+
 function field(label, key, opts = {}) {
   const { prefix, suffix, help, val } = opts;
   const v = val !== undefined ? val : state.params[key];
@@ -2236,7 +2251,7 @@ function field(label, key, opts = {}) {
   const changeExpr = isCurrency
     ? `setParam('${key}',parseC(this.value))`
     : `setParam('${key}',Number(this.value))`;
-  return `<div class="field"><label class="field-label">${label}</label><div class="field-wrap">
+  return `<div class="field"><label class="field-label">${label}${opts.tip ? ' ' + tip(opts.tip) : ''}</label><div class="field-wrap">
     ${prefix ? `<span class="field-prefix">${prefix}</span>` : ''}
     <input type="${inputType}" class="field-input${prefix?' has-prefix':''}${suffix?' has-suffix':''}" value="${displayVal}" ${ro ? 'readonly style="opacity:0.6;cursor:not-allowed"' : `onchange="${changeExpr}" ${extraAttr}`}>
     ${suffix ? `<span class="field-suffix">${suffix}</span>` : ''}
@@ -2892,8 +2907,8 @@ function exportDashboardSummary() {
     <div class="metric"><div class="metric-label">End NW</div><div class="metric-value" style="color:${final > 0 ? '#10b981' : '#ef4444'}">${fmtK(final)}</div></div>
     <div class="metric"><div class="metric-label">Retire Age</div><div class="metric-value" style="color:#f59e0b">${p.retirementAge}</div></div>
     <div class="metric"><div class="metric-label">Money Lasts</div><div class="metric-value" style="color:${bust ? '#ef4444' : '#10b981'}">${bust ? 'Age ' + bust : p.endAge + '+'}</div><div class="metric-sub">${bust ? 'Runs out' : 'Funded'}</div></div>
-    <div class="metric"><div class="metric-label">RMDs Start</div><div class="metric-value" style="color:#8b5cf6">${rmdStartYr ? 'Age ' + rmdStartYr.age : 'N/A'}</div><div class="metric-sub">Peak: ${fmtK(peakRMD)}/yr</div></div>
-    <div class="metric"><div class="metric-label">IRMAA Total</div><div class="metric-value" style="color:#ec4899">${fmtK(totalIRMAA)}</div><div class="metric-sub">Lifetime</div></div>
+    <div class="metric"><div class="metric-label">RMDs Start ${tip('Required Minimum Distributions — the IRS forces you to withdraw (and pay tax on) a minimum amount from pre-tax accounts starting at age 73–75.')}</div><div class="metric-value" style="color:#8b5cf6">${rmdStartYr ? 'Age ' + rmdStartYr.age : 'N/A'}</div><div class="metric-sub">Peak: ${fmtK(peakRMD)}/yr</div></div>
+    <div class="metric"><div class="metric-label">Medicare Surcharges ${tip('Income-Related Monthly Adjustment Amount (IRMAA) — extra Medicare premiums you pay if your income exceeds certain thresholds. Roth conversions and RMDs can trigger these.')}</div><div class="metric-value" style="color:#ec4899">${fmtK(totalIRMAA)}</div><div class="metric-sub">IRMAA lifetime</div></div>
     ${legacyHtml}
   </div>
 
@@ -2901,7 +2916,7 @@ function exportDashboardSummary() {
   <div class="metrics">
     <div class="metric"><div class="metric-label">Lifetime Taxes</div><div class="metric-value" style="color:#ef4444">${fmtK(totalTax)}</div></div>
     <div class="metric"><div class="metric-label">Lifetime SS Income</div><div class="metric-value" style="color:#3b82f6">${fmtK(totalSS)}</div></div>
-    <div class="metric"><div class="metric-label">IRMAA Surcharges</div><div class="metric-value" style="color:#ec4899">${fmtK(totalIRMAA)}</div></div>
+    <div class="metric"><div class="metric-label">Medicare Surcharges</div><div class="metric-value" style="color:#ec4899">${fmtK(totalIRMAA)}</div></div>
     <div class="metric"><div class="metric-label">Peak RMD</div><div class="metric-value" style="color:#8b5cf6">${fmtK(peakRMD)}/yr</div></div>
   </div>
 
@@ -3016,8 +3031,8 @@ function renderDashboard(proj) {
       <div class="stat"><div class="stat-label">End Net Worth</div><div class="stat-value" style="color:${final>0?'var(--green)':'var(--red)'}">${fmtK(final)}</div></div>
       <div class="stat"><div class="stat-label">Retire Age</div><div class="stat-value" style="color:var(--amber)">${p.retirementAge}</div></div>
       <div class="stat"><div class="stat-label">Money Lasts</div><div class="stat-value" style="color:${bust?'var(--red)':'var(--green)'}">${bust?'Age '+bust:p.endAge+'+'}</div><div class="stat-sub">${bust? 'Runs out': 'Funded'}</div></div>
-      <div class="stat"><div class="stat-label">RMDs Start</div><div class="stat-value" style="color:var(--purple)">${rmdStartYr?'Age '+rmdStartYr.age:'N/A'}</div><div class="stat-sub">Peak: ${fmtK(peakRMD)}/yr</div></div>
-      <div class="stat"><div class="stat-label">IRMAA Surcharges</div><div class="stat-value" style="color:var(--pink)">${fmtK(totalIRMAA)}</div><div class="stat-sub">Lifetime total</div></div>
+      <div class="stat"><div class="stat-label">RMDs Start ${tip('Required Minimum Distributions — the IRS forces you to withdraw (and pay tax on) a minimum amount from pre-tax accounts starting at age 73–75.')}</div><div class="stat-value" style="color:var(--purple)">${rmdStartYr?'Age '+rmdStartYr.age:'N/A'}</div><div class="stat-sub">Peak: ${fmtK(peakRMD)}/yr</div></div>
+      <div class="stat"><div class="stat-label">Medicare Surcharges (IRMAA) ${tip('Income-Related Monthly Adjustment Amount — extra Medicare premiums you pay if your income exceeds certain thresholds. Roth conversions and RMDs can trigger these.')}</div><div class="stat-value" style="color:var(--pink)">${fmtK(totalIRMAA)}</div><div class="stat-sub">Lifetime total</div></div>
       ${(() => {
         const lg = p.legacy || {};
         if (!lg.enabled || !lg.targetAmount) return '';
@@ -3102,7 +3117,7 @@ function renderDashboard(proj) {
 function renderInputs() {
   const p = state.params;
   const tabs = ['personal','income','expenses','pension','accounts','ss','ssdi','debts','healthcare','medicare','rothconv','charity','legacy','assumptions'];
-  const names = ['Personal','Income','Expenses','Pension','Accounts','Social Security','SSDI','Liabilities','Healthcare','Medicare','Roth Conv.','Charity/QCD','Legacy','Assumptions'];
+  const names = ['Personal','Income','Expenses','Pension','Accounts','Social Security','Disability (SSDI)','Liabilities','Healthcare','Medicare','Roth Conversions','Charitable Giving','Legacy','Assumptions'];
   const subNav = `<div class="sub-nav">${tabs.map((t,i) =>
     `<button class="tab${state.inputTab===t?' active':''}" onclick="state.inputTab='${t}';render()">${names[i]}</button>`).join('')}</div>`;
 
@@ -3296,7 +3311,7 @@ function renderInputs() {
           Other account types can be added manually with the button below.
         </div>
       </div>
-      <div class="acct-header"><div style="flex:2">Name</div><div style="flex:1">Type</div><div style="flex:1.5">Balance</div><div style="flex:0.7">Return</div><div style="width:36px"></div></div>
+      <div class="acct-header"><div style="flex:2">Name</div><div style="flex:1">Type ${tip('Pre-Tax: Traditional 401(k), IRA, 403(b), 457(b) — taxed on withdrawal.<br>Roth: Roth 401(k) &amp; Roth IRA — tax-free withdrawals.<br>Brokerage: Regular investment accounts — capital gains tax on growth.<br>Cash/HYS: Savings, money market, CDs — withdrawals are tax-free (your own money), interest taxed yearly.')}</div><div style="flex:1.5">Balance</div><div style="flex:0.7">Return ${tip('The annual growth rate you expect. Cash/savings: 3–5%. Bonds: 4–5%. Balanced portfolio: 6–7%. Stock-heavy: 8–10%.')}</div><div style="width:36px"></div></div>
       ${rows}
       <button class="add-acct-btn" onclick="addAccount()">+ Add Account</button>
       <div class="acct-total"><span style="color:var(--text-muted);font-size:13px">Total Portfolio</span><span style="color:var(--text);font-size:15px;font-weight:600">${fmt(total)}</span></div>
@@ -3395,7 +3410,7 @@ function renderInputs() {
       </div>
       ${pen1.enabled || pen2.enabled ? `
       <div class="card"><div class="card-title">Pension COLA (Both)</div>
-        <div class="field"><label class="field-label">Annual COLA</label><div class="field-wrap">
+        <div class="field"><label class="field-label">Annual Cost-of-Living Increase (COLA)</label><div class="field-wrap">
           <input type="number" class="field-input has-suffix" value="${pen1.cola||pen2.cola||0}" onchange="setPension('pension','cola',Number(this.value));setPension('spousePension','cola',Number(this.value))">
           <span class="field-suffix">%</span></div>
           <div class="field-help">0% for fixed pensions, 2-3% for COLA-adjusted. Applied to both pensions.</div></div>
@@ -3463,7 +3478,7 @@ function renderInputs() {
             <div class="field"><label class="field-label">Duration (years)</label>
               <input type="number" class="field-input" value="${ltc.duration||4}" onchange="setLTC('duration',Number(this.value))">
               <div class="field-help">Average ~3-4 years; women avg longer</div></div>
-            <div class="field"><label class="field-label">LTC Inflation</label><div class="field-wrap">
+            <div class="field"><label class="field-label">Care Cost Inflation</label><div class="field-wrap">
               <input type="number" class="field-input has-suffix" value="${ltc.inflation||5}" onchange="setLTC('inflation',Number(this.value))">
               <span class="field-suffix">%</span></div></div>
           </div>
@@ -3681,12 +3696,12 @@ function renderInputs() {
       ${rc.enabled ? `
       <div class="grid-2" style="margin-bottom:14px">
         <div>
-          <div class="field"><label class="field-label">Strategy</label>
+          <div class="field"><label class="field-label">Strategy ${tip('Smart Fill: Converts just enough pre-tax money to Roth each year to fill up a tax bracket without triggering Medicare surcharges (IRMAA). The most tax-efficient automatic approach.<br><br>Fill Bracket: Converts enough to fill a tax bracket each year. Simpler than Smart Fill but does not watch for Medicare surcharges.')}</label>
             <select class="field-input" onchange="setRothConv('strategy',this.value)" style="cursor:pointer">
               <option value="fixed"${rc.strategy==='fixed'?' selected':''}>Fixed Amount / Year</option>
               <option value="fillBracket"${rc.strategy==='fillBracket'?' selected':''}>Fill Tax Bracket</option>
               <option value="smartFill"${rc.strategy==='smartFill'?' selected':''}>Smart Fill (IRMAA-Aware)</option>
-              <option value="targetMAGI"${rc.strategy==='targetMAGI'?' selected':''}>Target MAGI Ceiling</option>
+              <option value="targetMAGI"${rc.strategy==='targetMAGI'?' selected':''}>Target Income Ceiling (MAGI)</option>
               <option value="percentBalance"${rc.strategy==='percentBalance'?' selected':''}>% of Pre-Tax Balance</option>
               <option value="custom"${rc.strategy==='custom'?' selected':''}>Custom Schedule</option>
             </select>
@@ -3699,7 +3714,7 @@ function renderInputs() {
               </div></div>
           ` : ''}
           ${rc.strategy === 'fillBracket' || rc.strategy === 'smartFill' ? `
-            <div class="field"><label class="field-label">Fill Up To Bracket</label>
+            <div class="field"><label class="field-label">Fill Up To Bracket ${tip('The tax bracket to fill up to. 22% is a common sweet spot — higher brackets start to make conversions expensive.')}</label>
               <select class="field-input" onchange="setRothConv('targetBracket',Number(this.value))" style="cursor:pointer">
                 ${brackets.filter(b => b.rate <= 0.32).map(b => `<option value="${b.rate}"${rc.targetBracket===b.rate?' selected':''}>${(b.rate*100).toFixed(0)}% (${fmtK(b.min)} - ${fmtK(b.max)})</option>`).join('')}
               </select>
@@ -3710,7 +3725,7 @@ function renderInputs() {
           ` : ''}
 
           ${rc.strategy === 'targetMAGI' ? `
-            <div class="field"><label class="field-label">Target MAGI Ceiling</label>
+            <div class="field"><label class="field-label">Target Income Ceiling (MAGI) ${tip('Modified Adjusted Gross Income — your total income including Roth conversions. Staying below certain MAGI thresholds avoids triggering Medicare IRMAA surcharges.')}</label>
               <div class="field-wrap"><span class="field-prefix">$</span>
                 <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(rc.targetMAGI||200000)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="setRothConv('targetMAGI',parseC(this.value))">
               </div>
@@ -4061,7 +4076,7 @@ function renderInputs() {
         ${ssdi1ss.enabled ? `<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--text-dim);line-height:1.6">
           <strong style="color:var(--blue)">&#9432; SSDI Active</strong> &mdash; SSDI auto-converts to regular SS at FRA (age ${effectiveClaimAge}). The claim age setting below is overridden. Your projection uses FRA benefit amount.
         </div>` : ''}
-        ${field('SS Claim Age','ssClaimAge',{help:'62 (early) to 70 (max delayed credits)' + (ssdi1ss.enabled ? ' — overridden by SSDI auto-conversion at FRA' : '')})}
+        ${field('SS Claim Age','ssClaimAge',{tip:'When you start collecting Social Security. You can start as early as 62 (smaller monthly check) or wait until 70 (largest check — about 77% more than at 62).',help:'62 (early) to 70 (max delayed credits)' + (ssdi1ss.enabled ? ' — overridden by SSDI auto-conversion at FRA' : '')})}
         ${(p.spouseEnabled || p.spouseAge > 0) ? field('Survivor SS Claim Age','survivorSSClaimAge',{help:'Age to start collecting survivor SS if spouse passes away. Min 60.'}) : ''}
         <div style="margin:14px 0;padding:12px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border)">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);margin-bottom:10px">
@@ -4069,7 +4084,7 @@ function renderInputs() {
             Use my SSA statement amount (manual entry)
           </label>
           ${p.ssUseManual ? `
-            ${field('Monthly Benefit at FRA from SSA','ssManualMonthly',{prefix:'$',help:'Enter the amount from your my Social Security statement at FRA. Early/late claiming adjustments are applied automatically.'})}
+            ${field('Monthly Benefit at FRA from SSA','ssManualMonthly',{prefix:'$',tip:'Your Primary Insurance Amount (PIA) — the monthly benefit shown on your Social Security statement at your Full Retirement Age. Log in to ssa.gov to find yours.',help:'Enter the amount from your my Social Security statement at FRA. Early/late claiming adjustments are applied automatically.'})}
             ${p.ssManualMonthly > 0 ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px;padding:8px;background:var(--bg-base);border-radius:6px">
               <strong>FRA amount:</strong> ${fmt(p.ssManualMonthly)}/mo &#183; <strong>At age ${effectiveClaimAge}${ssdi1ss.enabled ? ' (SSDI→SS)' : ''}:</strong> ${fmt(ssResult.monthly)}/mo
               ${!ssdi1ss.enabled ? (effectiveClaimAge < ssResult.fra ? ' <span style="color:var(--red)">(reduced ' + Math.round((1 - ssResult.monthly/p.ssManualMonthly)*100) + '%)</span>' :
@@ -4136,7 +4151,7 @@ function renderInputs() {
     </div>
 
     <div class="card"><div class="card-title">Annual COLA Assumption (Both Spouses)</div>
-      ${field('Social Security COLA','ssCOLA',{suffix:'%',help:'Historical avg ~2%. Applied after claiming to both you and spouse.'})}
+      ${field('Social Security COLA','ssCOLA',{suffix:'%',tip:'Cost-of-living adjustment — how much Social Security increases each year to keep up with inflation. The historical average is about 2–3%.',help:'Historical avg ~2%. Applied after claiming to both you and spouse.'})}
     </div>
 
     ${(() => {
@@ -4422,8 +4437,8 @@ function renderInputs() {
         </div>
       </div>
       <div style="margin-top:20px;padding:14px;background:var(--bg-base);border-radius:10px;border:1px solid var(--border)">
-        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Retirement Withdrawal Order</div>
-        <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;line-height:1.5">Set the priority for which accounts fund retirement spending. Use arrows to reorder. The engine handles RMDs and tax implications automatically.</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Retirement Withdrawal Order ${tip('When you need money in retirement, which account should RetIQ draw from first? The order matters because each account type is taxed differently.')}</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;line-height:1.5">This is the order RetIQ draws from your accounts in retirement. The default order (Cash &rarr; Brokerage &rarr; Pre-Tax &rarr; Roth) is a widely-used approach: spend taxable money first and let tax-advantaged accounts keep growing. Roth goes last because it grows tax-free and passes to heirs tax-free.</div>
         ${(p.withdrawalOrder || ['cash','taxable','pretax','roth']).map((src, i, arr) => {
           const labels = { cash: 'Cash / HYS', taxable: 'Brokerage', pretax: 'Pre-Tax (401k/IRA)', roth: 'Roth' };
           const colors = { cash: 'var(--cyan)', taxable: 'var(--amber)', pretax: 'var(--blue)', roth: 'var(--green)' };
@@ -4440,6 +4455,7 @@ function renderInputs() {
             </div>
           </div>`;
         }).join('')}
+        ${JSON.stringify(p.withdrawalOrder || ['cash','taxable','pretax','roth']) !== JSON.stringify(['cash','taxable','pretax','roth']) ? `<button onclick="resetWithdrawalOrder()" style="margin-top:8px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);padding:6px 12px;font-size:11px;font-weight:500;cursor:pointer;transition:all 0.2s">&#8634; Reset to recommended order</button>` : ''}
       </div>
       <div style="margin-top:16px;font-size:12px;color:var(--text-faint);line-height:1.7">
         <strong style="color:var(--text-muted)">Model notes:</strong> 2025 tax brackets (OBBB Act). Std deduction $${STD_DEDUCTION.toLocaleString()} MFJ / $${STD_DEDUCTION_SINGLE.toLocaleString()} single + senior additions. SS taxation per IRS §86. SSA 2025 bend points &amp; wage base.
@@ -4546,7 +4562,7 @@ function renderProjectionTable(proj) {
       { head:'RMD', key:'rmd', color:'var(--purple)', isCurrency:true },
       { head:'QCD', key:'qcd', color:'var(--amber)', isCurrency:true },
       { head:'Charity', key:'charityTotal', color:'var(--amber)', isCurrency:true },
-      { head:'Roth Conv', key:'rothConv', color:'var(--cyan)', isCurrency:true },
+      { head:'Roth Conversions', key:'rothConv', color:'var(--cyan)', isCurrency:true },
       { head:'IRMAA', key:'irmaa', color:'var(--pink)', isCurrency:true },
       { head:'Medicare', key:'medicareCost', color:'var(--pink)', isCurrency:true },
       { head:'Pre-Tax', key:'preTax', color:'var(--blue)', isCurrency:true },
