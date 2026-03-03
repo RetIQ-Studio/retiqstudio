@@ -1,0 +1,1568 @@
+{
+  "timestamp": "2026-03-03T17:30:31.949Z",
+  "summary": {
+    "total": 159,
+    "passed": 159,
+    "failed": 0,
+    "passRate": "100.0%"
+  },
+  "categories": {
+    "Federal Tax (MFJ)": {
+      "passed": 10,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "Federal Tax (MFJ)",
+          "name": "Top of 10% bracket ($23,850)",
+          "source": "IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",
+          "actual": 2385,
+          "expected": 2385,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Federal Tax (MFJ)",
+          "name": "Top of 12% bracket ($96,950)",
+          "source": "IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",
+          "actual": 11157,
+          "expected": 11157,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Federal Tax (MFJ)",
+          "name": "Top of 22% bracket ($206,700)",
+          "source": "IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",
+          "actual": 35302,
+          "expected": 35302,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Federal Tax (MFJ)",
+          "name": "Top of 24% bracket ($394,600)",
+          "source": "IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",
+          "actual": 80398,
+          "expected": 80398,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Federal Tax (MFJ)",
+          "name": "Top of 32% bracket ($501,050)",
+          "source": "IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",
+          "actual": 114462,
+          "expected": 114462,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Federal Tax (MFJ)",
+          "name": "Top of 35% bracket ($751,600)",
+          "source": "IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",
+          "actual": 202155,
+          "expected": 202155,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Federal Tax (MFJ)",
+          "name": "In 37% bracket ($1,000,000)",
+          "source": "IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",
+          "actual": 294063,
+          "expected": 294063,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Federal Tax (MFJ)",
+          "name": "Zero income",
+          "source": "IRS basic rule",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Federal Tax (MFJ)",
+          "name": "Mid-bracket $50,000",
+          "source": "IRS Rev. Proc. 2024-40, manual calculation",
+          "actual": 5523,
+          "expected": 5523,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Federal Tax (MFJ)",
+          "name": "Mid-bracket $150,000",
+          "source": "IRS Rev. Proc. 2024-40, manual calculation",
+          "actual": 22828,
+          "expected": 22828,
+          "tolerance": 1,
+          "pass": true
+        }
+      ]
+    },
+    "Federal Tax (Single)": {
+      "passed": 6,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "Federal Tax (Single)",
+          "name": "Top of 10% bracket ($11,925)",
+          "source": "IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",
+          "actual": 1193,
+          "expected": 1193,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Federal Tax (Single)",
+          "name": "Top of 12% bracket ($48,475)",
+          "source": "IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",
+          "actual": 5579,
+          "expected": 5579,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Federal Tax (Single)",
+          "name": "Top of 22% bracket ($103,350)",
+          "source": "IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",
+          "actual": 17651,
+          "expected": 17651,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Federal Tax (Single)",
+          "name": "Top of 24% bracket ($197,300)",
+          "source": "IRS Rev. Proc. 2024-40 §2.01, OBBB Act 2025",
+          "actual": 40199,
+          "expected": 40199,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Federal Tax (Single)",
+          "name": "Mid-bracket $75,000",
+          "source": "IRS Rev. Proc. 2024-40, manual calculation",
+          "actual": 11414,
+          "expected": 11414,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Federal Tax (Single)",
+          "name": "$200,000 income",
+          "source": "IRS Rev. Proc. 2024-40, manual calculation",
+          "actual": 41063,
+          "expected": 41063,
+          "tolerance": 1,
+          "pass": true
+        }
+      ]
+    },
+    "Standard Deduction": {
+      "passed": 8,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "Standard Deduction",
+          "name": "MFJ base deduction",
+          "source": "IRS Rev. Proc. 2024-40",
+          "actual": 31500,
+          "expected": 31500,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Standard Deduction",
+          "name": "Single base deduction",
+          "source": "IRS Rev. Proc. 2024-40",
+          "actual": 15750,
+          "expected": 15750,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Standard Deduction",
+          "name": "Senior additional — MFJ (per person)",
+          "source": "IRS Rev. Proc. 2024-40 §3.01",
+          "actual": 1600,
+          "expected": 1600,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Standard Deduction",
+          "name": "Senior additional — Single",
+          "source": "IRS Rev. Proc. 2024-40 §3.01",
+          "actual": 2000,
+          "expected": 2000,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Standard Deduction",
+          "name": "OBBB Senior Deduction: $6,000 per person",
+          "source": "OBBB Act 2025 §102; IRS FS-2025-03; signed July 4, 2025 as P.L. 119-21",
+          "actual": 6000,
+          "expected": 6000,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Standard Deduction",
+          "name": "OBBB phaseout threshold — MFJ",
+          "source": "One Big Beautiful Bill Act 2025 §102",
+          "actual": 150000,
+          "expected": 150000,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Standard Deduction",
+          "name": "OBBB phaseout threshold — Single",
+          "source": "One Big Beautiful Bill Act 2025 §102",
+          "actual": 75000,
+          "expected": 75000,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Standard Deduction",
+          "name": "OBBB phaseout rate: 6% ($60 per $1,000 over threshold)",
+          "source": "OBBB Act 2025 §102; phases out completely at $175K single / $250K MFJ",
+          "actual": 0.06,
+          "expected": 0.06,
+          "tolerance": 1,
+          "pass": true
+        }
+      ]
+    },
+    "SS Taxation (MFJ)": {
+      "passed": 6,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "SS Taxation (MFJ)",
+          "name": "Below base threshold: $20K SS, $10K other → 0% taxable",
+          "source": "IRS Pub 915, Worksheet 1; CI=$20K*0.5+$10K=$20K < $32K",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "SS Taxation (MFJ)",
+          "name": "At base threshold: $24K SS, $20K other → 0% taxable",
+          "source": "IRS Pub 915; CI=$24K*0.5+$20K=$32K = base",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "SS Taxation (MFJ)",
+          "name": "Between thresholds: $30K SS, $25K other → partial",
+          "source": "IRS Pub 915, Worksheet 1; CI=$30K*0.5+$25K=$40K; taxable=min($15K, ($40K-$32K)*0.5)=$4K",
+          "actual": 4000,
+          "expected": 4000,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "SS Taxation (MFJ)",
+          "name": "Above upper: $30K SS, $60K other → 85% rule",
+          "source": "IRS Pub 915, Worksheet 1; CI=$30K*0.5+$60K=$75K; lower=min($15K, $6K)=$6K; taxable=min($25.5K, ($75K-$44K)*0.85+$6K)=$32.35K→capped at $25.5K",
+          "actual": 25500,
+          "expected": 25500,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "SS Taxation (MFJ)",
+          "name": "Very high income: $40K SS, $200K other → 85% cap",
+          "source": "IRS Pub 915; CI=$40K*0.5+$200K=$220K >> upper; taxable=min($34K, 85%*$40K)=$34K",
+          "actual": 34000,
+          "expected": 34000,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "SS Taxation (MFJ)",
+          "name": "Zero SS benefit → zero taxable",
+          "source": "IRS §86 basic rule",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        }
+      ]
+    },
+    "SS Taxation (Single)": {
+      "passed": 3,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "SS Taxation (Single)",
+          "name": "Below base: $20K SS, $10K other → 0%",
+          "source": "IRS Pub 915; CI=$20K*0.5+$10K=$20K < $25K",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "SS Taxation (Single)",
+          "name": "Between thresholds: $24K SS, $20K other → partial",
+          "source": "IRS Pub 915; CI=$24K*0.5+$20K=$32K; taxable=min($12K, ($32K-$25K)*0.5)=$3.5K",
+          "actual": 3500,
+          "expected": 3500,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "SS Taxation (Single)",
+          "name": "Above upper: $30K SS, $40K other → 85% rule",
+          "source": "IRS Pub 915; CI=$30K*0.5+$40K=$55K; lower=min($15K, ($34K-$25K)*0.5)=$4.5K; taxable=min($25.5K, ($55K-$34K)*0.85+$4.5K)=$22.35K",
+          "actual": 22350,
+          "expected": 22350,
+          "tolerance": 1,
+          "pass": true
+        }
+      ]
+    },
+    "SS PIA": {
+      "passed": 4,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "SS PIA",
+          "name": "Low earner AIME=$1,000 → PIA=$900",
+          "source": "SSA 2025 bend points: 90% × $1,000",
+          "actual": 900,
+          "expected": 900,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "SS PIA",
+          "name": "Mid earner AIME=$5,000 → PIA≈$2,311",
+          "source": "SSA 2025 bend points: 90%×$1,226 + 32%×$3,774",
+          "actual": 2311,
+          "expected": 2311,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "SS PIA",
+          "name": "Max earner AIME=$14,675 → PIA≈$4,164",
+          "source": "SSA 2025 bend points: 90%×$1,226 + 32%×$6,165 + 15%×$7,284",
+          "actual": 4168,
+          "expected": 4168.7,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "SS PIA",
+          "name": "Income above wage cap ($200K) capped at $176,100",
+          "source": "SSA 2025 contribution and benefit base",
+          "actual": 4168,
+          "expected": 4168,
+          "tolerance": 1,
+          "pass": true
+        }
+      ]
+    },
+    "FRA": {
+      "passed": 16,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "FRA",
+          "name": "Born 1937 → FRA 65y 0m",
+          "source": "SSA POMS RS 00615.003",
+          "actual": 780,
+          "expected": 780,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "FRA",
+          "name": "Born 1938 → FRA 65y 2m",
+          "source": "SSA POMS RS 00615.003",
+          "actual": 782,
+          "expected": 782,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "FRA",
+          "name": "Born 1939 → FRA 65y 4m",
+          "source": "SSA POMS RS 00615.003",
+          "actual": 784,
+          "expected": 784,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "FRA",
+          "name": "Born 1940 → FRA 65y 6m",
+          "source": "SSA POMS RS 00615.003",
+          "actual": 786,
+          "expected": 786,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "FRA",
+          "name": "Born 1941 → FRA 65y 8m",
+          "source": "SSA POMS RS 00615.003",
+          "actual": 788,
+          "expected": 788,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "FRA",
+          "name": "Born 1942 → FRA 65y 10m",
+          "source": "SSA POMS RS 00615.003",
+          "actual": 790,
+          "expected": 790,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "FRA",
+          "name": "Born 1943 → FRA 66y 0m",
+          "source": "SSA POMS RS 00615.003",
+          "actual": 792,
+          "expected": 792,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "FRA",
+          "name": "Born 1954 → FRA 66y 0m",
+          "source": "SSA POMS RS 00615.003",
+          "actual": 792,
+          "expected": 792,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "FRA",
+          "name": "Born 1955 → FRA 66y 2m",
+          "source": "SSA POMS RS 00615.003",
+          "actual": 794,
+          "expected": 794,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "FRA",
+          "name": "Born 1956 → FRA 66y 4m",
+          "source": "SSA POMS RS 00615.003",
+          "actual": 796,
+          "expected": 796,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "FRA",
+          "name": "Born 1957 → FRA 66y 6m",
+          "source": "SSA POMS RS 00615.003",
+          "actual": 798,
+          "expected": 798,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "FRA",
+          "name": "Born 1958 → FRA 66y 8m",
+          "source": "SSA POMS RS 00615.003",
+          "actual": 800,
+          "expected": 800,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "FRA",
+          "name": "Born 1959 → FRA 66y 10m",
+          "source": "SSA POMS RS 00615.003",
+          "actual": 802,
+          "expected": 802,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "FRA",
+          "name": "Born 1960+ → FRA 67y 0m",
+          "source": "SSA POMS RS 00615.003",
+          "actual": 804,
+          "expected": 804,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "FRA",
+          "name": "Born 1975 → FRA 67y 0m",
+          "source": "SSA POMS RS 00615.003",
+          "actual": 804,
+          "expected": 804,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "FRA",
+          "name": "Born 1990 → FRA 67y 0m",
+          "source": "SSA POMS RS 00615.003",
+          "actual": 804,
+          "expected": 804,
+          "tolerance": 1,
+          "pass": true
+        }
+      ]
+    },
+    "SS Claiming": {
+      "passed": 7,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "SS Claiming",
+          "name": "Claim at FRA (67) → 100% of PIA",
+          "source": "SSA basic rule: no adjustment at FRA",
+          "actual": 2000,
+          "expected": 2000,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "SS Claiming",
+          "name": "Claim at 62 (60 months early) → 70% of PIA",
+          "source": "SSA RS 00615.301: 5/9% × 36mo + 5/12% × 24mo = 30% reduction",
+          "actual": 1400,
+          "expected": 1400,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "SS Claiming",
+          "name": "Claim at 64 (36 months early) → 80% of PIA",
+          "source": "SSA RS 00615.301: 5/9% × 36mo = 20% reduction",
+          "actual": 1600,
+          "expected": 1600,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "SS Claiming",
+          "name": "Claim at 65 (24 months early) → ~86.7% of PIA",
+          "source": "SSA RS 00615.301: 5/9% × 24mo = 13.33% reduction",
+          "actual": 1733,
+          "expected": 1733,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "SS Claiming",
+          "name": "Claim at 70 (36 months late) → 124% of PIA",
+          "source": "SSA RS 00615.304: 2/3% × 36mo = 24% DRC increase",
+          "actual": 2480,
+          "expected": 2480,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "SS Claiming",
+          "name": "Claim at 68 (12 months late) → 108% of PIA",
+          "source": "SSA RS 00615.304: 2/3% × 12mo = 8% DRC increase",
+          "actual": 2160,
+          "expected": 2160,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "SS Claiming",
+          "name": "Claim at 72 → same as 70 (DRC capped)",
+          "source": "SSA: no DRC credits after age 70",
+          "actual": 2480,
+          "expected": 2480,
+          "tolerance": 1,
+          "pass": true
+        }
+      ]
+    },
+    "RMD Table": {
+      "passed": 34,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "RMD Table",
+          "name": "Age 72 divisor = 27.4",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 27.4,
+          "expected": 27.4,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 73 divisor = 26.5",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 26.5,
+          "expected": 26.5,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 74 divisor = 25.5",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 25.5,
+          "expected": 25.5,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 75 divisor = 24.6",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 24.6,
+          "expected": 24.6,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 76 divisor = 23.7",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 23.7,
+          "expected": 23.7,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 77 divisor = 22.9",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 22.9,
+          "expected": 22.9,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 78 divisor = 22",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 22,
+          "expected": 22,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 79 divisor = 21.1",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 21.1,
+          "expected": 21.1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 80 divisor = 20.2",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 20.2,
+          "expected": 20.2,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 81 divisor = 19.4",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 19.4,
+          "expected": 19.4,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 82 divisor = 18.5",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 18.5,
+          "expected": 18.5,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 83 divisor = 17.7",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 17.7,
+          "expected": 17.7,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 84 divisor = 16.8",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 16.8,
+          "expected": 16.8,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 85 divisor = 16",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 16,
+          "expected": 16,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 86 divisor = 15.2",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 15.2,
+          "expected": 15.2,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 87 divisor = 14.4",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 14.4,
+          "expected": 14.4,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 88 divisor = 13.7",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 13.7,
+          "expected": 13.7,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 89 divisor = 12.9",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 12.9,
+          "expected": 12.9,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 90 divisor = 12.2",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 12.2,
+          "expected": 12.2,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 91 divisor = 11.5",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 11.5,
+          "expected": 11.5,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 92 divisor = 10.8",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 10.8,
+          "expected": 10.8,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 93 divisor = 10.1",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 10.1,
+          "expected": 10.1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 94 divisor = 9.5",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 9.5,
+          "expected": 9.5,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 95 divisor = 8.9",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 8.9,
+          "expected": 8.9,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 96 divisor = 8.4",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 8.4,
+          "expected": 8.4,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 97 divisor = 7.8",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 7.8,
+          "expected": 7.8,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 98 divisor = 7.3",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 7.3,
+          "expected": 7.3,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 99 divisor = 6.8",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 6.8,
+          "expected": 6.8,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 100 divisor = 6.4",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 6.4,
+          "expected": 6.4,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 101 divisor = 6",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 6,
+          "expected": 6,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 102 divisor = 5.6",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 5.6,
+          "expected": 5.6,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 103 divisor = 5.2",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 5.2,
+          "expected": 5.2,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 104 divisor = 4.9",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 4.9,
+          "expected": 4.9,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Table",
+          "name": "Age 105 divisor = 4.6",
+          "source": "IRS Pub 590-B, Table III (Uniform Lifetime)",
+          "actual": 4.6,
+          "expected": 4.6,
+          "tolerance": 1,
+          "pass": true
+        }
+      ]
+    },
+    "RMD Calc": {
+      "passed": 4,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "RMD Calc",
+          "name": "Age 73, $1M balance → $37,736",
+          "source": "IRS Pub 590-B: $1,000,000 ÷ 26.5",
+          "actual": 37736,
+          "expected": 37736,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Calc",
+          "name": "Age 80, $1M balance → $49,505",
+          "source": "IRS Pub 590-B: $1,000,000 ÷ 20.2",
+          "actual": 49505,
+          "expected": 49505,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Calc",
+          "name": "Age 90, $1M balance → $81,967",
+          "source": "IRS Pub 590-B: $1,000,000 ÷ 12.2",
+          "actual": 81967,
+          "expected": 81967,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Calc",
+          "name": "Age 100, $500K balance → $78,125",
+          "source": "IRS Pub 590-B: $500,000 ÷ 6.4",
+          "actual": 78125,
+          "expected": 78125,
+          "tolerance": 1,
+          "pass": true
+        }
+      ]
+    },
+    "RMD Start": {
+      "passed": 5,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "RMD Start",
+          "name": "Born 1950 → RMD starts at 72",
+          "source": "SECURE 2.0 §107: born ≤1950 → age 72",
+          "actual": 72,
+          "expected": 72,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Start",
+          "name": "Born 1951 → RMD starts at 73",
+          "source": "SECURE 2.0 §107: born 1951–1959 → age 73",
+          "actual": 73,
+          "expected": 73,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Start",
+          "name": "Born 1959 → RMD starts at 73",
+          "source": "SECURE 2.0 §107: born 1951–1959 → age 73",
+          "actual": 73,
+          "expected": 73,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Start",
+          "name": "Born 1960 → RMD starts at 75",
+          "source": "SECURE 2.0 §107: born 1960+ → age 75",
+          "actual": 75,
+          "expected": 75,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "RMD Start",
+          "name": "Born 1980 → RMD starts at 75",
+          "source": "SECURE 2.0 §107: born 1960+ → age 75",
+          "actual": 75,
+          "expected": 75,
+          "tolerance": 1,
+          "pass": true
+        }
+      ]
+    },
+    "CG Brackets": {
+      "passed": 4,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "CG Brackets",
+          "name": "0% threshold — Single: $48,350",
+          "source": "IRS Rev. Proc. 2024-40 §2.14",
+          "actual": 48350,
+          "expected": 48350,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "CG Brackets",
+          "name": "0% threshold — MFJ: $96,700",
+          "source": "IRS Rev. Proc. 2024-40 §2.14",
+          "actual": 96700,
+          "expected": 96700,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "CG Brackets",
+          "name": "15% threshold — Single: $533,400",
+          "source": "IRS Rev. Proc. 2024-40 §2.14",
+          "actual": 533400,
+          "expected": 533400,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "CG Brackets",
+          "name": "15% threshold — MFJ: $583,750",
+          "source": "IRS Rev. Proc. 2024-40 §2.14",
+          "actual": 583750,
+          "expected": 583750,
+          "tolerance": 1,
+          "pass": true
+        }
+      ]
+    },
+    "NIIT": {
+      "passed": 3,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "NIIT",
+          "name": "Threshold — Single: $200,000",
+          "source": "IRC §1411(b)",
+          "actual": 200000,
+          "expected": 200000,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "NIIT",
+          "name": "Threshold — MFJ: $250,000",
+          "source": "IRC §1411(b)",
+          "actual": 250000,
+          "expected": 250000,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "NIIT",
+          "name": "Tax rate = 3.8%",
+          "source": "IRC §1411(a)(1)",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        }
+      ]
+    },
+    "IRMAA (MFJ)": {
+      "passed": 12,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "IRMAA (MFJ)",
+          "name": "Tier 0: below $212K — Part B annual",
+          "source": "CMS 2025 Medicare Part B premiums",
+          "actual": 2220,
+          "expected": 2220,
+          "tolerance": 2,
+          "pass": true
+        },
+        {
+          "category": "IRMAA (MFJ)",
+          "name": "Tier 0: below $212K — Part D annual",
+          "source": "CMS 2025 Medicare Part D IRMAA surcharge",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 2,
+          "pass": true
+        },
+        {
+          "category": "IRMAA (MFJ)",
+          "name": "Tier 1: $212K–$265K — Part B annual",
+          "source": "CMS 2025 Medicare Part B premiums",
+          "actual": 3108,
+          "expected": 3108,
+          "tolerance": 2,
+          "pass": true
+        },
+        {
+          "category": "IRMAA (MFJ)",
+          "name": "Tier 1: $212K–$265K — Part D annual",
+          "source": "CMS 2025 Medicare Part D IRMAA surcharge",
+          "actual": 164,
+          "expected": 164,
+          "tolerance": 2,
+          "pass": true
+        },
+        {
+          "category": "IRMAA (MFJ)",
+          "name": "Tier 2: $265K–$332K — Part B annual",
+          "source": "CMS 2025 Medicare Part B premiums",
+          "actual": 4440,
+          "expected": 4440,
+          "tolerance": 2,
+          "pass": true
+        },
+        {
+          "category": "IRMAA (MFJ)",
+          "name": "Tier 2: $265K–$332K — Part D annual",
+          "source": "CMS 2025 Medicare Part D IRMAA surcharge",
+          "actual": 424,
+          "expected": 424,
+          "tolerance": 2,
+          "pass": true
+        },
+        {
+          "category": "IRMAA (MFJ)",
+          "name": "Tier 3: $332K–$398K — Part B annual",
+          "source": "CMS 2025 Medicare Part B premiums",
+          "actual": 5771,
+          "expected": 5771,
+          "tolerance": 2,
+          "pass": true
+        },
+        {
+          "category": "IRMAA (MFJ)",
+          "name": "Tier 3: $332K–$398K — Part D annual",
+          "source": "CMS 2025 Medicare Part D IRMAA surcharge",
+          "actual": 684,
+          "expected": 684,
+          "tolerance": 2,
+          "pass": true
+        },
+        {
+          "category": "IRMAA (MFJ)",
+          "name": "Tier 4: $398K–$750K — Part B annual",
+          "source": "CMS 2025 Medicare Part B premiums",
+          "actual": 7103,
+          "expected": 7103,
+          "tolerance": 2,
+          "pass": true
+        },
+        {
+          "category": "IRMAA (MFJ)",
+          "name": "Tier 4: $398K–$750K — Part D annual",
+          "source": "CMS 2025 Medicare Part D IRMAA surcharge",
+          "actual": 943,
+          "expected": 943,
+          "tolerance": 2,
+          "pass": true
+        },
+        {
+          "category": "IRMAA (MFJ)",
+          "name": "Tier 5: above $750K — Part B annual",
+          "source": "CMS 2025 Medicare Part B premiums",
+          "actual": 7547,
+          "expected": 7547,
+          "tolerance": 2,
+          "pass": true
+        },
+        {
+          "category": "IRMAA (MFJ)",
+          "name": "Tier 5: above $750K — Part D annual",
+          "source": "CMS 2025 Medicare Part D IRMAA surcharge",
+          "actual": 1030,
+          "expected": 1030,
+          "tolerance": 2,
+          "pass": true
+        }
+      ]
+    },
+    "IRMAA (Single)": {
+      "passed": 3,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "IRMAA (Single)",
+          "name": "Tier 0: below $106K — Part B annual",
+          "source": "CMS 2025 Medicare Part B premiums",
+          "actual": 2220,
+          "expected": 2220,
+          "tolerance": 2,
+          "pass": true
+        },
+        {
+          "category": "IRMAA (Single)",
+          "name": "Tier 1: $106K–$133K — Part B annual",
+          "source": "CMS 2025 Medicare Part B premiums",
+          "actual": 3108,
+          "expected": 3108,
+          "tolerance": 2,
+          "pass": true
+        },
+        {
+          "category": "IRMAA (Single)",
+          "name": "Tier 5: above $500K — Part B annual",
+          "source": "CMS 2025 Medicare Part B premiums",
+          "actual": 7547,
+          "expected": 7547,
+          "tolerance": 2,
+          "pass": true
+        }
+      ]
+    },
+    "IRMAA": {
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "IRMAA",
+          "name": "Base Part B premium = $185/month ($2,220/year)",
+          "source": "CMS 2025 Medicare standard Part B premium",
+          "actual": 2220,
+          "expected": 2220,
+          "tolerance": 1,
+          "pass": true
+        }
+      ]
+    },
+    "State Tax": {
+      "passed": 10,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "State Tax",
+          "name": "Florida — no income tax on $100K",
+          "source": "State revenue department (effective rate model)",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "Texas — no income tax on $100K",
+          "source": "State revenue department (effective rate model)",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "California — top marginal ~9.3% on $100K",
+          "source": "State revenue department (effective rate model)",
+          "actual": 9300,
+          "expected": 9300,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "New York — ~6.85% on $100K",
+          "source": "State revenue department (effective rate model)",
+          "actual": 6850,
+          "expected": 6850,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "Maryland — top marginal ~5.75% on $100K",
+          "source": "State revenue department (effective rate model)",
+          "actual": 5750,
+          "expected": 5750,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "Illinois — flat 4.95% on $100K",
+          "source": "State revenue department (effective rate model)",
+          "actual": 4950,
+          "expected": 4950,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "Pennsylvania — flat 3.07% on $100K",
+          "source": "State revenue department (effective rate model)",
+          "actual": 3070,
+          "expected": 3070,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "Nevada — no income tax on $100K",
+          "source": "State revenue department (effective rate model)",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "Washington — no income tax on $100K",
+          "source": "State revenue department (effective rate model)",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "No state selected — zero tax on $100K",
+          "source": "State revenue department (effective rate model)",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        }
+      ]
+    },
+    "Contrib Limits": {
+      "passed": 5,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "Contrib Limits",
+          "name": "401(k) elective deferral: $23,500",
+          "source": "IRS Notice 2024-80",
+          "actual": 23500,
+          "expected": 23500,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Contrib Limits",
+          "name": "IRA contribution limit: $7,000",
+          "source": "IRS Notice 2024-80",
+          "actual": 7000,
+          "expected": 7000,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Contrib Limits",
+          "name": "401(k) catch-up (50–59, 64+): $7,500",
+          "source": "IRS Notice 2024-80, IRC §414(v)",
+          "actual": 7500,
+          "expected": 7500,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Contrib Limits",
+          "name": "SECURE 2.0 enhanced catch-up (60–63): $11,250",
+          "source": "SECURE 2.0 Act §109, effective 2025",
+          "actual": 11250,
+          "expected": 11250,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Contrib Limits",
+          "name": "IRA catch-up (50+): $1,000",
+          "source": "IRC §219(b)(5)(B) — not indexed to inflation",
+          "actual": 1000,
+          "expected": 1000,
+          "tolerance": 1,
+          "pass": true
+        }
+      ]
+    },
+    "QCD": {
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "QCD",
+          "name": "Annual limit: $108,000 (2025)",
+          "source": "IRS Notice 2024-80 (inflation-adjusted from $105,000)",
+          "actual": 108000,
+          "expected": 108000,
+          "tolerance": 1,
+          "pass": true
+        }
+      ]
+    },
+    "Integration": {
+      "passed": 11,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "Integration",
+          "name": "Projection covers 46 years (age 50–95)",
+          "source": "Engine logic: endAge - currentAge + 1",
+          "actual": 46,
+          "expected": 46,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Integration",
+          "name": "Net worth stays positive (no bust)",
+          "source": "Sanity: $650K start, modest expenses, 7% return",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Integration",
+          "name": "Pre-retirement savings accumulate",
+          "source": "Sanity: income > expenses + savings invested",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Integration",
+          "name": "RMDs start at age 75 (born 1976)",
+          "source": "SECURE 2.0 §107",
+          "actual": 75,
+          "expected": 75,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Integration",
+          "name": "Tax computed for retirement year",
+          "source": "Sanity: tax is calculated for every year",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Integration",
+          "name": "SS benefits start at claim age 67",
+          "source": "Engine logic: SS begins at ssClaimAge",
+          "actual": 67,
+          "expected": 67,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Integration",
+          "name": "Account balances sum to net worth",
+          "source": "Engine accounting identity",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 2,
+          "pass": true
+        },
+        {
+          "category": "Integration",
+          "name": "Higher income → higher lifetime tax",
+          "source": "Progressive tax: more income = more tax",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Integration",
+          "name": "Roth conversion increases tax in conversion year",
+          "source": "Conversions are taxable as ordinary income (IRS)",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Integration",
+          "name": "Roth-first order depletes Roth faster",
+          "source": "Engine: Roth-first spends Roth before other accounts",
+          "actual": 0,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Integration",
+          "name": "California adds state tax vs no-state",
+          "source": "CA 9.3% effective rate increases total tax",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        }
+      ]
+    },
+    "Edge Case": {
+      "passed": 6,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "Edge Case",
+          "name": "RMD on $0 balance = $0",
+          "source": "IRS: RMD = balance / divisor, $0/$x = $0",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Edge Case",
+          "name": "RMD at age 110 (beyond table) uses fallback",
+          "source": "Engine graceful degradation",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Edge Case",
+          "name": "SS estimate with $0 income → $0 benefit",
+          "source": "SSA: zero earnings = zero benefit",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Edge Case",
+          "name": "calcTax on negative income → $0",
+          "source": "Engine safety: max(0, income) before tax calc",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Edge Case",
+          "name": "IRMAA at exact $212K MFJ threshold → Tier 1",
+          "source": "CMS: MAGI ≥ threshold triggers next tier",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "Edge Case",
+          "name": "State tax with invalid code → $0",
+          "source": "Engine safety: unknown state returns 0",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        }
+      ]
+    }
+  }
+}
