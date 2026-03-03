@@ -71,7 +71,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <li><a href="#accounts">Accounts Tab</a></li>
       <li><a href="#pension">Pension Tab</a></li>
       <li><a href="#ss">Social Security Tab</a></li>
-      <li><a href="#ssdi">SSDI Tab</a></li>
+      <li><a href="#ssdi">Disability (SSDI) Tab</a></li>
       <li><a href="#healthcare">Healthcare Tab</a></li>
       <li><a href="#medicare">Medicare Tab</a></li>
       <li><a href="#rothconv">Roth Conversion Tab</a></li>
@@ -110,7 +110,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <h2>2. Navigation &amp; Layout</h2>
     <p>The app has two rows of navigation:</p>
     <p><strong>Top row (main nav):</strong> Switches between major views &mdash; Inputs, Dashboard, Projection, Monte Carlo, and Scenarios.</p>
-    <p><strong>Sub-nav (inside Inputs):</strong> Switches between input categories &mdash; Personal, Income, Expenses, Accounts, Pension, Social Security, SSDI, Liabilities, Healthcare, Medicare, Roth Conv., Charity/QCD, Legacy, and Assumptions. The sub-nav sticks to the top of the screen when you scroll.</p>
+    <p><strong>Sub-nav (inside Inputs):</strong> Switches between input categories &mdash; Personal, Income, Expenses, Accounts, Pension, Social Security, Disability (SSDI), Liabilities, Healthcare, Medicare, Roth Conversions, Charitable Giving, Legacy, and Assumptions. The sub-nav sticks to the top of the screen when you scroll.</p>
     <p>The <strong>header bar</strong> also contains:</p>
     <ul>
       <li><strong>Today's $ / Future $</strong> toggle &mdash; switches all dollar values between inflation-adjusted and nominal.</li>
@@ -220,7 +220,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 9 -->
   <div class="sec" id="ssdi">
-    <h2>9. SSDI Tab</h2>
+    <h2>9. Disability (SSDI) Tab</h2>
     <p>Social Security Disability Insurance replaces a portion of your income if you become unable to work due to a qualifying disability. RetIQ models SSDI for either or both spouses, including its downstream effects on Medicare eligibility, Social Security transitions, taxes, and survivor benefits.</p>
 
     <h3>Setting Up SSDI</h3>
@@ -275,13 +275,13 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <li><strong>Healthcare Inflation:</strong> Annual increase in healthcare costs. Default: 5% (healthcare historically inflates faster than general CPI).</li>
     </ul>
     <p>The tab shows the cumulative healthcare cost during the gap years and the final-year premium to help you plan.</p>
-    <p><strong>SSDI and early Medicare:</strong> If you have SSDI enabled, RetIQ automatically shortens the healthcare gap. SSDI recipients qualify for Medicare after 24 months of benefits, so your gap coverage ends at your SSDI Start Age + 2 (or 65, whichever is earlier). See the <a href="#ssdi">SSDI Tab</a> section for details.</p>
+    <p><strong>SSDI and early Medicare:</strong> If you have SSDI enabled, RetIQ automatically shortens the healthcare gap. SSDI recipients qualify for Medicare after 24 months of benefits, so your gap coverage ends at your SSDI Start Age + 2 (or 65, whichever is earlier). See the <a href="#ssdi">Disability (SSDI) Tab</a> section for details.</p>
   </div>
 
   <!-- 11 -->
   <div class="sec" id="medicare">
     <h2>11. Medicare Tab</h2>
-    <p>Medicare modeling begins at age 65 for most people, or earlier if SSDI triggers the 24-month early eligibility rule (see <a href="#ssdi">SSDI Tab</a>). Key components:</p>
+    <p>Medicare modeling begins at age 65 for most people, or earlier if SSDI triggers the 24-month early eligibility rule (see <a href="#ssdi">Disability (SSDI) Tab</a>). Key components:</p>
     <ul>
       <li><strong>Base Part B premium:</strong> $185/month (2025).</li>
       <li><strong>IRMAA surcharges:</strong> Additional premiums triggered when your MAGI (from 2 years prior) exceeds income thresholds. Roth conversions count toward MAGI and can trigger IRMAA.</li>
@@ -303,7 +303,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <li><strong>Fixed Amount:</strong> Convert a set dollar amount each year (e.g., $50K/yr).</li>
       <li><strong>Fill Tax Bracket:</strong> Convert enough each year to fill taxable income up to a target bracket (e.g., fill the 22% bracket). This is the most common approach &mdash; it automatically adjusts the conversion amount based on your other income in each year.</li>
       <li><strong>Smart Fill (IRMAA-Aware):</strong> Like Fill Tax Bracket, but caps conversions before crossing the next Medicare IRMAA tier. Prevents surprise surcharges that can erase conversion benefits.</li>
-      <li><strong>Target MAGI Ceiling:</strong> Convert up to a total MAGI limit. Useful for staying below IRMAA thresholds.</li>
+      <li><strong>Target Income (MAGI) Ceiling:</strong> Convert up to a total Modified Adjusted Gross Income (MAGI) limit. Useful for staying below Medicare surcharge (IRMAA) thresholds.</li>
       <li><strong>% of Pre-Tax Balance:</strong> Convert a percentage of remaining pre-tax balance each year. The amount naturally decreases as the balance shrinks.</li>
       <li><strong>Custom Schedule:</strong> Set a specific conversion amount for each year in the conversion window. Use the Generate Optimal button to auto-fill amounts based on greedy per-year optimization.</li>
     </ul>
@@ -370,7 +370,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>The real (after-inflation) return is computed as: (1 + nominal) / (1 + inflation) - 1. For example, 7% nominal with 3% inflation gives approximately 3.9% real return.</p>
 
     <h3>Retirement Withdrawal Order</h3>
-    <p>Set the priority for which accounts fund retirement spending. The default order is Cash/HYS &rarr; Brokerage &rarr; Pre-Tax &rarr; Roth. Use the arrow buttons to reorder. Each bucket has different tax treatment:</p>
+    <p>This is the order RetIQ draws from your accounts in retirement. The default order (Cash &rarr; Brokerage &rarr; Pre-Tax &rarr; Roth) is a widely-used approach: spend taxable money first and let tax-advantaged accounts keep growing. Roth goes last because it grows tax-free and passes to heirs tax-free. Use the arrow buttons to reorder, or click &ldquo;Reset to recommended&rdquo; to restore the default. Each bucket has different tax treatment:</p>
     <ul>
       <li><strong>Cash / HYS:</strong> Zero capital gains &mdash; pure principal return. Interest is taxed annually as ordinary income regardless of withdrawals.</li>
       <li><strong>Brokerage:</strong> Gains taxed at capital gains rate (estimated 50% cost basis).</li>
@@ -542,7 +542,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Clear your browser's local storage for retirementiq.app, or use your browser's developer tools (Application &gt; Local Storage &gt; Clear). A fresh reload will start with default values.</p>
 
     <h3>Does SSDI affect my Medicare start age?</h3>
-    <p>Yes. RetIQ automatically starts Medicare at SSDI Start Age + 2 years (or 65, whichever is first). This reflects the federal 24-month qualifying period. Pre-Medicare healthcare gap costs, Medicare premiums, and IRMAA all adjust accordingly. See the <a href="#ssdi">SSDI Tab</a> section for full details and scenarios.</p>
+    <p>Yes. RetIQ automatically starts Medicare at SSDI Start Age + 2 years (or 65, whichever is first). This reflects the federal 24-month qualifying period. Pre-Medicare healthcare gap costs, Medicare premiums, and IRMAA all adjust accordingly. See the <a href="#ssdi">Disability (SSDI) Tab</a> section for full details and scenarios.</p>
 
     <h3>How do I find the best strategy for my situation?</h3>
     <p>Use the <strong>Strategy Report Card</strong> on the Dashboard. It automatically tests alternative SS timing, Roth conversion, and retirement age strategies against your current plan. Choose your goal (max net worth, min taxes, etc.) and the table ranks every alternative. Click Apply on any row to adopt it instantly. For deeper Roth analysis, use the <a href="#rothconv">Roth Optimizer</a>. For stress-testing, use <a href="#scenarios">Scenario Comparison</a> and <a href="#montecarlo">Monte Carlo</a>.</p>
@@ -554,7 +554,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Your SSDI payments stop, but your surviving spouse can claim a survivor benefit based on your Social Security work record. RetIQ calculates this from your PIA (or your SSDI amount if no separate SS income was entered). The survivor receives the higher of their own SS benefit or the survivor benefit &mdash; not both.</p>
   </div>
 
-  <div class="footer">RetIQ v1.4 &middot; retirementiq.app &middot; Not financial advice &middot; All computation runs locally in your browser</div>
+  <div class="footer">RetIQ v1.5 &middot; retirementiq.app &middot; Not financial advice &middot; All computation runs locally in your browser</div>
 </div>
 </body>
 </html>

@@ -359,7 +359,7 @@ button:hover { opacity: 0.88; }
 <div class="header" style="flex-direction:column;align-items:stretch;">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;">
     <a href="https://retirementiq.app/?landing" class="logo-text" style="text-decoration:none;color:inherit">RetIQ</a>
-    <span class="logo-badge">v1.4</span>
+    <span class="logo-badge">v1.5</span>
     <span id="planBadge" class="plan-badge" title="Current plan">FREE</span>
     <button class="mobile-menu-btn" onclick="toggleMobileMenu()" id="mobileMenuBtn" aria-label="Menu">&#9776;</button>
     <div class="header-secondary" id="headerSecondary">
@@ -4157,7 +4157,7 @@ function renderInputs() {
       </div>
     </div>
 
-    <div class="card"><div class="card-title">Annual COLA Assumption (Both Spouses)</div>
+    <div class="card"><div class="card-title">Cost-of-Living Adjustment (Both Spouses)</div>
       ${field('Social Security COLA ' + tip('Cost-of-living adjustment &mdash; how much Social Security increases each year to keep up with inflation. The historical average is about 2-3%.'),'ssCOLA',{suffix:'%',help:'Historical avg ~2%. Applied after claiming to both you and spouse.'})}
     </div>
 
@@ -4251,7 +4251,7 @@ function renderInputs() {
     })()}`;
   }
 
-  // Feature #2: Charity/QCD tab
+  // Feature #2: Charitable Giving tab
   if (state.inputTab === 'charity') {
     const charity = p.charitableGiving || {};
     const sched = charity.schedule || [];
@@ -4942,7 +4942,7 @@ function render() {
     case 'scenarios': html = renderScenarios(proj); break;
     case 'validation': html = renderValidation(); break;
   }
-  html += '<div class="footer">RetIQ v1.4 &#183; Build 2026-02-27 01:05 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a> &#183; <a href="https://github.com/RetIQ-Studio/retiqstudio" target="_blank" style="color:var(--text-dim);text-decoration:none">Source (BSL 1.1)</a></div>';
+  html += '<div class="footer">RetIQ v1.5 &#183; Build 2026-03-03 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a> &#183; <a href="https://github.com/RetIQ-Studio/retiqstudio" target="_blank" style="color:var(--text-dim);text-decoration:none">Source (BSL 1.1)</a></div>';
   document.getElementById('app').innerHTML = html;
   updateHeaderHeight();
   // Scroll active sub-nav tab into view on mobile
