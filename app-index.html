@@ -383,7 +383,7 @@ button:hover { opacity: 0.88; }
 <div class="header" style="flex-direction:column;align-items:stretch;">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;">
     <a href="https://retirementiq.app/?landing" class="logo-text" style="text-decoration:none;color:inherit">RetIQ</a>
-    <span class="logo-badge">v1.8</span>
+    <span class="logo-badge">v1.9</span>
     <span id="planBadge" class="plan-badge" title="Current plan">FREE</span>
     <button class="mobile-menu-btn" onclick="toggleMobileMenu()" id="mobileMenuBtn" aria-label="Menu">&#9776;</button>
     <div class="header-secondary" id="headerSecondary">
@@ -545,6 +545,83 @@ const HC_SOURCES = {
   va:           { label: 'VA Healthcare',            single: 0,     couple: 0,     inf: 0, help: 'Veterans with qualifying service may have zero or very low healthcare costs.' },
   other:        { label: 'Other / Self-Pay',         single: 12000, couple: 18000, inf: 5, help: 'Health sharing ministries, short-term plans, direct primary care, or self-pay.' },
 };
+
+// ACA Premium Tax Credit — applicable percentage tables (v1.9)
+// Source: IRS Rev. Proc. 2024-35 (2025 enhanced), Rev. Proc. 2025-25 (2026+ original)
+// 2025 enhanced rates (ARPA/IRA) — no income cap, subsidies at any income level
+const ACA_PCT_ENHANCED = [
+  { minFPL: 0,   maxFPL: 150, minPct: 0,    maxPct: 0    },
+  { minFPL: 150, maxFPL: 200, minPct: 0,    maxPct: 2.0  },
+  { minFPL: 200, maxFPL: 250, minPct: 2.0,  maxPct: 4.0  },
+  { minFPL: 250, maxFPL: 300, minPct: 4.0,  maxPct: 6.0  },
+  { minFPL: 300, maxFPL: 400, minPct: 6.0,  maxPct: 8.5  },
+  { minFPL: 400, maxFPL: 9999,minPct: 8.5,  maxPct: 8.5  },
+];
+// 2026+ original ACA rates — hard cliff at 400% FPL (no subsidy above)
+const ACA_PCT_ORIGINAL = [
+  { minFPL: 0,   maxFPL: 133, minPct: 2.0,  maxPct: 2.0  },
+  { minFPL: 133, maxFPL: 150, minPct: 3.0,  maxPct: 4.0  },
+  { minFPL: 150, maxFPL: 200, minPct: 4.0,  maxPct: 6.52 },
+  { minFPL: 200, maxFPL: 250, minPct: 6.52, maxPct: 8.33 },
+  { minFPL: 250, maxFPL: 300, minPct: 8.33, maxPct: 9.83 },
+  { minFPL: 300, maxFPL: 400, minPct: 9.83, maxPct: 9.83 },
+];
+// 2025 Federal Poverty Level — 48 contiguous states + DC (HHS poverty guidelines)
+const ACA_FPL_BASE = { 1: 15650, 2: 21150, 3: 26650, 4: 32150 };
+const ACA_FPL_ADDITIONAL = 5500;  // per person beyond 4
+const ACA_FPL_INFLATE = 0.02;     // ~2% annual FPL growth
+
+// ACA calculation functions
+function getFPL(householdSize, inflationYr) {
+  const base = householdSize <= 4 ? ACA_FPL_BASE[householdSize]
+    : ACA_FPL_BASE[4] + (householdSize - 4) * ACA_FPL_ADDITIONAL;
+  return Math.round(base * Math.pow(1 + ACA_FPL_INFLATE, inflationYr));
+}
+
+function estimateSLCSP(primaryAge, hasSpouse, inflationYr) {
+  // Approximate national average SLCSP, age-adjusted
+  // Base: ~$9,000/yr for single age-55 in 2025, +4%/yr of age, +5%/yr healthcare inflation
+  const baseSingle = 9000;
+  const ageFactor = 1 + Math.max(0, primaryAge - 55) * 0.04;
+  const single = Math.round(baseSingle * ageFactor * Math.pow(1.05, inflationYr));
+  return hasSpouse ? Math.round(single * 1.9) : single;
+}
+
+function calcACASubsidy(magi, benchmarkPremium, householdSize, inflationYr, calendarYear) {
+  const fpl = getFPL(householdSize, inflationYr);
+  const fplPercent = (magi / fpl) * 100;
+
+  // Below 100% FPL: not eligible for marketplace subsidies
+  if (fplPercent < 100) return { subsidy: 0, netPremium: benchmarkPremium, fplPercent: Math.round(fplPercent), applicable: 0, eligible: false, reason: 'below_fpl' };
+
+  // Select table based on year
+  const useEnhanced = calendarYear <= 2025;
+  const table = useEnhanced ? ACA_PCT_ENHANCED : ACA_PCT_ORIGINAL;
+
+  // Above 400% FPL with original rules = no subsidy (cliff)
+  if (!useEnhanced && fplPercent >= 400) {
+    return { subsidy: 0, netPremium: benchmarkPremium, fplPercent: Math.round(fplPercent), applicable: 0, eligible: false, reason: 'above_cliff' };
+  }
+
+  // Find applicable tier and interpolate
+  let applicablePercent = 0;
+  for (const tier of table) {
+    if (fplPercent >= tier.minFPL && fplPercent < tier.maxFPL) {
+      const range = tier.maxFPL - tier.minFPL;
+      const position = range > 0 ? (fplPercent - tier.minFPL) / range : 0;
+      applicablePercent = tier.minPct + position * (tier.maxPct - tier.minPct);
+      break;
+    }
+  }
+  // Handle exact boundary at top of last tier (enhanced: 400%+ = 8.5%)
+  if (useEnhanced && fplPercent >= 400) applicablePercent = 8.5;
+
+  const expectedContribution = Math.round(magi * applicablePercent / 100);
+  const subsidy = Math.max(0, benchmarkPremium - expectedContribution);
+  const netPremium = benchmarkPremium - subsidy;
+
+  return { subsidy, netPremium, fplPercent: Math.round(fplPercent), applicable: Math.round(applicablePercent * 100) / 100, eligible: true, reason: null };
+}
 
 // IRS §86: Social Security benefit taxation based on provisional/combined income
 function calcTaxableSS(ssAmount, otherIncome, single = false) {
@@ -1048,6 +1125,7 @@ function runProjection(p) {
     // Pre-Medicare healthcare: source-aware cost between retirement and Medicare eligibility
     // SSDI recipients qualify for Medicare after 24-month waiting period (before age 65)
     let healthcareCost = 0;
+    let acaSubsidy = 0, acaFPLPercent = 0, acaBenchmark = 0, acaNetPremium = 0;
     const hc = p.preMedicareHealthcare || {};
     // Pre-Medicare gap uses primary's Medicare age (their healthcare gap)
     const primaryMedCoverageAge = primaryDead ? spouseMedicareAge : primaryMedicareAge;
@@ -1081,8 +1159,29 @@ function runProjection(p) {
           }
         } else if (src === 'va') {
           healthcareCost = 0; // VA: zero or near-zero cost
+        } else if (src === 'aca') {
+          // ACA Marketplace: dynamic subsidy based on projected MAGI (v1.9)
+          // Full MAGI depends on withdrawals/conversions not yet computed (circular dependency).
+          // Use prior year's stored MAGI as proxy (stable approximation for retirees).
+          // Year 0: estimate from available income components only.
+          const priorYr = yr > 0 && years[yr - 1] ? years[yr - 1] : null;
+          const acaMAGI = priorYr ? priorYr.magi
+            : (earned + ssdiIncome + pensionIncome + calcTaxableSS(ss, earned + ssdiIncome + pensionIncome, isSingle));
+          const householdSize = hc.acaHouseholdSize || ((p.spouseEnabled || (p.spouseAge && p.spouseAge > 0)) ? 2 : 1);
+          const acaRules = hc.acaSubsidyRules || 'auto';
+          const useEnhancedOverride = acaRules === 'enhanced' ? true : acaRules === 'original' ? false : null;
+          const effectiveYear = useEnhancedOverride === true ? 2025 : useEnhancedOverride === false ? 2026 : projYear;
+          const benchmark = hc.acaBenchmarkOverride > 0
+            ? Math.round(hc.acaBenchmarkOverride * Math.pow(1.05, yr))
+            : estimateSLCSP(age, householdSize > 1, yr);
+          const acaResult = calcACASubsidy(acaMAGI, benchmark, householdSize, yr, effectiveYear);
+          healthcareCost = acaResult.netPremium;
+          acaSubsidy = acaResult.subsidy;
+          acaFPLPercent = acaResult.fplPercent;
+          acaBenchmark = benchmark;
+          acaNetPremium = acaResult.netPremium;
         } else {
-          // aca, retiree_plan, other: simple inflation from base cost
+          // retiree_plan, other: simple inflation from base cost
           healthcareCost = Math.round((hc.annualCost || 18000) * Math.pow(1 + inf, hcYrs));
         }
         expenses += healthcareCost;
@@ -1447,6 +1546,7 @@ function runProjection(p) {
       age, year: new Date().getFullYear() + yr,
       earned: Math.round(earned), ss: Math.round(ss), ssWithheld: Math.round(ssWithheld), ssdi: Math.round(ssdiIncome),
       pension: pensionIncome, healthcare: healthcareCost, healthcareSource: (hc.enabled && healthcareCost > 0) ? (hc.source || 'aca') : null,
+      acaSubsidy: Math.round(acaSubsidy), acaFPLPercent: acaFPLPercent, acaBenchmark: Math.round(acaBenchmark), acaNetPremium: Math.round(acaNetPremium),
       debtPayments: Math.round(debtPayments), ltcCost, charityTotal: Math.round(charityAmount),
       other: Math.round(other), totalInc: Math.round(totalInc), expenses: Math.round(expenses),
       savings: Math.round(saved), withdrawal: Math.round(withdrawal),
@@ -1567,6 +1667,7 @@ let state = {
       enabled: false, source: 'aca', annualCost: 18000, inflation: 5,
       cobraDuration: 18, cobraFollowUpCost: 18000, cobraFollowUpInflation: 5,
       spousePlanFollowUpCost: 18000, spousePlanFollowUpInflation: 5,
+      acaHouseholdSize: 0, acaBenchmarkOverride: 0, acaSubsidyRules: 'auto',
     },
 
     // Retirement expense phases
@@ -1762,6 +1863,8 @@ function exportProjectionCSV() {
     { head:'Roth Conversions', key:'rothConv', isCurrency:true },
     { head:'IRMAA Surcharge', key:'irmaa', isCurrency:true },
     { head:'Healthcare', key:'healthcare', isCurrency:true },
+    { head:'ACA Subsidy', key:'acaSubsidy', isCurrency:true },
+    { head:'ACA Benchmark', key:'acaBenchmark', isCurrency:true },
     { head:'Charity (QCD)', key:'qcd', isCurrency:true },
     { head:'Charity (Total)', key:'charityTotal', isCurrency:true },
     { head:'Capital Gains', key:'capGains', isCurrency:true },
@@ -1888,6 +1991,7 @@ function setHealthcare(key, val) {
     enabled: false, source: 'aca', annualCost: 18000, inflation: 5,
     cobraDuration: 18, cobraFollowUpCost: 18000, cobraFollowUpInflation: 5,
     spousePlanFollowUpCost: 18000, spousePlanFollowUpInflation: 5,
+    acaHouseholdSize: 0, acaBenchmarkOverride: 0, acaSubsidyRules: 'auto',
   };
   state.params.preMedicareHealthcare[key] = val; state.mcResults = null; saveState(); render();
 }
@@ -2588,14 +2692,19 @@ function computePlanHealth(proj) {
     const gapYears = planHealthMedAge - p.retirementAge;
     const totalHC = proj.filter(y => y.age >= p.retirementAge && y.age < planHealthMedAge).reduce((s, y) => s + (y.healthcare || 0), 0);
     if (totalHC > 20000) {
+      const totalAcaSub = proj.filter(y => y.age >= p.retirementAge && y.age < planHealthMedAge).reduce((s, y) => s + (y.acaSubsidy || 0), 0);
+      const acaSrc = (hc.source || 'aca') === 'aca';
+      const acaDesc = acaSrc
+        ? `Source: ACA Marketplace with MAGI-based subsidies.${totalAcaSub > 0 ? ` Total subsidies: ${fmt(totalAcaSub)} over the gap.` : ''} Net cost after subsidies: ${fmt(totalHC)}. Income during these years (SS, Roth conversions, withdrawals) directly affects your premium.`
+        : `Source: ${(HC_SOURCES[hc.source||'aca']||HC_SOURCES.aca).label} at ${fmt(hc.annualCost || 0)}/yr${hc.source === 'cobra' ? ` (COBRA ${hc.cobraDuration||18}mo, then follow-up at ${fmt(hc.cobraFollowUpCost||0)}/yr)` : hc.source === 'spouse_plan' ? ` (until spouse retires, then ${fmt(hc.spousePlanFollowUpCost||0)}/yr)` : ''} growing at ${hc.inflation || 5}%.`;
       levers.push({
         magnitude: totalHC,
         title: 'Pre-Medicare Healthcare Gap',
         icon: '&#127974;',
         color: 'var(--amber)',
         amount: fmt(totalHC),
-        amountLabel: `total cost over ${Math.round(gapYears)} gap years`,
-        desc: `Retiring at ${p.retirementAge} means ${Math.round(gapYears)} years of self-funded healthcare before Medicare at ${planHealthMedAge}. Source: ${(HC_SOURCES[hc.source||'aca']||HC_SOURCES.aca).label} at ${fmt(hc.annualCost || 0)}/yr${hc.source === 'cobra' ? ` (COBRA ${hc.cobraDuration||18}mo, then follow-up at ${fmt(hc.cobraFollowUpCost||0)}/yr)` : hc.source === 'spouse_plan' ? ` (until spouse retires, then ${fmt(hc.spousePlanFollowUpCost||0)}/yr)` : ''} growing at ${hc.inflation || 5}%.`,
+        amountLabel: `total ${acaSrc ? 'net ' : ''}cost over ${Math.round(gapYears)} gap years`,
+        desc: `Retiring at ${p.retirementAge} means ${Math.round(gapYears)} years of self-funded healthcare before Medicare at ${planHealthMedAge}. ${acaDesc}`,
         action: "state.tab='inputs';state.inputTab='healthcare';render()",
         actionLabel: 'Review Healthcare',
       });
@@ -3181,7 +3290,11 @@ function renderThisYear(proj, p, bust) {
   if (y.expenses > 0) expRows.push({ label: 'Total Living Expenses', value: y.expenses, color: 'var(--text)' });
   if (y.healthcare > 0) {
     const srcLabel = y.healthcareSource && HC_SOURCES[y.healthcareSource] ? HC_SOURCES[y.healthcareSource].label : 'Pre-Medicare';
-    expRows.push({ label: `Healthcare (${srcLabel})`, value: y.healthcare, color: 'var(--pink)', note: 'included in living expenses' });
+    if (y.healthcareSource === 'aca' && y.acaSubsidy > 0) {
+      expRows.push({ label: `Healthcare (${srcLabel})`, value: y.healthcare, color: 'var(--pink)', note: `${d(y.acaBenchmark)} benchmark \u2212 ${d(y.acaSubsidy)} subsidy \u00B7 ${y.acaFPLPercent}% FPL` });
+    } else {
+      expRows.push({ label: `Healthcare (${srcLabel})`, value: y.healthcare, color: 'var(--pink)', note: 'included in living expenses' });
+    }
   }
   if (y.charityTotal > 0) expRows.push({ label: 'Charitable Giving', value: y.charityTotal, color: 'var(--amber)' });
   if (y.qcd > 0) expRows.push({ label: 'Qualified Charitable Distribution (QCD)', value: y.qcd, color: 'var(--amber)', note: 'included in charitable giving' });
@@ -3270,7 +3383,11 @@ function printThisYear() {
   ex += line('Total Living Expenses', y.expenses);
   if (y.healthcare > 0) {
     const pSrcLabel = y.healthcareSource && HC_SOURCES[y.healthcareSource] ? HC_SOURCES[y.healthcareSource].label : 'Pre-Medicare';
-    ex += line('Healthcare (' + pSrcLabel + ')', y.healthcare, 'included in living expenses');
+    if (y.healthcareSource === 'aca' && y.acaSubsidy > 0) {
+      ex += line('Healthcare (' + pSrcLabel + ')', y.healthcare, fmt(y.acaBenchmark) + ' benchmark - ' + fmt(y.acaSubsidy) + ' subsidy, ' + y.acaFPLPercent + '% FPL');
+    } else {
+      ex += line('Healthcare (' + pSrcLabel + ')', y.healthcare, 'included in living expenses');
+    }
   }
   ex += line('Charitable Giving', y.charityTotal);
   ex += line('Qualified Charitable Distribution (QCD)', y.qcd, 'included in charitable giving');
@@ -3791,6 +3908,13 @@ function renderInputs() {
     const isCouple = p.spouseEnabled || (p.spouseAge && p.spouseAge > 0);
     // HC field helper (local, uses setHealthcare)
     const hf = (l,k,o) => { const isCur = o.prefix==='$'; const defVal = o.def||0; return '<div class="field"><label class="field-label">'+l+'</label><div class="field-wrap">'+(o.prefix?'<span class="field-prefix">'+o.prefix+'</span>':'')+'<input type="'+(isCur?'text':'number')+'" '+(isCur?'inputmode="decimal" ':'')+'class="field-input'+(o.prefix?' has-prefix':'')+(o.suffix?' has-suffix':'')+'" value="'+(isCur?fmtC(hc[k]!==undefined?hc[k]:defVal):(hc[k]!==undefined?hc[k]:defVal))+'" '+(isCur?'onfocus="this.value=this.value.replace(/,/g,\'\')" onblur="this.value=fmtC(parseC(this.value))" ':'')+'onchange="setHealthcare(\''+k+'\','+(isCur?'parseC(this.value)':'Number(this.value)')+')">'+(o.suffix?'<span class="field-suffix">'+o.suffix+'</span>':'')+'</div>'+(o.help?'<div class="field-help">'+o.help+'</div>':'')+'</div>'; };
+    // ACA subsidy preview: estimate year-1 ACA cost using current-year income approximation
+    const acaHHSize = hc.acaHouseholdSize || (isCouple ? 2 : 1);
+    const acaPreviewIncome = (p.annualExpenses || 60000); // rough proxy: living expenses ≈ income in early retirement
+    const acaPreviewBenchmark = hc.acaBenchmarkOverride > 0 ? hc.acaBenchmarkOverride : estimateSLCSP(retAge, acaHHSize > 1, 0);
+    const acaRulesUI = hc.acaSubsidyRules || 'auto';
+    const acaPreviewYear = acaRulesUI === 'enhanced' ? 2025 : acaRulesUI === 'original' ? 2026 : new Date().getFullYear();
+    const acaPreview = calcACASubsidy(acaPreviewIncome, acaPreviewBenchmark, acaHHSize, 0, acaPreviewYear);
     // Estimate total HC cost for info box (source-aware)
     const totalHC = (() => {
       if (!hc.enabled || yearsGap <= 0) return 0;
@@ -3803,6 +3927,12 @@ function renderInputs() {
           else { const fuInf = (hc.cobraFollowUpInflation||hc.inflation||5)/100; total += Math.round((hc.cobraFollowUpCost||18000) * Math.pow(1+fuInf, i)); }
         } else if (hcSrc === 'va') {
           total += 0;
+        } else if (hcSrc === 'aca') {
+          const yrAge = retAge + i;
+          const bm = hc.acaBenchmarkOverride > 0 ? Math.round(hc.acaBenchmarkOverride * Math.pow(1.05, i)) : estimateSLCSP(yrAge, acaHHSize > 1, i);
+          const yr = acaRulesUI === 'enhanced' ? 2025 : acaRulesUI === 'original' ? 2026 : new Date().getFullYear() + i;
+          const res = calcACASubsidy(acaPreviewIncome, bm, acaHHSize, i, yr);
+          total += res.netPremium;
         } else {
           total += Math.round((hc.annualCost||18000) * Math.pow(1+inf, i));
         }
@@ -3836,10 +3966,58 @@ function renderInputs() {
         <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;line-height:1.5;padding:8px 10px;background:var(--bg-base);border-radius:6px;border:1px solid var(--border)">
           ${hcDef.help}
         </div>
-        ${hcSrc !== 'va' ? `
+        ${hcSrc !== 'va' && hcSrc !== 'aca' ? `
           <div class="grid-2">
             ${hf('Annual Cost (Year 1)','annualCost',{prefix:'$',def:isCouple?hcDef.couple:hcDef.single, help: isCouple ? 'Couple rate' : 'Single rate'})}
             ${hf('Healthcare Inflation','inflation',{suffix:'%',def:hcDef.inf,help:'Medical costs typically inflate at 5-7%/year'})}
+          </div>
+        ` : ''}
+        ${hcSrc === 'aca' ? `
+          <div style="margin-top:4px;padding:12px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border)">
+            <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">ACA Subsidy Settings</div>
+            <div class="grid-2">
+              <div class="field"><label class="field-label">Household Size</label><div class="field-wrap">
+                <select class="field-input" onchange="setHealthcare('acaHouseholdSize',Number(this.value))" style="appearance:auto">
+                  ${[1,2,3,4,5,6].map(n => `<option value="${n}" ${(hc.acaHouseholdSize||0)===n||(!(hc.acaHouseholdSize>0)&&n===(isCouple?2:1))?'selected':''}>${n} person${n>1?'s':''}</option>`).join('')}
+                </select>
+              </div><div class="field-help">You + spouse + dependents on the plan</div></div>
+              <div class="field"><label class="field-label">Benchmark Premium Override</label><div class="field-wrap">
+                <span class="field-prefix">$</span>
+                <input type="text" inputmode="decimal" class="field-input has-prefix" value="${hc.acaBenchmarkOverride > 0 ? fmtC(hc.acaBenchmarkOverride) : ''}" placeholder="${fmtC(acaPreviewBenchmark)}"
+                  onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=this.value?fmtC(parseC(this.value)):''"
+                  onchange="setHealthcare('acaBenchmarkOverride',parseC(this.value)||0)">
+              </div><div class="field-help">Your actual SLCSP from healthcare.gov. Leave blank for national average.</div></div>
+            </div>
+            <div style="margin-top:10px">
+              <div class="field"><label class="field-label">ACA Subsidy Rules</label>
+                <div style="display:flex;gap:6px;margin-top:4px">
+                  ${[{v:'auto',l:'Auto (by year)'},{v:'enhanced',l:'Enhanced (no cliff)'},{v:'original',l:'Original (400% cliff)'}].map(o =>
+                    `<button onclick="setHealthcare('acaSubsidyRules','${o.v}')" style="flex:1;padding:6px 4px;border-radius:6px;border:1.5px solid ${acaRulesUI===o.v?'var(--pink)':'var(--border)'};background:${acaRulesUI===o.v?'color-mix(in srgb, var(--pink) 8%, var(--bg-card))':'var(--bg-card)'};cursor:pointer;font-size:11px;font-weight:${acaRulesUI===o.v?'600':'400'};color:${acaRulesUI===o.v?'var(--pink)':'var(--text-dim)'}">${o.l}</button>`
+                  ).join('')}
+                </div>
+                <div class="field-help">Enhanced subsidies (no income cliff) were in effect 2021-2025. Auto selects based on projection year.</div>
+              </div>
+            </div>
+            ${yearsGap > 0 ? `
+              <div style="margin-top:12px;padding:10px;border-radius:8px;background:color-mix(in srgb, var(--pink) 5%, var(--bg-card));border:1px solid color-mix(in srgb, var(--pink) 20%, var(--border))">
+                <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">Year-1 Subsidy Preview</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;line-height:1.7">
+                  <span style="color:var(--text-dim)">Est. income at retirement:</span><span style="color:var(--text);text-align:right">${fmt(acaPreviewIncome)}</span>
+                  <span style="color:var(--text-dim)">Federal Poverty Level (${acaHHSize}p):</span><span style="color:var(--text);text-align:right">${fmt(getFPL(acaHHSize, 0))} (${acaPreview.fplPercent}%)</span>
+                  <span style="color:var(--text-dim)">Benchmark premium (SLCSP):</span><span style="color:var(--text);text-align:right">${fmt(acaPreviewBenchmark)}/yr</span>
+                  <span style="color:var(--text-dim)">Estimated subsidy:</span><span style="color:${acaPreview.subsidy > 0 ? 'var(--green)' : 'var(--text)'};text-align:right;font-weight:600">${acaPreview.subsidy > 0 ? fmt(acaPreview.subsidy) + '/yr' : '$0'}</span>
+                  <span style="color:var(--text-dim)">Your estimated net premium:</span><span style="color:var(--pink);text-align:right;font-weight:600">${fmt(acaPreview.netPremium)}/yr</span>
+                </div>
+                ${!acaPreview.eligible ? `<div style="margin-top:6px;font-size:11px;color:var(--amber);line-height:1.5">${acaPreview.reason === 'below_fpl' ? 'Income below 100% FPL. You may qualify for Medicaid instead of ACA marketplace subsidies.' : 'Income above 400% FPL. Under original ACA rules, no premium tax credit is available.'}</div>` : ''}
+                <div style="margin-top:6px;font-size:10px;color:var(--text-faint);line-height:1.4">Preview uses estimated retirement-year income. Actual projection uses MAGI computed each year.</div>
+              </div>
+            ` : ''}
+          </div>
+          <div style="margin-top:10px;padding:10px;background:color-mix(in srgb, var(--blue) 5%, var(--bg-base));border-radius:8px;border:1px solid color-mix(in srgb, var(--blue) 15%, var(--border));font-size:11px;color:var(--text-dim);line-height:1.6">
+            <strong style="color:var(--text)">Income Management Tip:</strong> During ACA years, every income source affects your premium. Pre-tax withdrawals, Roth conversions, Social Security, capital gains, and pension income all count toward MAGI. Roth withdrawals do <em>not</em> increase MAGI and will not affect your ACA subsidy.
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:var(--text-faint);line-height:1.5;font-style:italic">
+            Note: Enhanced ACA subsidies (no income cliff) were in effect 2021-2025. For 2026+, RetIQ uses the original ACA rules with a subsidy cliff at 400% of FPL. If Congress extends enhanced subsidies, switch the setting above.
           </div>
         ` : ''}
         ${hcSrc === 'cobra' ? `
@@ -3869,7 +4047,6 @@ function renderInputs() {
         ${yearsGap > 0 && hcSrc !== 'va' ? `<div class="info-box" style="margin-top:14px"><div class="info-box-label">Total Pre-Medicare Healthcare Cost (${yearsGap} years)</div>
           <div class="info-box-value" style="color:var(--pink)">${fmtK(totalHC)}</div>
           <div style="font-size:11px;color:var(--text-faint);margin-top:4px">Added to expenses from age ${retAge} to ${effectiveMedAge - 1}${hcSrc === 'cobra' ? ` (COBRA ${hc.cobraDuration||18}mo then follow-up)` : hcSrc === 'spouse_plan' ? ` (spouse plan then follow-up at spouse age ${p.spouseRetirementAge||65})` : ''}</div></div>` : ''}
-        ${hcSrc === 'aca' ? `<div style="margin-top:10px;font-size:11px;color:var(--text-faint);line-height:1.5;font-style:italic">ACA premium tax credits not yet modeled. Costs shown are full unsubsidized rates. Subsidy modeling planned for a future version.</div>` : ''}
       ` : ''}
     </div>
 
@@ -3974,6 +4151,11 @@ function renderInputs() {
       const taxDiff = projWith.reduce((s,y) => s+y.tax, 0) - projWithout.reduce((s,y) => s+y.tax, 0);
       const rmdDiff = projWith.reduce((s,y) => s+y.rmd, 0) - projWithout.reduce((s,y) => s+y.rmd, 0);
       const irmaaDiff = projWith.reduce((s,y) => s+y.irmaa, 0) - projWithout.reduce((s,y) => s+y.irmaa, 0);
+      // ACA subsidy impact: conversions increase MAGI which can reduce subsidies
+      const acaSubsidyWith = projWith.reduce((s,y) => s + (y.acaSubsidy || 0), 0);
+      const acaSubsidyWithout = projWithout.reduce((s,y) => s + (y.acaSubsidy || 0), 0);
+      const acaSubsidyDiff = acaSubsidyWith - acaSubsidyWithout; // negative = conversions reduced subsidies
+      const hasACAYears = projWith.some(y => y.acaSubsidy > 0) || projWithout.some(y => y.acaSubsidy > 0);
 
       // Breakeven ("catch-up") age: when tax-adjusted NW with conversions overtakes without
       // Tax-adjusted NW = portfolio value minus cumulative lifetime taxes paid.
@@ -4029,6 +4211,7 @@ function renderInputs() {
           <div class="stat"><div class="stat-label">Lifetime Tax &#916;</div><div class="stat-value" style="color:${taxDiff>0?'var(--red)':'var(--green)'}">${fmtK(taxDiff)}</div><div class="stat-sub">${taxDiff>0?'More taxes (upfront)':'Tax savings'}</div></div>
           <div class="stat"><div class="stat-label">RMD Reduction</div><div class="stat-value" style="color:var(--green)">${fmtK(Math.abs(rmdDiff))}</div><div class="stat-sub">Lifetime</div></div>
           <div class="stat"><div class="stat-label">IRMAA Impact</div><div class="stat-value" style="color:${irmaaDiff>0?'var(--pink)':'var(--green)'}">${fmtK(irmaaDiff)}</div></div>
+          ${hasACAYears ? `<div class="stat"><div class="stat-label">ACA Subsidy &#916;</div><div class="stat-value" style="color:${acaSubsidyDiff<0?'var(--pink)':'var(--green)'}">${fmtK(acaSubsidyDiff)}</div><div class="stat-sub">${acaSubsidyDiff<0?'Conversions reduced subsidies':'No subsidy loss'}</div></div>` : ''}
           <div class="stat"><div class="stat-label">Final NW &#916;</div><div class="stat-value" style="color:${finalWith.netWorth>=finalWithout.netWorth?'var(--green)':'var(--red)'}">${fmtK(finalWith.netWorth - finalWithout.netWorth)}</div></div>
           <div class="stat"><div class="stat-label">Breakeven Age</div><div class="stat-value" style="color:${breakevenAge===-1?'var(--green)':breakevenAge?'var(--amber)':'var(--red)'}">${breakevenAge===-1?'Immediate':breakevenAge?breakevenAge:'Never'}</div><div class="stat-sub">${breakevenAge===-1?'NW never falls behind':breakevenAge?'NW catches up at this age':'Within projection'}</div></div>
         </div>
@@ -4996,6 +5179,7 @@ function renderProjectionTable(proj) {
       { head:'Roth Conv', key:'rothConv', color:'var(--cyan)', isCurrency:true },
       { head:'IRMAA', key:'irmaa', color:'var(--pink)', isCurrency:true },
       { head:'Medicare', key:'medicareCost', color:'var(--pink)', isCurrency:true },
+      { head:'ACA Sub', key:'acaSubsidy', color:'var(--green)', isCurrency:true },
       { head:'Pre-Tax', key:'preTax', color:'var(--blue)', isCurrency:true },
       { head:'Roth', key:'roth', color:'var(--green)', isCurrency:true },
       { head:'Cash/HYS', key:'cash', color:'var(--cyan)', isCurrency:true },
@@ -5366,7 +5550,7 @@ function render() {
     case 'scenarios': html = renderScenarios(proj); break;
     case 'validation': html = renderValidation(); break;
   }
-  html += '<div class="footer">RetIQ v1.8 &#183; Build 2026-03-03 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a> &#183; <a href="https://github.com/RetIQ-Studio/retiqstudio" target="_blank" style="color:var(--text-dim);text-decoration:none">Source (BSL 1.1)</a></div>';
+  html += '<div class="footer">RetIQ v1.9 &#183; Build 2026-03-03 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a> &#183; <a href="https://github.com/RetIQ-Studio/retiqstudio" target="_blank" style="color:var(--text-dim);text-decoration:none">Source (BSL 1.1)</a></div>';
   document.getElementById('app').innerHTML = html;
   updateHeaderHeight();
   // Scroll active sub-nav tab into view on mobile

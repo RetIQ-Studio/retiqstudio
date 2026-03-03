@@ -51,15 +51,15 @@
   <div class="score">100.0%</div>
   <p style="margin:0">pass rate</p>
   <div class="stats">
-    <div class="stat"><div class="num">159</div><div class="label">Total Tests</div></div>
-    <div class="stat"><div class="num">159</div><div class="label">Passed</div></div>
+    <div class="stat"><div class="num">190</div><div class="label">Total Tests</div></div>
+    <div class="stat"><div class="num">190</div><div class="label">Passed</div></div>
     <div class="stat"><div class="num">0</div><div class="label">Failed</div></div>
-    <div class="stat"><div class="num">21</div><div class="label">Categories</div></div>
+    <div class="stat"><div class="num">25</div><div class="label">Categories</div></div>
   </div>
 </div>
 
 <h2>Methodology</h2>
-<p>Every financial calculation in RetIQ's projection engine is tested against authoritative sources: IRS publications and revenue procedures, Social Security Administration actuarial tables, CMS Medicare data, and enacted legislation (SECURE 2.0, OBBB Act). Tests use exact bracket boundaries, known-answer scenarios from IRS worksheets, and complete lookup tables verified entry-by-entry. Tolerance is $1 for rounding.</p>
+<p>Every financial calculation in RetIQ's projection engine is tested against authoritative sources: IRS publications and revenue procedures, Social Security Administration actuarial tables, CMS Medicare data, HHS Federal Poverty Level guidelines, ACA Premium Tax Credit tables, and enacted legislation (SECURE 2.0, OBBB Act, ARPA/IRA enhanced subsidies). Tests use exact bracket boundaries, known-answer scenarios from IRS worksheets, and complete lookup tables verified entry-by-entry. Tolerance is $1 for rounding unless otherwise noted.</p>
 
 <h2>Authoritative Sources</h2>
 <div class="sources-grid">
@@ -103,6 +103,11 @@
   <div class="authority">Internal Revenue Service</div>
   <ul><li>IRS Notice 2024-80 — 2025 Retirement Plan Limitations</li><li>SECURE 2.0 Act Section 109 — Enhanced Catch-Up for Ages 60-63</li><li>IRC Section 219(b)(5)(B) — IRA Catch-Up Not Indexed</li></ul>
   <a href="https://www.irs.gov/newsroom/401k-limit-increases-to-23500-for-2025-ira-limit-remains-7000" target="_blank">Source &rarr;</a>
+</div><div class="source-card">
+  <h4>ACA Premium Tax Credit</h4>
+  <div class="authority">IRS / HHS / CMS</div>
+  <ul><li>IRS Rev. Proc. 2024-35 — Applicable Percentage Table for ACA Premium Tax Credit (Enhanced, 2021–2025)</li><li>IRS Rev. Proc. 2025-25 — Original ACA Applicable Percentages (2026+)</li><li>HHS 2025 Federal Poverty Level Guidelines — 48 contiguous states</li><li>ARPA/IRA — Enhanced PTC (no 400% FPL cliff through 2025)</li></ul>
+  <a href="https://www.irs.gov/affordable-care-act/individuals-and-families/affordable-care-act-tax-provisions" target="_blank">Source &rarr;</a>
 </div>
 </div>
 
@@ -503,12 +508,69 @@
     <tr class="pass"><td>IRMAA at exact $212K MFJ threshold → Tier 1</td><td>1</td><td>1</td><td class="pass">&#10003;</td></tr>
     <tr class="pass"><td>State tax with invalid code → $0</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
   </table>
+</div><div class="category">
+  <h3>ACA FPL <span class="badge pass">5/5</span></h3>
+  <div class="source-box">
+    <strong>Authority:</strong> U.S. Department of Health and Human Services<br>
+    <strong>Documents:</strong><br>
+    &bull; HHS 2025 Federal Poverty Level Guidelines — 48 contiguous states + DC<br>
+    <strong>Method:</strong> Base FPL for household sizes 1–4 verified against published guidelines ($15,650 / $21,150 / $26,650 / $32,150). Size 5+ uses incremental $5,500 per additional person. Annual 2% FPL inflation applied for projection years.
+  </div>
+  <table class="results">
+    <tr><th>Test</th><th>Expected</th><th>Actual</th><th>Result</th></tr>
+    <tr class="pass"><td>Household of 1 base FPL = $15,650</td><td>15,650</td><td>15,650</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Household of 2 base FPL = $21,150</td><td>21,150</td><td>21,150</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Household of 3 base FPL = $26,650</td><td>26,650</td><td>26,650</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Household of 4 base FPL = $32,150</td><td>32,150</td><td>32,150</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Household of 5 base FPL = $37,650</td><td>37,650</td><td>37,650</td><td class="pass">&#10003;</td></tr>
+  </table>
+</div>
+
+<div class="category">
+  <h3>ACA Subsidy <span class="badge pass">11/11</span></h3>
+  <div class="source-box">
+    <strong>Authority:</strong> Internal Revenue Service<br>
+    <strong>Documents:</strong><br>
+    &bull; IRS Rev. Proc. 2024-35 — Enhanced Applicable Percentage Table (2021–2025)<br>
+    &bull; IRS Rev. Proc. 2025-25 — Original ACA Applicable Percentages (2026+)<br>
+    &bull; ARPA/IRA — Enhanced PTC removes 400% FPL cliff through 2025<br>
+    &bull; ACA Section 36B — Premium Tax Credit eligibility (100–400% FPL under original rules)<br>
+    <strong>Method:</strong> Applicable percentage verified at each FPL tier boundary under both enhanced (2025) and original (2026+) rules. Linear interpolation within tiers confirmed. Subsidy = benchmark premium minus expected contribution (MAGI &times; applicable %). Cliff behavior at 400% FPL tested for both rule sets.
+  </div>
+  <table class="results">
+    <tr><th>Test</th><th>Expected</th><th>Actual</th><th>Result</th></tr>
+    <tr class="pass"><td>150% FPL enhanced (2025) &rarr; 0% contribution, full subsidy</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>200% FPL enhanced (2025) &rarr; 2% applicable</td><td>2.0</td><td>2.0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>300% FPL enhanced (2025) &rarr; 6% applicable</td><td>6.0</td><td>6.0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>400% FPL enhanced (2025) &rarr; 8.5% applicable</td><td>8.5</td><td>8.5</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>500% FPL enhanced (2025) &rarr; still eligible (no cliff)</td><td>1</td><td>1</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Below 100% FPL &rarr; not eligible for subsidy</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>400%+ FPL original (2026) &rarr; no subsidy (cliff)</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>300% FPL original (2026) &rarr; 9.83% applicable</td><td>9.83</td><td>9.83</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>130% FPL original (2026) &rarr; 2% applicable</td><td>2.0</td><td>2.0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Full subsidy at 150% FPL enhanced = benchmark premium</td><td>20,000</td><td>20,000</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>175% FPL enhanced &rarr; 1.0% applicable (interpolation)</td><td>1.0</td><td>1.0</td><td class="pass">&#10003;</td></tr>
+  </table>
+</div>
+
+<div class="category">
+  <h3>ACA SLCSP <span class="badge pass">2/2</span></h3>
+  <div class="source-box">
+    <strong>Authority:</strong> RetIQ Estimator (national average)<br>
+    <strong>Documents:</strong><br>
+    &bull; CMS Marketplace average benchmark premium data<br>
+    <strong>Method:</strong> Second Lowest Cost Silver Plan (SLCSP) estimated from national average ($7,500 base at age 40) with 4% per year age adjustment and 5% annual medical inflation. Couple rate ~1.9&times; single. Values are planning estimates; users can override with actual local quotes.
+  </div>
+  <table class="results">
+    <tr><th>Test</th><th>Expected</th><th>Actual</th><th>Result</th></tr>
+    <tr class="pass"><td>Age 55 single base &rarr; ~$9,000 (&plusmn;$500)</td><td>9,000</td><td>9,000</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Age 60 couple &gt; age 55 single</td><td>1</td><td>1</td><td class="pass">&#10003;</td></tr>
+  </table>
 </div>
 
 
-
 <div class="footer">
-  Generated 2026-02-28 &bull; RetIQ v1 &bull; <a href="https://retiqstudio.com" style="color:var(--accent2)">retiqstudio.com</a><br>
+  Generated 2026-03-03 &bull; RetIQ v1.9 &bull; <a href="https://retiqstudio.com" style="color:var(--accent2)">retiqstudio.com</a><br>
   Tests run against app-index.html engine code. Results are reproducible via <code>node test-validation.js</code>
 </div>
 

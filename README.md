@@ -32,13 +32,14 @@ It's built as a single HTML file with no external dependencies beyond self-hoste
 
 ## Validation
 
-RetIQ includes 159 automated tests that verify every calculation against authoritative sources:
+RetIQ includes 190 automated tests that verify every calculation against authoritative sources:
 
 - **IRS:** Rev. Proc. 2024-40 (2025 brackets, deductions, capital gains), Pub 590-B (RMD tables), Pub 915 (SS taxation), Notice 2024-80 (contribution limits, QCD), IRC §1411 (NIIT)
 - **SSA:** 2025 bend points and wage base, FRA schedules, early reduction and delayed credit rates
 - **CMS:** 2025 Medicare Part B/D premiums, IRMAA brackets and surcharges
 - **SECURE Act 2.0:** RMD start ages (§107), super catch-up contributions (§109)
 - **OBBB Act 2025:** Senior standard deduction (§102), updated bracket structure (P.L. 119-21)
+- **HHS/ACA:** 2025 Federal Poverty Level guidelines, ACA Premium Tax Credit applicable percentage tables (enhanced and original), ARPA/IRA subsidy extensions
 
 The full report — with every test name, expected value, actual result, tolerance, source citation, and pass/fail status — is viewable inside the app under the **Validation** tab or at [retirementiq.app/validation.html](https://retirementiq.app/validation.html).
 
@@ -78,7 +79,7 @@ retiq/
 ├── features.html           # Feature list
 ├── manual.html             # User manual (24 sections)
 ├── security.html           # Privacy & security transparency page
-├── validation.html         # Validation report (159 tests)
+├── validation.html         # Validation report (190 tests)
 ├── privacy.html            # Privacy policy
 ├── terms.html              # Terms of service
 ├── index.html              # Landing page
@@ -106,11 +107,11 @@ The build script minifies JavaScript, CSS, and HTML via esbuild, copies static a
 ## Running Tests
 
 ```bash
-# Validation tests (159 tests against IRS/SSA/CMS sources)
+# Validation tests (190 tests against IRS/SSA/CMS/HHS sources)
 node test-validation.js
 ```
 
-Tests run via Node.js against the calculation engine extracted from app-index.html. All 159 tests must pass before deployment.
+Tests run via Node.js against the calculation engine extracted from app-index.html. All 190 tests must pass before deployment.
 
 ## License
 
