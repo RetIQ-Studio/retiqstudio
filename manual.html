@@ -283,7 +283,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
     <h3>Coverage Sources</h3>
     <ul>
-      <li><strong>ACA Marketplace:</strong> Individual or family plan from Healthcare.gov. Default ~$9K single / ~$18K couple. Costs shown are full unsubsidized rates (ACA premium tax credit modeling planned for a future version).</li>
+      <li><strong>ACA Marketplace:</strong> Individual or family plan from Healthcare.gov. RetIQ dynamically calculates your ACA premium tax credit (subsidy) based on your projected MAGI each year. See the <strong>ACA Subsidy Engine</strong> section below for details.</li>
       <li><strong>Employer Retiree Plan:</strong> Subsidized coverage from your former employer. Default ~$6K single / ~$12K couple. Typically the cheapest option.</li>
       <li><strong>COBRA Continuation:</strong> Continue your employer plan up to 18 months (36 for qualifying disability). You pay the full premium plus 2% admin. The projection models a <strong>two-phase cost</strong>: COBRA cost during the COBRA period, then an automatic switch to a follow-up cost (typically ACA rates) for the remaining gap.</li>
       <li><strong>Spouse&rsquo;s Employer Plan:</strong> Coverage under your spouse&rsquo;s active employer plan. Ends when your spouse retires, then switches to a follow-up cost for the remaining gap.</li>
@@ -302,6 +302,32 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
     <h3>Smart Defaults</h3>
     <p>When you switch sources, RetIQ updates cost and inflation fields only if they still match the previous source&rsquo;s defaults. If you&rsquo;ve customized a value, it&rsquo;s preserved.</p>
+
+    <h3>ACA Subsidy Engine</h3>
+    <p>When you select <strong>ACA Marketplace</strong>, RetIQ replaces the flat annual cost with a dynamic premium calculation based on your projected income (MAGI) each year. This is how the real ACA works &mdash; your premium depends on your income relative to the Federal Poverty Level (FPL).</p>
+
+    <p><strong>How it works each year:</strong></p>
+    <ol>
+      <li>RetIQ computes your projected MAGI (earned income, Social Security, pension, taxable withdrawals, Roth conversions, capital gains).</li>
+      <li>MAGI is compared to the Federal Poverty Level for your household size to determine your FPL percentage.</li>
+      <li>An &ldquo;applicable percentage&rdquo; is looked up from IRS tables &mdash; this is the share of income you&rsquo;re expected to pay toward your premium.</li>
+      <li>Your expected contribution = MAGI &times; applicable percentage.</li>
+      <li>Your subsidy = benchmark premium &minus; expected contribution (minimum $0).</li>
+      <li>Your net premium = benchmark premium &minus; subsidy (this is what you actually pay).</li>
+    </ol>
+
+    <p><strong>ACA-specific fields:</strong></p>
+    <ul>
+      <li><strong>Household Size:</strong> You + spouse + dependents enrolled on the ACA plan. Defaults to 2 if a spouse is enabled, otherwise 1.</li>
+      <li><strong>Benchmark Premium Override:</strong> Enter your actual Second Lowest Cost Silver Plan (SLCSP) annual premium from healthcare.gov for a more accurate projection. Leave blank and RetIQ uses national-average estimates adjusted for age and household size.</li>
+      <li><strong>ACA Subsidy Rules:</strong> Choose <em>Auto</em> (selects by projection year), <em>Enhanced</em> (2021&ndash;2025 ARPA/IRA rules with no income cliff), or <em>Original</em> (standard ACA with a hard subsidy cliff at 400% FPL). Enhanced subsidies expired after 2025; select Enhanced if Congress extends them.</li>
+    </ul>
+
+    <p><strong>Year-1 Subsidy Preview:</strong> The UI shows a live preview of your estimated subsidy at retirement based on current inputs &mdash; FPL percentage, benchmark premium, estimated subsidy, and net premium. The actual projection uses MAGI computed year by year, which may differ from this preview.</p>
+
+    <div class="tip"><strong>Income management tip:</strong> During ACA years, every source of income affects your premium. Pre-tax withdrawals, Roth conversions, Social Security, capital gains, and pension income all count toward MAGI. Roth account withdrawals do <em>not</em> increase MAGI and will not affect your ACA subsidy. This is one reason some retirees prioritize Roth withdrawals during their ACA gap years.</div>
+
+    <div class="warn"><strong>Roth conversion trade-off:</strong> Roth conversions during ACA years increase your MAGI, which can reduce or eliminate your ACA subsidy. The Conversion Impact Analysis on the Roth Conversion tab shows the ACA Subsidy Delta &mdash; how much subsidy you lose (or keep) compared to not converting. Factor this hidden cost into your conversion strategy.</div>
 
     <p><strong>SSDI and early Medicare:</strong> If you have SSDI enabled, RetIQ automatically shortens the healthcare gap. SSDI recipients qualify for Medicare after 24 months of benefits, so your gap coverage ends at your SSDI Start Age + 2 (or 65, whichever is earlier). See the <a href="#ssdi">Disability (SSDI) Tab</a> section for details.</p>
   </div>
@@ -594,7 +620,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Your SSDI payments stop, but your surviving spouse can claim a survivor benefit based on your Social Security work record. RetIQ calculates this from your PIA (or your SSDI amount if no separate SS income was entered). The survivor receives the higher of their own SS benefit or the survivor benefit &mdash; not both.</p>
   </div>
 
-  <div class="footer">RetIQ v1.8 &middot; retirementiq.app &middot; Not financial advice &middot; All computation runs locally in your browser</div>
+  <div class="footer">RetIQ v1.9 &middot; retirementiq.app &middot; Not financial advice &middot; All computation runs locally in your browser</div>
 </div>
 </body>
 </html>
