@@ -748,6 +748,95 @@ test('Edge Case', 'State tax with invalid code → $0',
   calcStateTax(100000, 'XX'), 0);
 
 // ══════════════════════════════════════════════════════════════════
+// CATEGORY: SS Retirement Earnings Test
+// Source: SSA Publication 05-10069, 2025 limits
+// Under FRA: $1 withheld per $2 earned above $23,400
+// FRA year: $1 withheld per $3 earned above $62,160
+// At/after FRA: no withholding. SSDI exempt.
+// ══════════════════════════════════════════════════════════════════
+
+section('SS Retirement Earnings Test');
+
+// Under limit — no withholding
+test('SS Earnings Test', 'Under FRA: $20K earnings (below $23,400 limit) → $0',
+  'SSA Pub 05-10069: below exempt amount',
+  calcSSEarningsTest(20000, 20000, 64, 67, 2025, false), 0);
+
+// Over limit — standard withholding
+test('SS Earnings Test', 'Under FRA: $50K earnings → $13,300 withheld',
+  'SSA Pub 05-10069: (50000−23400)/2 = 13300',
+  calcSSEarningsTest(20000, 50000, 64, 67, 2025, false), 13300);
+
+// Capped at benefit
+test('SS Earnings Test', 'Under FRA: $100K earnings, $16,800 benefit → capped at $16,800',
+  'SSA Pub 05-10069: withholding cannot exceed benefit',
+  calcSSEarningsTest(16800, 100000, 63, 67, 2025, false), 16800);
+
+// At FRA — no withholding
+test('SS Earnings Test', 'At FRA (age 67, born 1960+): $200K earnings → $0',
+  'SSA basic rule: no test at/after FRA',
+  calcSSEarningsTest(20000, 200000, 67, 67, 2025, false), 0);
+
+// After FRA — no withholding
+test('SS Earnings Test', 'After FRA (age 70): $200K earnings → $0',
+  'SSA basic rule: no test at/after FRA',
+  calcSSEarningsTest(20000, 200000, 70, 67, 2025, false), 0);
+
+// Zero earnings — no withholding
+test('SS Earnings Test', 'Zero earnings → $0',
+  'SSA basic rule: no excess earnings',
+  calcSSEarningsTest(20000, 0, 64, 67, 2025, false), 0);
+
+// FRA year with fractional FRA (born 1957, FRA 66y6m = 66.5)
+test('SS Earnings Test', 'FRA year (66.5): $70K earnings → $2,613',
+  'SSA Pub 05-10069: (70000−62160)/3 = 2613',
+  calcSSEarningsTest(20000, 70000, 66, 66.5, 2025, false), 2613);
+
+// SSDI exempt
+test('SS Earnings Test', 'SSDI: exempt from earnings test',
+  'SSA: SSDI uses different SGA rules',
+  calcSSEarningsTest(20000, 200000, 63, 67, 2025, true), 0);
+
+// Zero benefit
+test('SS Earnings Test', 'Zero SS benefit → $0',
+  'Basic rule: nothing to withhold',
+  calcSSEarningsTest(0, 200000, 63, 67, 2025, false), 0);
+
+// At exact limit
+test('SS Earnings Test', 'Earnings at exact $23,400 limit → $0',
+  'SSA: at limit, excess is $0',
+  calcSSEarningsTest(20000, 23400, 64, 67, 2025, false), 0);
+
+// Inflation indexing: 2030 (5 years from base)
+// Limit: 23400 * 1.03^5 = 27127; excess = 50000-27127 = 22873; withheld = 11437
+test('SS Earnings Test', 'Inflation indexing: 2030 under-FRA limit',
+  'SSA AWI projection: limit indexed ~3%/yr',
+  calcSSEarningsTest(20000, 50000, 63, 67, 2030, false), 11437, 50);
+
+// Integration: runProjection with early SS claim + working
+const earningsTestParams = {
+  currentAge: 62, endAge: 72, retirementAge: 66, retireMonth: 0,
+  annualIncome: 80000, annualSavings: 0, expenses: 50000,
+  ssClaimAge: 62, ssUseManual: true, ssManualMonthly: 2000,
+  birthYear: 1963, birthMonth: 0,
+  incomeGrowth: 0, inflation: 3, returnRate: 7,
+  accounts: [{ id:1, name:'401k', type:'pretax', balance:500000, returnRate:7 }],
+  withdrawalOrder: ['cash','taxable','pretax','roth'],
+  state: 'FL', ssCOLA: 2,
+  ssdiPrimary: {}, ssdiSpouse: {},
+  pension1: {}, pension2: {},
+};
+const earningsTestProj = runProjection(earningsTestParams);
+// At age 62, earning $80K, SS benefit ~$16,800/yr → should have withholding
+test('SS Earnings Test', 'Integration: age 62 (working + SS) has withholding',
+  'Engine: early claimer with earnings has ssWithheld > 0',
+  earningsTestProj[0].ssWithheld > 0 ? 1 : 0, 1);
+// At age 67 (FRA, retired), no withholding
+test('SS Earnings Test', 'Integration: age 67 (FRA, retired) no withholding',
+  'Engine: at FRA, earnings test does not apply',
+  earningsTestProj[5].ssWithheld, 0);
+
+// ══════════════════════════════════════════════════════════════════
 // RESULTS
 // ══════════════════════════════════════════════════════════════════
 
