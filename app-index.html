@@ -383,7 +383,7 @@ button:hover { opacity: 0.88; }
 <div class="header" style="flex-direction:column;align-items:stretch;">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;">
     <a href="https://retirementiq.app/?landing" class="logo-text" style="text-decoration:none;color:inherit">RetIQ</a>
-    <span class="logo-badge">v2.0</span>
+    <span class="logo-badge">v2.1</span>
     <span id="planBadge" class="plan-badge" title="Current plan">FREE</span>
     <button class="mobile-menu-btn" onclick="toggleMobileMenu()" id="mobileMenuBtn" aria-label="Menu">&#9776;</button>
     <div class="header-secondary" id="headerSecondary">
@@ -819,6 +819,59 @@ function calcIRMAA(magi, single = false) {
     surcharge: Math.round(surcharge), totalAnnual: Math.round(bracket.partB + bracket.partD),
     bracketIdx: brackets.indexOf(bracket),
   };
+}
+
+// -- US Market Historical Data (1928-2024) --------------------------
+// Source: Damodaran (NYU Stern) S&P 500 total return incl. dividends, CPI inflation
+// Format: [year, nominalReturn%, inflation%]
+const HISTORICAL_MARKET_DATA = [
+  [1928, 43.81, -1.16], [1929, -8.30, 0.58], [1930, -25.12, -6.40],
+  [1931, -43.84, -9.32], [1932, -8.64, -10.27], [1933, 49.98, 0.76],
+  [1934, -1.19, 1.52], [1935, 46.74, 2.99], [1936, 31.94, 1.45],
+  [1937, -35.34, 2.86], [1938, 29.28, -2.78], [1939, -1.10, 0.00],
+  [1940, -10.67, 0.71], [1941, -12.77, 9.93], [1942, 19.17, 9.03],
+  [1943, 25.06, 2.96], [1944, 19.03, 2.30], [1945, 35.82, 2.25],
+  [1946, -8.43, 18.13], [1947, 5.20, 8.84], [1948, 5.70, 2.99],
+  [1949, 18.30, -2.07], [1950, 30.81, 5.93], [1951, 23.68, 6.00],
+  [1952, 18.15, 0.75], [1953, -1.21, 0.75], [1954, 52.56, -0.74],
+  [1955, 32.60, 0.37], [1956, 7.44, 2.99], [1957, -10.46, 2.90],
+  [1958, 43.72, 1.76], [1959, 12.06, 1.73], [1960, 0.34, 1.36],
+  [1961, 26.64, 0.67], [1962, -8.81, 1.33], [1963, 22.61, 1.64],
+  [1964, 16.42, 0.97], [1965, 12.40, 1.92], [1966, -9.97, 3.46],
+  [1967, 23.80, 3.04], [1968, 10.81, 4.72], [1969, -8.24, 6.20],
+  [1970, 3.56, 5.57], [1971, 14.22, 3.27], [1972, 18.76, 3.41],
+  [1973, -14.31, 8.71], [1974, -25.90, 12.34], [1975, 37.00, 6.94],
+  [1976, 23.83, 4.86], [1977, -6.98, 6.70], [1978, 6.51, 9.02],
+  [1979, 18.52, 13.29], [1980, 31.74, 12.52], [1981, -4.70, 8.92],
+  [1982, 20.42, 3.83], [1983, 22.34, 3.79], [1984, 6.15, 3.95],
+  [1985, 31.24, 3.80], [1986, 18.49, 1.10], [1987, 5.81, 4.43],
+  [1988, 16.54, 4.42], [1989, 31.48, 4.65], [1990, -3.06, 6.11],
+  [1991, 30.23, 3.06], [1992, 7.49, 2.90], [1993, 9.97, 2.75],
+  [1994, 1.33, 2.67], [1995, 37.20, 2.54], [1996, 22.68, 3.32],
+  [1997, 33.10, 1.70], [1998, 28.34, 1.61], [1999, 20.89, 2.68],
+  [2000, -9.03, 3.39], [2001, -11.85, 1.55], [2002, -21.97, 2.38],
+  [2003, 28.36, 1.88], [2004, 10.74, 3.26], [2005, 4.83, 3.42],
+  [2006, 15.61, 2.54], [2007, 5.48, 4.08], [2008, -36.55, 0.09],
+  [2009, 25.94, 2.72], [2010, 14.82, 1.50], [2011, 2.10, 2.96],
+  [2012, 15.89, 1.74], [2013, 32.15, 1.50], [2014, 13.52, 0.76],
+  [2015, 1.38, 0.73], [2016, 11.77, 2.07], [2017, 21.61, 2.11],
+  [2018, -4.23, 1.91], [2019, 31.21, 2.29], [2020, 18.02, 1.36],
+  [2021, 28.47, 7.04], [2022, -18.04, 6.45], [2023, 26.06, 3.35],
+  [2024, 24.88, 2.83],
+];
+
+// Student's t-distribution random number generator (for Stress Test model)
+// df = degrees of freedom. Lower df = fatter tails. df=5 used for stress testing.
+function randT(df) {
+  const u1 = Math.random(), u2 = Math.random();
+  const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+  let chi2 = 0;
+  for (let i = 0; i < df; i++) {
+    const a = Math.random(), b = Math.random();
+    const n = Math.sqrt(-2 * Math.log(a)) * Math.cos(2 * Math.PI * b);
+    chi2 += n * n;
+  }
+  return z / Math.sqrt(chi2 / df);
 }
 
 // -- Main Projection Engine ----------------------------------------
@@ -1543,12 +1596,23 @@ function runProjection(p) {
     const growAcct = (bal, nomRet) => {
       let nr, inf;
       if (hasSequences) {
-        // MC mode: _returnSeq stores market shock (deviation from mean, scaled by retStd)
-        // Scale shock proportionally to account's expected return vs baseline equity return
-        // Low-return accounts (HYSA 4%) get less volatile; high-return (equity 7%) get full shock
-        const volScale = Math.max(0.1, Math.min(1.5, nomRet / Math.max(p.nominalReturn, 1)));
-        nr = nomRet + (p._returnSeq[yr] !== undefined ? p._returnSeq[yr] * volScale : 0);
-        inf = p._inflationSeq[yr] !== undefined ? p._inflationSeq[yr] : p.inflation;
+        if (p._mcModel === 'historical') {
+          // Historical mode: shock = histReturn - userExpectedReturn (absolute market deviation)
+          // Equity-like accounts (return >= 5%) use full historical return
+          // Cash/bond-like accounts dampen the shock (HYSA rates don't swing like equities)
+          if (nomRet >= 5) {
+            nr = p.nominalReturn + p._returnSeq[yr];
+          } else {
+            const dampen = Math.max(0.05, nomRet / Math.max(p.nominalReturn, 1));
+            nr = nomRet + p._returnSeq[yr] * dampen * 0.3;
+          }
+          inf = p._inflationSeq[yr] !== undefined ? p._inflationSeq[yr] : p.inflation;
+        } else {
+          // Normal / Stress Test: existing volScale behavior
+          const volScale = Math.max(0.1, Math.min(1.5, nomRet / Math.max(p.nominalReturn, 1)));
+          nr = nomRet + (p._returnSeq[yr] !== undefined ? p._returnSeq[yr] * volScale : 0);
+          inf = p._inflationSeq[yr] !== undefined ? p._inflationSeq[yr] : p.inflation;
+        }
       } else {
         nr = nomRet;
         inf = p.inflation;
@@ -1587,9 +1651,10 @@ function runProjection(p) {
   return years;
 }
 
-function runMonteCarlo(p, n = 500, retStd = 6, infStd = 1.5) {
+function runMonteCarlo(p, n = 500, retStd = 6, infStd = 1.5, model = 'normal') {
   const numYears = p.endAge - p.currentAge + 1;
   const results = [];
+  const hist = HISTORICAL_MARKET_DATA;
 
   // Box-Muller transform for normally distributed random numbers
   function randNormal(mean, std) {
@@ -1597,19 +1662,37 @@ function runMonteCarlo(p, n = 500, retStd = 6, infStd = 1.5) {
     return mean + std * Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
   }
 
+  // Normalized t-distribution (std dev = 1) for stress test model
+  function randTNorm(mean, std) {
+    const df = 5;
+    const t = randT(df) * Math.sqrt((df - 2) / df);
+    return mean + std * t;
+  }
+
   for (let i = 0; i < n; i++) {
-    // Generate per-year market shock and inflation sequences
-    // Shocks are stored as standard-normal deviations — growAcct scales by each account's volatility
     const returnSeq = [];
     const inflationSeq = [];
     for (let y = 0; y < numYears; y++) {
-      const shock = randNormal(0, retStd); // market shock (deviation from expected return)
-      const inf = Math.max(-1, randNormal(p.inflation, infStd)); // absolute inflation rate
+      let shock, inf;
+      if (model === 'historical') {
+        // Bootstrap: pick a random historical year-pair (return + inflation stay correlated)
+        const idx = Math.floor(Math.random() * hist.length);
+        shock = hist[idx][1] - p.nominalReturn; // deviation from user's expected return
+        inf = hist[idx][2]; // absolute inflation rate from that year
+      } else if (model === 'stress') {
+        // Fat-tailed: t-distribution shocks (more extreme events than normal)
+        shock = randTNorm(0, retStd);
+        inf = Math.max(-1, randNormal(p.inflation, infStd));
+      } else {
+        // Normal (existing behavior): Gaussian shocks
+        shock = randNormal(0, retStd);
+        inf = Math.max(-1, randNormal(p.inflation, infStd));
+      }
       returnSeq.push(shock);
       inflationSeq.push(inf);
     }
 
-    const mp = { ...p, _returnSeq: returnSeq, _inflationSeq: inflationSeq, _mcRetStd: retStd };
+    const mp = { ...p, _returnSeq: returnSeq, _inflationSeq: inflationSeq, _mcRetStd: retStd, _mcModel: model };
     const proj = runProjection(mp);
     results.push({ final: proj[proj.length - 1].netWorth, proj,
       bustAge: proj.find(y => y.netWorth <= 0)?.age || null });
@@ -1622,6 +1705,7 @@ function runMonteCarlo(p, n = 500, retStd = 6, infStd = 1.5) {
     p10: results[Math.floor(n * 0.1)].proj,
     p90: results[Math.floor(n * 0.9)].proj,
     avgBustAge: (() => { const busts = results.filter(r => r.bustAge); return busts.length > 0 ? Math.round(busts.reduce((s,r) => s + r.bustAge, 0) / busts.length) : null; })(),
+    model: model,
   };
 }
 
@@ -1649,7 +1733,7 @@ let state = {
   tab: 'dashboard', inputTab: 'personal', projChartKeys: ['netWorth'], projShowTable: false, mcResults: null, scenario: null, rothOptResults: null, scenarioChartKeys: ['netWorth'], thisYearCollapsed: false,
   optScoreMode: 'balanced',
   reportGoal: 'netWorth',
-  mcConfig: { numSims: 500, returnStdDev: 6, inflationStdDev: 1.5 },
+  mcConfig: { numSims: 500, returnStdDev: 6, inflationStdDev: 1.5, model: 'normal' },
   params: {
     // Demo: The Johnsons — a couple approaching retirement
     currentAge: 57, retirementAge: 62, endAge: 95,
@@ -2398,7 +2482,8 @@ function runMC() {
   const btn = document.querySelector('.mc-btn');
   if (btn) { btn.textContent = 'Running...'; btn.disabled = true; }
   const mc = state.mcConfig;
-  setTimeout(() => { state.mcResults = runMonteCarlo(state.params, mc.numSims, mc.returnStdDev, mc.inflationStdDev); render(); }, 50);
+  if (!mc.model) mc.model = 'normal';
+  setTimeout(() => { state.mcResults = runMonteCarlo(state.params, mc.numSims, mc.returnStdDev, mc.inflationStdDev, mc.model); render(); }, 50);
 }
 
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
@@ -3059,7 +3144,7 @@ function exportDashboardSummary() {
     const medianFinal = mc.median[mc.median.length - 1].netWorth;
     const p5Final = mc.p10[mc.p10.length - 1].netWorth; // p10 is ~worst realistic
     mcHtml = `
-      <div class="sec-head">MONTE CARLO SIMULATION</div>
+      <div class="sec-head">MONTE CARLO SIMULATION (${mc.model === 'historical' ? 'Historical' : mc.model === 'stress' ? 'Stress Test' : 'Normal'})</div>
       <div class="metrics">
         <div class="metric"><div class="metric-label">Success Rate</div><div class="metric-value" style="color:#10b981">${mc.successRate}%</div></div>
         <div class="metric"><div class="metric-label">Median End NW</div><div class="metric-value" style="color:#06b6d4">${fmtK(medianFinal)}</div></div>
@@ -5308,6 +5393,7 @@ function renderMonteCarlo(proj) {
   const mc = state.mcResults;
   const p = state.params;
   const cfg = state.mcConfig;
+  if (!cfg.model) cfg.model = 'normal';
   const realRet = ((1 + p.nominalReturn/100) / (1 + p.inflation/100) - 1) * 100;
 
   let results = '';
@@ -5317,6 +5403,19 @@ function renderMonteCarlo(proj) {
     const p90F = mc.p90[mc.p90.length-1].netWorth;
     const color = mc.successRate >= 80 ? 'var(--green)' : mc.successRate >= 50 ? 'var(--amber)' : 'var(--red)';
     const chartData = mc.median.map((m,i) => ({ age:m.age, year:m.year, retired:m.retired, p90:mc.p90[i]?.netWorth||0, median:m.netWorth, p10:mc.p10[i]?.netWorth||0 }));
+    const modelNote = mc.model === 'historical'
+      ? `<div style="font-size:12px;color:var(--text-dim);margin-top:12px;line-height:1.5;padding:10px;background:var(--bg-base);border-radius:6px;border:1px solid var(--border)">
+          <strong>Historical model:</strong> Each simulation reshuffles actual US market years from 1928\u20132024.
+          This includes the Great Depression, 1970s stagflation, the dot-com crash, and 2008.
+          Your plan\u2019s success rate reflects performance across every kind of market the US has experienced.
+        </div>`
+      : mc.model === 'stress'
+      ? `<div style="font-size:12px;color:var(--text-dim);margin-top:12px;line-height:1.5;padding:10px;background:var(--bg-base);border-radius:6px;border:1px solid var(--border)">
+          <strong>Stress test:</strong> Uses a fat-tailed distribution that produces extreme events
+          (crashes and booms) more frequently than a normal bell curve. If your plan survives this,
+          it has significant resilience against severe market conditions.
+        </div>`
+      : '';
     results = `<div class="stats-row" style="justify-content:center">
       <div class="stat"><div class="stat-label">Success Rate</div><div class="stat-value" style="color:${color}">${mc.successRate}%</div><div class="stat-sub">${mc.successRate>=90?'Strong':mc.successRate>=75?'Good':mc.successRate>=50?'Caution':'High risk'}</div></div>
       <div class="stat"><div class="stat-label">Median Final</div><div class="stat-value" style="color:var(--cyan)">${fmtK(mF)}</div></div>
@@ -5324,7 +5423,8 @@ function renderMonteCarlo(proj) {
       <div class="stat"><div class="stat-label">90th Pctl</div><div class="stat-value" style="color:var(--green)">${fmtK(p90F)}</div><div class="stat-sub">Good luck</div></div>
       ${mc.avgBustAge ? `<div class="stat"><div class="stat-label">Avg Bust Age</div><div class="stat-value" style="color:var(--red)">${mc.avgBustAge}</div><div class="stat-sub">Among failed simulations only</div></div>` : ''}
     </div>
-    <div class="card">${buildChart(chartData,['p90','median','p10'],['#10b981','#06b6d4','#ef4444'],['90th Pctl','Median','10th Pctl'],{title:'Monte Carlo -- Net Worth Paths',height:220})}</div>`;
+    ${modelNote}
+    <div class="card">${buildChart(chartData,['p90','median','p10'],['#10b981','#06b6d4','#ef4444'],['90th Pctl','Median','10th Pctl'],{title:'Monte Carlo -- Net Worth Paths (' + (mc.model === 'historical' ? 'Historical' : mc.model === 'stress' ? 'Stress Test' : 'Normal') + ')',height:220})}</div>`;
   }
 
   // MC Field helper (uses mcConfig, not params)
@@ -5337,9 +5437,45 @@ function renderMonteCarlo(proj) {
     </div>${help ? `<div class="field-help">${help}</div>` : ''}</div>`;
   }
 
+  // Model description text
+  const modelHelp = cfg.model === 'historical' ? 'Resamples actual US stock returns and inflation year-pairs. Captures real crash magnitudes and return-inflation correlation.'
+    : cfg.model === 'stress' ? 'Uses a heavy-tailed distribution that produces more extreme events than a bell curve. Tests resilience against worse-than-typical markets.'
+    : 'Standard approach. Returns follow a symmetric bell curve each year, independently. This is the gentlest model.';
+
+  // Simulation settings: hide std dev fields for historical model
+  const simSettings = cfg.model === 'historical'
+    ? `${mcField('Simulations', 'numSims', { help: '100-2000' })}
+       <div style="grid-column:span 2;font-size:12px;color:var(--text-dim);line-height:1.5">
+         Returns and inflation are drawn from 97 years of US market history (1928\u20132024).
+         Volatility is inherent in the data \u2014 no standard deviation settings needed.
+       </div>`
+    : `${mcField('Simulations', 'numSims', { help: '100-2000' })}
+       ${mcField('Return Std Dev', 'returnStdDev', { suffix: '%', help: cfg.model === 'stress' ? 'Same scale, heavier tails' : 'Historical ~6%' })}
+       ${mcField('Inflation Std Dev', 'inflationStdDev', { suffix: '%', help: 'Historical ~1.5%' })}`;
+
+  // Return range text
+  const rangeText = cfg.model === 'historical'
+    ? `Historical returns: -43.8% to +52.6% \u00b7 Inflation: -10.3% to +18.1%`
+    : `Return range: ${(p.nominalReturn - cfg.returnStdDev).toFixed(1)}% - ${(p.nominalReturn + cfg.returnStdDev).toFixed(1)}% \u00b7 Inflation range: ${(p.inflation - cfg.inflationStdDev).toFixed(1)}% - ${(p.inflation + cfg.inflationStdDev).toFixed(1)}%`;
+
+  // Button label
+  const btnLabel = cfg.model === 'historical' ? 'Historical' : cfg.model === 'stress' ? 'Stress' : '';
+
   return `<div class="card" data-accent="purple"><div class="card-title">Monte Carlo Simulation</div>
     <div style="font-size:13px;color:var(--text-dim);margin-bottom:16px;line-height:1.6">
       Randomizes investment returns and inflation across multiple simulations to estimate the probability your money lasts through age ${p.endAge}.
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div class="field">
+        <label class="field-label">Simulation Model</label>
+        <select class="field-input" onchange="setMCConfig('model', this.value)" style="font-size:13px">
+          <option value="normal" ${cfg.model==='normal'?'selected':''}>Normal (Bell Curve)</option>
+          <option value="historical" ${cfg.model==='historical'?'selected':''}>Historical (1928\u20132024)</option>
+          <option value="stress" ${cfg.model==='stress'?'selected':''}>Stress Test (Fat-Tailed)</option>
+        </select>
+        <div class="field-help">${modelHelp}</div>
+      </div>
     </div>
 
     <div class="grid-2" style="margin-bottom:16px">
@@ -5354,19 +5490,14 @@ function renderMonteCarlo(proj) {
       <div style="padding:14px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border)">
         <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Simulation Settings</div>
         <div class="grid-3" style="gap:8px">
-          ${mcField('Simulations', 'numSims', { help: '100-2000' })}
-          ${mcField('Return Std Dev', 'returnStdDev', { suffix: '%', help: 'Historical ~6%' })}
-          ${mcField('Inflation Std Dev', 'inflationStdDev', { suffix: '%', help: 'Historical ~1.5%' })}
+          ${simSettings}
         </div>
       </div>
     </div>
 
     <div style="display:flex;align-items:center;gap:12px">
-      <button class="mc-btn" onclick="runMC()">Run ${cfg.numSims} Simulations</button>
-      <span style="font-size:11px;color:var(--text-faint)">
-        Return range: ${(p.nominalReturn - cfg.returnStdDev).toFixed(1)}% - ${(p.nominalReturn + cfg.returnStdDev).toFixed(1)}% &#183;
-        Inflation range: ${(p.inflation - cfg.inflationStdDev).toFixed(1)}% - ${(p.inflation + cfg.inflationStdDev).toFixed(1)}%
-      </span>
+      <button class="mc-btn" onclick="runMC()">Run ${cfg.numSims} ${btnLabel} Simulations</button>
+      <span style="font-size:11px;color:var(--text-faint)">${rangeText}</span>
     </div>
   </div>` + results;
 }
@@ -5643,7 +5774,7 @@ function render() {
     case 'scenarios': html = renderScenarios(proj); break;
     case 'validation': html = renderValidation(); break;
   }
-  html += '<div class="footer">RetIQ v2.0 &#183; Build 2026-03-03 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a> &#183; <a href="https://github.com/RetIQ-Studio/retiqstudio" target="_blank" style="color:var(--text-dim);text-decoration:none">Source (BSL 1.1)</a></div>';
+  html += '<div class="footer">RetIQ v2.1 &#183; Build 2026-03-03 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a> &#183; <a href="https://github.com/RetIQ-Studio/retiqstudio" target="_blank" style="color:var(--text-dim);text-decoration:none">Source (BSL 1.1)</a></div>';
   document.getElementById('app').innerHTML = html;
   updateHeaderHeight();
   // Scroll active sub-nav tab into view on mobile

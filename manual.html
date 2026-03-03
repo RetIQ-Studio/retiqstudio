@@ -521,20 +521,27 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
   <!-- 19 -->
   <div class="sec" id="montecarlo">
     <h2>19. Monte Carlo Simulation</h2>
-    <p>The Monte Carlo engine runs 2,000 randomized projections, varying both investment returns and inflation each year based on configurable standard deviations.</p>
+    <p>The Monte Carlo engine runs randomized projections to estimate the probability your money lasts through your plan. Choose from three simulation models, each offering a different perspective on your plan&rsquo;s resilience.</p>
+    <h3>Simulation Models</h3>
+    <ul>
+      <li><strong>Normal (Bell Curve):</strong> The standard approach. Each year&rsquo;s return is drawn independently from a symmetric bell curve (Gaussian distribution) centered on your expected return. This is the gentlest model &mdash; it produces realistic year-to-year variation but underweights extreme events like major crashes. Use this as your baseline.</li>
+      <li><strong>Historical (1928&ndash;2024):</strong> Each simulation randomly reshuffles actual US stock market returns and inflation from 97 years of history. Returns and inflation are paired &mdash; a year with poor returns and high inflation (like 1974) stays paired together. This naturally captures real crash magnitudes (the Great Depression, 1970s stagflation, 2008), fat tails, and the correlation between returns and inflation. No standard deviation settings are needed &mdash; volatility comes from the data itself.</li>
+      <li><strong>Stress Test (Fat-Tailed):</strong> Like Normal but uses a heavy-tailed statistical distribution (Student&rsquo;s t) that produces extreme events &mdash; both crashes and booms &mdash; more frequently than a bell curve. If your plan survives this model, it has significant resilience. Use this when you want to test against worse-than-historical scenarios.</li>
+    </ul>
     <h3>Configuration</h3>
     <ul>
-      <li><strong>Number of Simulations:</strong> Default 2,000. Higher means more precise but slower.</li>
-      <li><strong>Return Std Dev:</strong> Year-to-year volatility of investment returns. Default: 12% (typical for a stock-heavy portfolio).</li>
-      <li><strong>Inflation Std Dev:</strong> Year-to-year inflation volatility. Default: 1.5%.</li>
+      <li><strong>Number of Simulations:</strong> Default 500. Higher means more stable results but slower.</li>
+      <li><strong>Return Std Dev:</strong> Year-to-year volatility of returns (Normal and Stress Test models only). Default: 6%.</li>
+      <li><strong>Inflation Std Dev:</strong> Year-to-year inflation volatility (Normal and Stress Test models only). Default: 1.5%.</li>
     </ul>
     <h3>Results</h3>
     <ul>
       <li><strong>Success Rate:</strong> Percentage of simulations where money lasts through end-of-plan.</li>
-      <li><strong>Percentile Chart:</strong> Shows 10th, 25th, 50th, 75th, and 90th percentile net worth trajectories.</li>
-      <li><strong>Worst Case:</strong> The worst outcome across all simulations.</li>
+      <li><strong>Percentile Chart:</strong> Shows 10th, 50th (median), and 90th percentile net worth trajectories.</li>
+      <li><strong>Average Bust Age:</strong> Among failed simulations, the average age when money runs out.</li>
     </ul>
-    <div class="warn"><strong>Interpretation:</strong> A 90%+ success rate is generally considered strong. Below 80% suggests your plan may need adjustment &mdash; reduce expenses, delay retirement, or increase savings.</div>
+    <div class="tip"><strong>Pro tip:</strong> Run all three models and compare. If all three show 90%+ success, your plan is robust. If Normal shows 92% but Historical shows 78% and Stress Test shows 65%, your plan works in gentle conditions but is vulnerable to real-world market patterns &mdash; consider reducing expenses, delaying retirement, or increasing savings.</div>
+    <div class="warn"><strong>Interpretation:</strong> A 90%+ success rate is generally considered strong. Below 80% suggests your plan may need adjustment. Historical and Stress Test models are inherently more demanding than Normal &mdash; a lower success rate in these models is expected and informative, not necessarily alarming.</div>
   </div>
 
   <!-- 20 -->
@@ -636,7 +643,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Your SSDI payments stop, but your surviving spouse can claim a survivor benefit based on your Social Security work record. RetIQ calculates this from your PIA (or your SSDI amount if no separate SS income was entered). The survivor receives the higher of their own SS benefit or the survivor benefit &mdash; not both.</p>
   </div>
 
-  <div class="footer">RetIQ v2.0 &middot; retirementiq.app &middot; Not financial advice &middot; All computation runs locally in your browser</div>
+  <div class="footer">RetIQ v2.1 &middot; retirementiq.app &middot; Not financial advice &middot; All computation runs locally in your browser</div>
 </div>
 </body>
 </html>
