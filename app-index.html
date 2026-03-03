@@ -383,7 +383,7 @@ button:hover { opacity: 0.88; }
 <div class="header" style="flex-direction:column;align-items:stretch;">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;">
     <a href="https://retirementiq.app/?landing" class="logo-text" style="text-decoration:none;color:inherit">RetIQ</a>
-    <span class="logo-badge">v1.7</span>
+    <span class="logo-badge">v1.8</span>
     <span id="planBadge" class="plan-badge" title="Current plan">FREE</span>
     <button class="mobile-menu-btn" onclick="toggleMobileMenu()" id="mobileMenuBtn" aria-label="Menu">&#9776;</button>
     <div class="header-secondary" id="headerSecondary">
@@ -535,6 +535,16 @@ const SS_RET_UNDER_FRA_RATE  = 0.50;    // $1 withheld per $2 over limit
 const SS_RET_FRA_YEAR_RATE   = 1/3;     // $1 withheld per $3 over limit
 const SS_RET_BASE_YEAR       = 2025;    // base year for inflation indexing
 const SS_RET_GROWTH          = 0.03;    // Average Wage Index growth (~3%/yr)
+
+// Pre-Medicare Healthcare Sources (v1.8)
+const HC_SOURCES = {
+  aca:          { label: 'ACA Marketplace',        single: 9000,  couple: 18000, inf: 5, help: 'Individual or family plan from Healthcare.gov. Costs shown before premium tax credits.' },
+  retiree_plan: { label: 'Employer Retiree Plan',  single: 6000,  couple: 12000, inf: 4, help: 'Subsidized coverage from your former employer. Typically much cheaper than the individual market.' },
+  cobra:        { label: 'COBRA Continuation',      single: 8400,  couple: 16800, inf: 5, help: 'Continue your employer plan up to 18 months. You pay the full premium plus a 2% admin fee.' },
+  spouse_plan:  { label: "Spouse's Employer Plan",  single: 3000,  couple: 6000,  inf: 4, help: "Coverage under your spouse's active employer plan until they retire." },
+  va:           { label: 'VA Healthcare',            single: 0,     couple: 0,     inf: 0, help: 'Veterans with qualifying service may have zero or very low healthcare costs.' },
+  other:        { label: 'Other / Self-Pay',         single: 12000, couple: 18000, inf: 5, help: 'Health sharing ministries, short-term plans, direct primary care, or self-pay.' },
+};
 
 // IRS §86: Social Security benefit taxation based on provisional/combined income
 function calcTaxableSS(ssAmount, otherIncome, single = false) {
@@ -1035,17 +1045,46 @@ function runProjection(p) {
       expenses = p.annualExpenses * Math.pow(1 + p.inflation / 100, yr) * expMultiplier;
     }
 
-    // Pre-Medicare healthcare (new): extra cost between retirement and Medicare eligibility
+    // Pre-Medicare healthcare: source-aware cost between retirement and Medicare eligibility
     // SSDI recipients qualify for Medicare after 24-month waiting period (before age 65)
     let healthcareCost = 0;
     const hc = p.preMedicareHealthcare || {};
     // Pre-Medicare gap uses primary's Medicare age (their healthcare gap)
     const primaryMedCoverageAge = primaryDead ? spouseMedicareAge : primaryMedicareAge;
     if (hc.enabled && effectivelyRetired && age < primaryMedCoverageAge) {
-      const hcStart = hc.startAge > 0 ? hc.startAge : Math.ceil(p.retirementAge);
+      const hcStart = Math.ceil(p.retirementAge);
       if (age >= hcStart) {
         const hcYrs = age - hcStart;
-        healthcareCost = Math.round((hc.annualCost || 18000) * Math.pow(1 + (hc.inflation || 5) / 100, hcYrs));
+        const src = hc.source || 'aca';
+        const inf = (hc.inflation || 5) / 100;
+        if (src === 'cobra') {
+          // COBRA two-phase: COBRA period then follow-up source
+          const cobraYrs = (hc.cobraDuration || 18) / 12;
+          if (hcYrs < cobraYrs) {
+            healthcareCost = Math.round((hc.annualCost || 18000) * Math.pow(1 + inf, hcYrs));
+          } else {
+            // Follow-up phase: cost inflates from hcStart (not from COBRA end)
+            const fuCost = hc.cobraFollowUpCost || hc.annualCost || 18000;
+            const fuInf = (hc.cobraFollowUpInflation || hc.inflation || 5) / 100;
+            healthcareCost = Math.round(fuCost * Math.pow(1 + fuInf, hcYrs));
+          }
+        } else if (src === 'spouse_plan') {
+          // Spouse plan until spouse retires, then follow-up
+          const spRetAge = p.spouseRetirementAge || 65;
+          const spouseStillWorking = spAge && spAge < spRetAge;
+          if (spouseStillWorking) {
+            healthcareCost = Math.round((hc.annualCost || 6000) * Math.pow(1 + inf, hcYrs));
+          } else {
+            const fuCost = hc.spousePlanFollowUpCost || hc.annualCost || 18000;
+            const fuInf = (hc.spousePlanFollowUpInflation || hc.inflation || 5) / 100;
+            healthcareCost = Math.round(fuCost * Math.pow(1 + fuInf, hcYrs));
+          }
+        } else if (src === 'va') {
+          healthcareCost = 0; // VA: zero or near-zero cost
+        } else {
+          // aca, retiree_plan, other: simple inflation from base cost
+          healthcareCost = Math.round((hc.annualCost || 18000) * Math.pow(1 + inf, hcYrs));
+        }
         expenses += healthcareCost;
       }
     }
@@ -1407,7 +1446,7 @@ function runProjection(p) {
     years.push({
       age, year: new Date().getFullYear() + yr,
       earned: Math.round(earned), ss: Math.round(ss), ssWithheld: Math.round(ssWithheld), ssdi: Math.round(ssdiIncome),
-      pension: pensionIncome, healthcare: healthcareCost,
+      pension: pensionIncome, healthcare: healthcareCost, healthcareSource: (hc.enabled && healthcareCost > 0) ? (hc.source || 'aca') : null,
       debtPayments: Math.round(debtPayments), ltcCost, charityTotal: Math.round(charityAmount),
       other: Math.round(other), totalInc: Math.round(totalInc), expenses: Math.round(expenses),
       savings: Math.round(saved), withdrawal: Math.round(withdrawal),
@@ -1524,7 +1563,11 @@ let state = {
     spousePension: { enabled: false, annualAmount: 0, startAge: 65, cola: 0, name: 'Spouse Pension' },
 
     // Pre-Medicare healthcare gap
-    preMedicareHealthcare: { enabled: false, annualCost: 18000, startAge: 65, endAge: 65, inflation: 5 },
+    preMedicareHealthcare: {
+      enabled: false, source: 'aca', annualCost: 18000, inflation: 5,
+      cobraDuration: 18, cobraFollowUpCost: 18000, cobraFollowUpInflation: 5,
+      spousePlanFollowUpCost: 18000, spousePlanFollowUpInflation: 5,
+    },
 
     // Retirement expense phases
     expensePhases: { enabled: false, laterAge: 75, laterMultiplier: 85, lateAge: 85, lateMultiplier: 95 },
@@ -1604,6 +1647,18 @@ function migrateParams() {
     const idx = state.params.withdrawalOrder.indexOf('taxable');
     if (idx >= 0) state.params.withdrawalOrder.splice(idx, 0, 'cash');
     else state.params.withdrawalOrder.unshift('cash');
+  }
+  // v1.8 migration: add healthcare source fields to existing flat-cost data
+  const hcm = state.params.preMedicareHealthcare;
+  if (hcm && hcm.source === undefined) {
+    hcm.source = 'aca';
+    if (hcm.cobraDuration === undefined) hcm.cobraDuration = 18;
+    if (hcm.cobraFollowUpCost === undefined) hcm.cobraFollowUpCost = hcm.annualCost || 18000;
+    if (hcm.cobraFollowUpInflation === undefined) hcm.cobraFollowUpInflation = hcm.inflation || 5;
+    if (hcm.spousePlanFollowUpCost === undefined) hcm.spousePlanFollowUpCost = hcm.annualCost || 18000;
+    if (hcm.spousePlanFollowUpInflation === undefined) hcm.spousePlanFollowUpInflation = hcm.inflation || 5;
+    // Remove legacy fields
+    delete hcm.startAge; delete hcm.endAge;
   }
 }
 migrateParams();
@@ -1829,8 +1884,43 @@ function setPension(which, key, val) {
 }
 function setHealthcare(key, val) {
   if (proGuard()) return;
-  if (!state.params.preMedicareHealthcare) state.params.preMedicareHealthcare = { enabled: false, annualCost: 18000, startAge: 0, endAge: 65, inflation: 5 };
+  if (!state.params.preMedicareHealthcare) state.params.preMedicareHealthcare = {
+    enabled: false, source: 'aca', annualCost: 18000, inflation: 5,
+    cobraDuration: 18, cobraFollowUpCost: 18000, cobraFollowUpInflation: 5,
+    spousePlanFollowUpCost: 18000, spousePlanFollowUpInflation: 5,
+  };
   state.params.preMedicareHealthcare[key] = val; state.mcResults = null; saveState(); render();
+}
+function setHealthcareSource(newSource) {
+  if (proGuard()) return;
+  const p = state.params;
+  const hc = p.preMedicareHealthcare;
+  if (!hc || hc.source === newSource) return;
+  const oldSrc = hc.source || 'aca';
+  const oldDef = HC_SOURCES[oldSrc] || HC_SOURCES.aca;
+  const newDef = HC_SOURCES[newSource] || HC_SOURCES.aca;
+  const isCouple = p.spouseEnabled || (p.spouseAge && p.spouseAge > 0);
+  const oldDefaultCost = isCouple ? oldDef.couple : oldDef.single;
+  const newDefaultCost = isCouple ? newDef.couple : newDef.single;
+  // Smart defaults: only overwrite if current value matches the previous source's default
+  if (hc.annualCost === oldDefaultCost || hc.annualCost === undefined) hc.annualCost = newDefaultCost;
+  if (hc.inflation === oldDef.inf || hc.inflation === undefined) hc.inflation = newDef.inf;
+  // Set follow-up defaults for COBRA
+  if (newSource === 'cobra') {
+    const acaDef = HC_SOURCES.aca;
+    const acaCost = isCouple ? acaDef.couple : acaDef.single;
+    if (hc.cobraFollowUpCost === undefined || hc.cobraFollowUpCost === oldDefaultCost) hc.cobraFollowUpCost = acaCost;
+    if (hc.cobraFollowUpInflation === undefined) hc.cobraFollowUpInflation = acaDef.inf;
+  }
+  // Set follow-up defaults for spouse plan
+  if (newSource === 'spouse_plan') {
+    const acaDef = HC_SOURCES.aca;
+    const acaCost = isCouple ? acaDef.couple : acaDef.single;
+    if (hc.spousePlanFollowUpCost === undefined || hc.spousePlanFollowUpCost === oldDefaultCost) hc.spousePlanFollowUpCost = acaCost;
+    if (hc.spousePlanFollowUpInflation === undefined) hc.spousePlanFollowUpInflation = acaDef.inf;
+  }
+  hc.source = newSource;
+  state.mcResults = null; saveState(); render();
 }
 function setExpensePhase(key, val) {
   if (proGuard()) return;
@@ -2505,7 +2595,7 @@ function computePlanHealth(proj) {
         color: 'var(--amber)',
         amount: fmt(totalHC),
         amountLabel: `total cost over ${Math.round(gapYears)} gap years`,
-        desc: `Retiring at ${p.retirementAge} means ${Math.round(gapYears)} years of self-funded healthcare before Medicare at ${planHealthMedAge}. At ${fmt(hc.annualCost || 0)}/yr growing at ${hc.inflation || 5}%, this is a significant expense to plan for.`,
+        desc: `Retiring at ${p.retirementAge} means ${Math.round(gapYears)} years of self-funded healthcare before Medicare at ${planHealthMedAge}. Source: ${(HC_SOURCES[hc.source||'aca']||HC_SOURCES.aca).label} at ${fmt(hc.annualCost || 0)}/yr${hc.source === 'cobra' ? ` (COBRA ${hc.cobraDuration||18}mo, then follow-up at ${fmt(hc.cobraFollowUpCost||0)}/yr)` : hc.source === 'spouse_plan' ? ` (until spouse retires, then ${fmt(hc.spousePlanFollowUpCost||0)}/yr)` : ''} growing at ${hc.inflation || 5}%.`,
         action: "state.tab='inputs';state.inputTab='healthcare';render()",
         actionLabel: 'Review Healthcare',
       });
@@ -3089,6 +3179,10 @@ function renderThisYear(proj, p, bust) {
   // Expenses
   const expRows = [];
   if (y.expenses > 0) expRows.push({ label: 'Total Living Expenses', value: y.expenses, color: 'var(--text)' });
+  if (y.healthcare > 0) {
+    const srcLabel = y.healthcareSource && HC_SOURCES[y.healthcareSource] ? HC_SOURCES[y.healthcareSource].label : 'Pre-Medicare';
+    expRows.push({ label: `Healthcare (${srcLabel})`, value: y.healthcare, color: 'var(--pink)', note: 'included in living expenses' });
+  }
   if (y.charityTotal > 0) expRows.push({ label: 'Charitable Giving', value: y.charityTotal, color: 'var(--amber)' });
   if (y.qcd > 0) expRows.push({ label: 'Qualified Charitable Distribution (QCD)', value: y.qcd, color: 'var(--amber)', note: 'included in charitable giving' });
   if (y.debtPayments > 0) expRows.push({ label: 'Debt/Liability Payments', value: y.debtPayments, color: 'var(--red)' });
@@ -3174,6 +3268,10 @@ function printThisYear() {
   // Expenses
   let ex = '';
   ex += line('Total Living Expenses', y.expenses);
+  if (y.healthcare > 0) {
+    const pSrcLabel = y.healthcareSource && HC_SOURCES[y.healthcareSource] ? HC_SOURCES[y.healthcareSource].label : 'Pre-Medicare';
+    ex += line('Healthcare (' + pSrcLabel + ')', y.healthcare, 'included in living expenses');
+  }
   ex += line('Charitable Giving', y.charityTotal);
   ex += line('Qualified Charitable Distribution (QCD)', y.qcd, 'included in charitable giving');
   ex += line('Debt/Liability Payments', y.debtPayments);
@@ -3688,29 +3786,90 @@ function renderInputs() {
     const ssdi1h = p.ssdiPrimary || {};
     const effectiveMedAge = ssdi1h.enabled ? Math.min((ssdi1h.startAge || 0) + 2, 65) : 65;
     const yearsGap = Math.max(0, effectiveMedAge - retAge);
-    const totalHC = hc.enabled && yearsGap > 0 ? Array.from({length: yearsGap}, (_,i) => Math.round((hc.annualCost||18000) * Math.pow(1 + (hc.inflation||5)/100, i))).reduce((s,v) => s+v, 0) : 0;
+    const hcSrc = hc.source || 'aca';
+    const hcDef = HC_SOURCES[hcSrc] || HC_SOURCES.aca;
+    const isCouple = p.spouseEnabled || (p.spouseAge && p.spouseAge > 0);
+    // HC field helper (local, uses setHealthcare)
+    const hf = (l,k,o) => { const isCur = o.prefix==='$'; const defVal = o.def||0; return '<div class="field"><label class="field-label">'+l+'</label><div class="field-wrap">'+(o.prefix?'<span class="field-prefix">'+o.prefix+'</span>':'')+'<input type="'+(isCur?'text':'number')+'" '+(isCur?'inputmode="decimal" ':'')+'class="field-input'+(o.prefix?' has-prefix':'')+(o.suffix?' has-suffix':'')+'" value="'+(isCur?fmtC(hc[k]!==undefined?hc[k]:defVal):(hc[k]!==undefined?hc[k]:defVal))+'" '+(isCur?'onfocus="this.value=this.value.replace(/,/g,\'\')" onblur="this.value=fmtC(parseC(this.value))" ':'')+'onchange="setHealthcare(\''+k+'\','+(isCur?'parseC(this.value)':'Number(this.value)')+')">'+(o.suffix?'<span class="field-suffix">'+o.suffix+'</span>':'')+'</div>'+(o.help?'<div class="field-help">'+o.help+'</div>':'')+'</div>'; };
+    // Estimate total HC cost for info box (source-aware)
+    const totalHC = (() => {
+      if (!hc.enabled || yearsGap <= 0) return 0;
+      let total = 0;
+      for (let i = 0; i < yearsGap; i++) {
+        const inf = (hc.inflation || 5) / 100;
+        if (hcSrc === 'cobra') {
+          const cobraYrs = (hc.cobraDuration || 18) / 12;
+          if (i < cobraYrs) total += Math.round((hc.annualCost||18000) * Math.pow(1+inf, i));
+          else { const fuInf = (hc.cobraFollowUpInflation||hc.inflation||5)/100; total += Math.round((hc.cobraFollowUpCost||18000) * Math.pow(1+fuInf, i)); }
+        } else if (hcSrc === 'va') {
+          total += 0;
+        } else {
+          total += Math.round((hc.annualCost||18000) * Math.pow(1+inf, i));
+        }
+      }
+      return total;
+    })();
 
-    content += `<div class="card" data-accent="pink"><div class="card-title">Pre-Medicare Healthcare (Age Gap Coverage)</div>
+    content += `<div class="card" data-accent="pink"><div class="card-title">Pre-Medicare Healthcare ${tip('If you retire before 65, you need to bridge the gap between employer coverage and Medicare. The source you choose determines cost defaults and how the projection models your healthcare spending.')}</div>
       <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
-        If you retire before Medicare eligibility, you need healthcare coverage until Medicare kicks in. SSDI recipients qualify for Medicare after 24 months.
-        ACA marketplace plans for a couple typically cost $12,000-$25,000/year and inflate faster than general costs.
+        If you retire before Medicare eligibility, you need healthcare coverage until Medicare kicks in at ${effectiveMedAge}.
         ${ssdi1h.enabled && effectiveMedAge < 65 ? '<strong style="color:var(--blue)">SSDI early Medicare at age ' + effectiveMedAge + ' shortens your gap.</strong> '  : ''}
-        ${retAge >= effectiveMedAge ? '<strong style="color:var(--green)">Your retirement age is ' + retAge + ', at or after Medicare eligibility (' + effectiveMedAge + '), so this may not apply.</strong>' : `<strong style="color:var(--amber)">You have a ${yearsGap}-year gap (age ${retAge}-${effectiveMedAge}).</strong>`}
+        ${retAge >= effectiveMedAge ? '<strong style="color:var(--green)">Your retirement age is ' + retAge + ', at or after Medicare eligibility (' + effectiveMedAge + '), so this may not apply.</strong>' : `<strong style="color:var(--amber)">You have a ${yearsGap}-year gap (age ${retAge} to ${effectiveMedAge}).</strong>`}
       </div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);margin-bottom:14px">
         <input type="checkbox" ${hc.enabled?'checked':''} onchange="setHealthcare('enabled',this.checked)" style="width:16px;height:16px;accent-color:var(--pink)">
         Model Pre-Medicare Healthcare Costs
       </label>
       ${hc.enabled ? `
-        <div class="grid-2">
-          ${(() => { const f = (l,k,o) => { const isCur = o.prefix==='$'; return '<div class="field"><label class="field-label">'+l+'</label><div class="field-wrap">'+(o.prefix?'<span class="field-prefix">'+o.prefix+'</span>':'')+'<input type="'+(isCur?'text':'number')+'" '+(isCur?'inputmode="decimal" ':'')+'class="field-input'+(o.prefix?' has-prefix':'')+(o.suffix?' has-suffix':'')+'" value="'+(isCur?fmtC(hc[k]||o.def):(hc[k]||o.def))+'" '+(isCur?'onfocus="this.value=this.value.replace(/,/g,\'\')" onblur="this.value=fmtC(parseC(this.value))" ':'')+'onchange="setHealthcare(\''+k+'\','+(isCur?'parseC(this.value)':'Number(this.value)')+')">'+(o.suffix?'<span class="field-suffix">'+o.suffix+'</span>':'')+'</div>'+(o.help?'<div class="field-help">'+o.help+'</div>':'')+'</div>'; };
-            return f('Annual Cost (Year 1)','annualCost',{prefix:'$',def:18000,help:'ACA Silver plan for couple: ~$15-25K'})
-              + f('Healthcare Inflation','inflation',{suffix:'%',def:5,help:'Medical costs typically inflate at 5-7%/year'});
-          })()}
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Coverage Source</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:16px">
+          ${Object.entries(HC_SOURCES).map(([key, s]) => {
+            const sel = hcSrc === key;
+            const hidden = key === 'spouse_plan' && !isCouple;
+            if (hidden) return '';
+            return `<button onclick="setHealthcareSource('${key}')" style="padding:8px 6px;border-radius:8px;border:1.5px solid ${sel ? 'var(--pink)' : 'var(--border)'};background:${sel ? 'color-mix(in srgb, var(--pink) 8%, var(--bg-card))' : 'var(--bg-card)'};cursor:pointer;text-align:center;transition:all 0.15s">
+              <div style="font-size:12px;font-weight:${sel?'700':'500'};color:${sel?'var(--pink)':'var(--text)'}">${s.label}</div>
+              ${key !== 'va' ? `<div style="font-size:10px;color:var(--text-faint);margin-top:2px">~${fmtK(isCouple ? s.couple : s.single)}/yr</div>` : `<div style="font-size:10px;color:var(--green);margin-top:2px">$0</div>`}
+            </button>`;
+          }).join('')}
         </div>
-        ${yearsGap > 0 ? `<div class="info-box"><div class="info-box-label">Total Pre-Medicare Healthcare Cost (${yearsGap} years)</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;line-height:1.5;padding:8px 10px;background:var(--bg-base);border-radius:6px;border:1px solid var(--border)">
+          ${hcDef.help}
+        </div>
+        ${hcSrc !== 'va' ? `
+          <div class="grid-2">
+            ${hf('Annual Cost (Year 1)','annualCost',{prefix:'$',def:isCouple?hcDef.couple:hcDef.single, help: isCouple ? 'Couple rate' : 'Single rate'})}
+            ${hf('Healthcare Inflation','inflation',{suffix:'%',def:hcDef.inf,help:'Medical costs typically inflate at 5-7%/year'})}
+          </div>
+        ` : ''}
+        ${hcSrc === 'cobra' ? `
+          <div style="margin-top:12px;padding:10px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border)">
+            <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">COBRA Period &amp; Follow-Up</div>
+            <div class="grid-2">
+              ${hf('COBRA Duration','cobraDuration',{suffix:'mo',def:18,help:'Max 18 months (36 for qualifying disability)'})}
+              ${hf('Follow-Up Annual Cost','cobraFollowUpCost',{prefix:'$',def:isCouple?HC_SOURCES.aca.couple:HC_SOURCES.aca.single,help:'Cost after COBRA ends (typically ACA marketplace)'})}
+            </div>
+            <div style="font-size:11px;color:var(--text-faint);margin-top:6px;line-height:1.5">
+              After ${hc.cobraDuration||18} months of COBRA, the projection switches to the follow-up cost for the remaining gap.
+            </div>
+          </div>
+        ` : ''}
+        ${hcSrc === 'spouse_plan' ? `
+          <div style="margin-top:12px;padding:10px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border)">
+            <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Spouse Plan Follow-Up</div>
+            <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;line-height:1.5">
+              Coverage under your spouse's plan until they retire at age ${p.spouseRetirementAge||65}. After that, you need your own coverage.
+            </div>
+            <div class="grid-2">
+              ${hf('Follow-Up Annual Cost','spousePlanFollowUpCost',{prefix:'$',def:isCouple?HC_SOURCES.aca.couple:HC_SOURCES.aca.single,help:'Cost after spouse retires (typically ACA marketplace)'})}
+              ${hf('Follow-Up Inflation','spousePlanFollowUpInflation',{suffix:'%',def:5,help:'Inflation rate for follow-up coverage'})}
+            </div>
+          </div>
+        ` : ''}
+        ${yearsGap > 0 && hcSrc !== 'va' ? `<div class="info-box" style="margin-top:14px"><div class="info-box-label">Total Pre-Medicare Healthcare Cost (${yearsGap} years)</div>
           <div class="info-box-value" style="color:var(--pink)">${fmtK(totalHC)}</div>
-          <div style="font-size:11px;color:var(--text-faint);margin-top:4px">Added to expenses from age ${retAge} to ${effectiveMedAge - 1}</div></div>` : ''}
+          <div style="font-size:11px;color:var(--text-faint);margin-top:4px">Added to expenses from age ${retAge} to ${effectiveMedAge - 1}${hcSrc === 'cobra' ? ` (COBRA ${hc.cobraDuration||18}mo then follow-up)` : hcSrc === 'spouse_plan' ? ` (spouse plan then follow-up at spouse age ${p.spouseRetirementAge||65})` : ''}</div></div>` : ''}
+        ${hcSrc === 'aca' ? `<div style="margin-top:10px;font-size:11px;color:var(--text-faint);line-height:1.5;font-style:italic">ACA premium tax credits not yet modeled. Costs shown are full unsubsidized rates. Subsidy modeling planned for a future version.</div>` : ''}
       ` : ''}
     </div>
 
@@ -4732,7 +4891,7 @@ function renderInputs() {
         <strong style="color:var(--text-muted)">Model notes:</strong> 2025 tax brackets (OBBB Act). Std deduction $${STD_DEDUCTION.toLocaleString()} MFJ / $${STD_DEDUCTION_SINGLE.toLocaleString()} single + senior additions. SS taxation per IRS §86. SSA 2025 bend points &amp; wage base.
         Withdrawal order: ${(p.withdrawalOrder || ['cash','taxable','pretax','roth']).map(s => s === 'pretax' ? 'pre-tax' : s === 'cash' ? 'cash/HYS' : s === 'taxable' ? 'brokerage' : 'Roth').join(' &rarr; ')} (configurable above).
         Cash/HYS withdrawals are tax-free (principal return); interest taxed as ordinary income annually. Brokerage withdrawals taxed on estimated gains (50% cost basis) at applicable capital gains rate.
-        Pension income is fully taxable. Pre-Medicare healthcare added to expenses during gap years.
+        Pension income is fully taxable. Pre-Medicare healthcare source-aware: COBRA two-phase (COBRA period then follow-up), spouse plan (until spouse retires then follow-up), ACA/retiree plan/other (flat inflated cost), VA ($0).
         Pre-retirement expenses use a separate inflation rate and reduce available cash flow; shortfalls draw from taxable accounts.
         Expense phases reduce base spending in later retirement.
         RMD age per SECURE Act 2.0. IRMAA uses 2025 brackets. SS includes FRA by birth year, COLA, and independent survivor benefit claiming. Survivor SS integrates with SSDI (pays higher of the two).
@@ -5207,7 +5366,7 @@ function render() {
     case 'scenarios': html = renderScenarios(proj); break;
     case 'validation': html = renderValidation(); break;
   }
-  html += '<div class="footer">RetIQ v1.7 &#183; Build 2026-03-03 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a> &#183; <a href="https://github.com/RetIQ-Studio/retiqstudio" target="_blank" style="color:var(--text-dim);text-decoration:none">Source (BSL 1.1)</a></div>';
+  html += '<div class="footer">RetIQ v1.8 &#183; Build 2026-03-03 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a> &#183; <a href="https://github.com/RetIQ-Studio/retiqstudio" target="_blank" style="color:var(--text-dim);text-decoration:none">Source (BSL 1.1)</a></div>';
   document.getElementById('app').innerHTML = html;
   updateHeaderHeight();
   // Scroll active sub-nav tab into view on mobile
