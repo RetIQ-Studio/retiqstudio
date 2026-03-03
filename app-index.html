@@ -1593,26 +1593,15 @@ function runProjection(p) {
     const medicareCost = age >= effectiveMedicareAge ? Math.round(irmaa.totalAnnual * Math.pow(1.05, yr)) : 0;
 
     // Feature #7: Per-account growth with proportional MC volatility
+    // All three MC models (Normal, Historical, Stress) now store shocks as mean-zero deviations.
+    // Historical shocks are centered on the historical mean (~11.8%), so the user's expected
+    // return is preserved as the average. volScale dampens shocks for low-return accounts.
     const growAcct = (bal, nomRet) => {
       let nr, inf;
       if (hasSequences) {
-        if (p._mcModel === 'historical') {
-          // Historical mode: shock = histReturn - userExpectedReturn (absolute market deviation)
-          // Equity-like accounts (return >= 5%) use full historical return
-          // Cash/bond-like accounts dampen the shock (HYSA rates don't swing like equities)
-          if (nomRet >= 5) {
-            nr = p.nominalReturn + p._returnSeq[yr];
-          } else {
-            const dampen = Math.max(0.05, nomRet / Math.max(p.nominalReturn, 1));
-            nr = nomRet + p._returnSeq[yr] * dampen * 0.3;
-          }
-          inf = p._inflationSeq[yr] !== undefined ? p._inflationSeq[yr] : p.inflation;
-        } else {
-          // Normal / Stress Test: existing volScale behavior
-          const volScale = Math.max(0.1, Math.min(1.5, nomRet / Math.max(p.nominalReturn, 1)));
-          nr = nomRet + (p._returnSeq[yr] !== undefined ? p._returnSeq[yr] * volScale : 0);
-          inf = p._inflationSeq[yr] !== undefined ? p._inflationSeq[yr] : p.inflation;
-        }
+        const volScale = Math.max(0.1, Math.min(1.5, nomRet / Math.max(p.nominalReturn, 1)));
+        nr = nomRet + (p._returnSeq[yr] !== undefined ? p._returnSeq[yr] * volScale : 0);
+        inf = p._inflationSeq[yr] !== undefined ? p._inflationSeq[yr] : p.inflation;
       } else {
         nr = nomRet;
         inf = p.inflation;
@@ -1669,6 +1658,13 @@ function runMonteCarlo(p, n = 500, retStd = 6, infStd = 1.5, model = 'normal') {
     return mean + std * t;
   }
 
+  // Historical model: pre-compute means so we can center on user's assumptions
+  // This preserves the historical volatility pattern (fat tails, crash magnitudes,
+  // return-inflation correlation) but shifts the mean to match the user's expected
+  // return and inflation, preventing S&P's ~11.8% avg from inflating a 7% portfolio
+  const histMeanRet = hist.reduce((s, h) => s + h[1], 0) / hist.length;
+  const histMeanInf = hist.reduce((s, h) => s + h[2], 0) / hist.length;
+
   for (let i = 0; i < n; i++) {
     const returnSeq = [];
     const inflationSeq = [];
@@ -1677,8 +1673,11 @@ function runMonteCarlo(p, n = 500, retStd = 6, infStd = 1.5, model = 'normal') {
       if (model === 'historical') {
         // Bootstrap: pick a random historical year-pair (return + inflation stay correlated)
         const idx = Math.floor(Math.random() * hist.length);
-        shock = hist[idx][1] - p.nominalReturn; // deviation from user's expected return
-        inf = hist[idx][2]; // absolute inflation rate from that year
+        // Shock = deviation from historical mean (centered on zero)
+        // growAcct then applies this via volScale, same as Normal/Stress
+        shock = hist[idx][1] - histMeanRet;
+        // Inflation: shift historical value so mean matches user's assumption
+        inf = p.inflation + (hist[idx][2] - histMeanInf);
       } else if (model === 'stress') {
         // Fat-tailed: t-distribution shocks (more extreme events than normal)
         shock = randTNorm(0, retStd);
@@ -1692,7 +1691,7 @@ function runMonteCarlo(p, n = 500, retStd = 6, infStd = 1.5, model = 'normal') {
       inflationSeq.push(inf);
     }
 
-    const mp = { ...p, _returnSeq: returnSeq, _inflationSeq: inflationSeq, _mcRetStd: retStd, _mcModel: model };
+    const mp = { ...p, _returnSeq: returnSeq, _inflationSeq: inflationSeq, _mcRetStd: retStd };
     const proj = runProjection(mp);
     results.push({ final: proj[proj.length - 1].netWorth, proj,
       bustAge: proj.find(y => y.netWorth <= 0)?.age || null });
