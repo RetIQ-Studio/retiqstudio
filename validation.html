@@ -51,10 +51,10 @@
   <div class="score">100.0%</div>
   <p style="margin:0">pass rate</p>
   <div class="stats">
-    <div class="stat"><div class="num">190</div><div class="label">Total Tests</div></div>
-    <div class="stat"><div class="num">190</div><div class="label">Passed</div></div>
+    <div class="stat"><div class="num">200</div><div class="label">Total Tests</div></div>
+    <div class="stat"><div class="num">200</div><div class="label">Passed</div></div>
     <div class="stat"><div class="num">0</div><div class="label">Failed</div></div>
-    <div class="stat"><div class="num">25</div><div class="label">Categories</div></div>
+    <div class="stat"><div class="num">26</div><div class="label">Categories</div></div>
   </div>
 </div>
 
@@ -108,6 +108,10 @@
   <div class="authority">IRS / HHS / CMS</div>
   <ul><li>IRS Rev. Proc. 2024-35 — Applicable Percentage Table for ACA Premium Tax Credit (Enhanced, 2021–2025)</li><li>IRS Rev. Proc. 2025-25 — Original ACA Applicable Percentages (2026+)</li><li>HHS 2025 Federal Poverty Level Guidelines — 48 contiguous states</li><li>ARPA/IRA — Enhanced PTC (no 400% FPL cliff through 2025)</li></ul>
   <a href="https://www.irs.gov/affordable-care-act/individuals-and-families/affordable-care-act-tax-provisions" target="_blank">Source &rarr;</a>
+</div><div class="source-card">
+  <h4>Pension Enhancements (v2.0)</h4>
+  <div class="authority">RetIQ Engine</div>
+  <ul><li>Per-pension COLA, survivor benefits (single-life, J&amp;50/75/100%), taxable percentage (military disability, after-tax contributions)</li><li>Mortality scenario testing for pension continuity</li></ul>
 </div>
 </div>
 
@@ -569,8 +573,34 @@
 </div>
 
 
+<div class="category">
+  <h3>Pension Enhancements <span class="badge pass">10/10</span></h3>
+  <div class="source-box">
+    <strong>Authority:</strong> RetIQ Engine v2.0<br>
+    <strong>Features:</strong><br>
+    &bull; Per-pension COLA (independent rate per pension)<br>
+    &bull; Survivor benefits: single life, joint &amp; 50/75/100%<br>
+    &bull; Taxable percentage (military disability, after-tax contributions)<br>
+    <strong>Method:</strong> Verify pension income starts at correct age, COLA compounds correctly, survivor benefits pay the correct fraction after primary death, taxable percentage reduces tax liability appropriately. Mortality scenarios test single-life (pension stops) vs joint-and-survivor (pension continues at reduced rate).
+  </div>
+  <table class="results">
+    <tr><th>Test</th><th>Expected</th><th>Actual</th><th>Result</th></tr>
+    <tr class="pass"><td>Pension starts at age 65 with $24,000/yr</td><td>24,000</td><td>24,000</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Pension COLA: $24K at 2% after 5yr &asymp; $26,497</td><td>26,497</td><td>26,498</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Taxable 100%: pensionTaxable = pension</td><td>24,000</td><td>24,000</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Taxable 60%: pensionTaxable &asymp; 60% of pension</td><td>14,400</td><td>14,400</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Taxable 0%: pensionTaxable = 0 (fully exempt)</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Single-life: pension = 0 after pensioner dies</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Joint &amp; 50%: survivor gets 50% of pension</td><td>12,000</td><td>12,000</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Joint &amp; 75%: survivor gets 75% of pension</td><td>18,000</td><td>18,000</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Joint &amp; 100%: survivor gets 100% of pension</td><td>24,000</td><td>24,000</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>J&amp;50% + 60% taxable: survivor taxable = 7,200</td><td>7,200</td><td>7,200</td><td class="pass">&#10003;</td></tr>
+  </table>
+</div>
+
+
 <div class="footer">
-  Generated 2026-03-03 &bull; RetIQ v1.9 &bull; <a href="https://retiqstudio.com" style="color:var(--accent2)">retiqstudio.com</a><br>
+  Generated 2026-03-03 &bull; RetIQ v2.0 &bull; <a href="https://retiqstudio.com" style="color:var(--accent2)">retiqstudio.com</a><br>
   Tests run against app-index.html engine code. Results are reproducible via <code>node test-validation.js</code>
 </div>
 
