@@ -1630,48 +1630,48 @@ let state = {
   reportGoal: 'netWorth',
   mcConfig: { numSims: 500, returnStdDev: 6, inflationStdDev: 1.5 },
   params: {
-    // Demo: The Johnsons — a realistic two-income household
-    currentAge: 45, retirementAge: 65, endAge: 95,
-    birthYear: 1981, birthMonth: 5, retireMonth: 0,
+    // Demo: The Johnsons — a couple approaching retirement
+    currentAge: 57, retirementAge: 62, endAge: 95,
+    birthYear: 1969, birthMonth: 5, retireMonth: 0,
 
-    annualIncome: 130000, annualSavings: 25000, annualExpenses: 85000,
+    annualIncome: 155000, annualSavings: 30000, annualExpenses: 90000,
     expenseMode: 'fixed', withdrawalRate: 4,
-    preRetirementExpenses: 110000, preRetirementExpenseInflation: 3,
-    incomeGrowth: 3, savingsGrowth: 3,
+    preRetirementExpenses: 125000, preRetirementExpenseInflation: 3,
+    incomeGrowth: 2, savingsGrowth: 2,
 
     // Social Security
-    ssClaimAge: 67, ssAnnualIncome: 120000, ssCOLA: 2,
-    ssManualMonthly: 2800, ssUseManual: true,
+    ssClaimAge: 67, ssAnnualIncome: 145000, ssCOLA: 2,
+    ssManualMonthly: 3100, ssUseManual: true,
     survivorSSClaimAge: 60,
     useDetailedSS: false, earningsHistory: [],
 
     // Spouse
     spouseEnabled: true,
-    spouseAge: 43, spouseBirthYear: 1983, spouseBirthMonth: 2,
-    spouseRetirementAge: 65, spouseRetireMonth: 0,
-    spouseIncome: 75000, spouseSavings: 12000,
-    spouseIncomeGrowth: 3, spouseSavingsGrowth: 3,
-    spouseSSClaimAge: 67, spouseSSIncome: 70000,
-    spouseSSManualMonthly: 1900, spouseSSUseManual: true,
+    spouseAge: 55, spouseBirthYear: 1971, spouseBirthMonth: 2,
+    spouseRetirementAge: 62, spouseRetireMonth: 0,
+    spouseIncome: 95000, spouseSavings: 15000,
+    spouseIncomeGrowth: 2, spouseSavingsGrowth: 2,
+    spouseSSClaimAge: 67, spouseSSIncome: 85000,
+    spouseSSManualMonthly: 2200, spouseSSUseManual: true,
     spouseSurvivorSSClaimAge: 60,
 
     nominalReturn: 7, inflation: 3, additionalIncome: 6000,
     stateCode: 'MD',
 
     // Pension / Annuity
-    pension: { enabled: true, annualAmount: 18000, startAge: 65, cola: 2, name: 'State Pension' },
+    pension: { enabled: true, annualAmount: 24000, startAge: 62, cola: 2, name: 'State Pension' },
     spousePension: { enabled: false, annualAmount: 0, startAge: 65, cola: 0, name: 'Spouse Pension' },
 
-    // Pre-Medicare healthcare gap
+    // Pre-Medicare healthcare gap (ACA Marketplace, ages 62–65)
     preMedicareHealthcare: {
-      enabled: false, source: 'aca', annualCost: 18000, inflation: 5,
+      enabled: true, source: 'aca', annualCost: 18000, inflation: 5,
       cobraDuration: 18, cobraFollowUpCost: 18000, cobraFollowUpInflation: 5,
       spousePlanFollowUpCost: 18000, spousePlanFollowUpInflation: 5,
-      acaHouseholdSize: 0, acaBenchmarkOverride: 0, acaSubsidyRules: 'auto',
+      acaHouseholdSize: 2, acaBenchmarkOverride: 0, acaSubsidyRules: 'auto',
     },
 
     // Retirement expense phases
-    expensePhases: { enabled: false, laterAge: 75, laterMultiplier: 85, lateAge: 85, lateMultiplier: 95 },
+    expensePhases: { enabled: true, laterAge: 75, laterMultiplier: 85, lateAge: 85, lateMultiplier: 95 },
 
     // Contribution limits
     enforceContribLimits: true,
@@ -1681,22 +1681,21 @@ let state = {
     ssdiSpouse: { enabled: false, monthlyAmount: 0, startAge: 0, endAge: 66 },
 
     // Charity / QCD
-    charitableGiving: { enabled: true, annualAmount: 3000,
+    charitableGiving: { enabled: true, annualAmount: 5000,
       schedule: [],
       useSchedule: false, growWithInflation: true,
     },
 
     // Liabilities
     debts: [
-      { id: 1, name: 'Mortgage', type: 'mortgage', monthlyPayment: 2200, startAge: 45, endAge: 60 },
-      { id: 2, name: 'Auto Loan', type: 'loan', monthlyPayment: 450, startAge: 45, endAge: 49 }
+      { id: 1, name: 'Mortgage', type: 'mortgage', monthlyPayment: 2200, startAge: 57, endAge: 67 },
     ],
 
     // Legacy goal
     legacy: { enabled: true, targetAmount: 500000, notes: '' },
 
     // Long-Term Care
-    longTermCare: { enabled: false, annualCost: 100000, startAge: 82, duration: 4, inflation: 5, hasInsurance: false, insuranceCoverage: 0 },
+    longTermCare: { enabled: true, annualCost: 110000, startAge: 82, duration: 4, inflation: 5, hasInsurance: false, insuranceCoverage: 0 },
 
     // Withdrawal order (after RMDs)
     withdrawalOrder: ['cash', 'taxable', 'pretax', 'roth'],
@@ -1705,17 +1704,18 @@ let state = {
     rothConversion: {
       enabled: true,
       strategy: 'fillBracket',
-      fixedAmount: 30000, startAge: 65, endAge: 72,
+      fixedAmount: 40000, startAge: 62, endAge: 75,
       targetBracket: 0.22,
       targetMAGI: 200000, percentOfBalance: 10,
       customSchedule: [],
     },
 
     accounts: [
-      { id: 1, name: '401(k)', type: 'pretax', balance: 420000, returnRate: 7 },
-      { id: 2, name: 'Roth IRA', type: 'roth', balance: 85000, returnRate: 7 },
-      { id: 3, name: 'Spouse 401(k)', type: 'pretax', balance: 180000, returnRate: 7 },
-      { id: 4, name: 'Brokerage', type: 'taxable', balance: 95000, returnRate: 7 },
+      { id: 1, name: '401(k)', type: 'pretax', balance: 820000, returnRate: 7 },
+      { id: 2, name: 'Roth IRA', type: 'roth', balance: 175000, returnRate: 7 },
+      { id: 3, name: 'Spouse 401(k)', type: 'pretax', balance: 340000, returnRate: 7 },
+      { id: 4, name: 'Brokerage', type: 'taxable', balance: 210000, returnRate: 7 },
+      { id: 5, name: 'Cash / HYS', type: 'cash', balance: 65000, returnRate: 4.5 },
     ]
 
   }
