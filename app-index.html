@@ -156,6 +156,30 @@ button:hover { opacity: 0.88; }
   .tip-bubble::after { left: auto; right: 12px; transform: none; }
 }
 
+/* This Year card */
+.ty-card { border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); margin-bottom: 14px; overflow: hidden; }
+.ty-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; cursor: pointer; user-select: none; border-top: 3px solid var(--green); }
+.ty-header:hover { background: var(--bg-hover); }
+.ty-title { font-size: 14px; font-weight: 700; color: var(--text); }
+.ty-actions { display: flex; align-items: center; gap: 6px; }
+.ty-chevron { font-size: 14px; color: var(--text-muted); transition: transform 0.2s; }
+.ty-chevron.collapsed { transform: rotate(-90deg); }
+.ty-print-btn { background: transparent; border: 1px solid var(--border); border-radius: 6px; padding: 3px 10px; font-size: 11px; color: var(--text-dim); cursor: pointer; }
+.ty-print-btn:hover { border-color: var(--green); color: var(--green); }
+.ty-body { padding: 0 16px 16px; }
+.ty-body.collapsed { display: none; }
+.ty-section { margin-bottom: 14px; }
+.ty-section:last-child { margin-bottom: 0; }
+.ty-section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
+.ty-row { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 0; font-size: 13px; }
+.ty-row-label { color: var(--text-dim); }
+.ty-row-value { font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.ty-divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+.ty-bottom { padding: 12px 14px; background: var(--bg-base); border-radius: 8px; margin-top: 10px; }
+.ty-bottom-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; }
+.ty-bottom-label { color: var(--text-dim); font-weight: 500; }
+.ty-bottom-value { font-size: 15px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+
 .acct-header { display: flex; gap: 8px; margin-bottom: 8px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
 .acct-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .acct-row input, .acct-row select { font-size: 13px; }
@@ -393,6 +417,8 @@ button:hover { opacity: 0.88; }
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
 // THEME
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
+
+function toggleThisYear() { state.thisYearCollapsed = !state.thisYearCollapsed; render(); }
 
 function toggleTheme() {
   const html = document.documentElement;
@@ -1418,7 +1444,7 @@ const fmtK = (n, yr) => {
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
 
 let state = {
-  tab: 'dashboard', inputTab: 'personal', projChartKeys: ['netWorth'], projShowTable: false, mcResults: null, scenario: null, rothOptResults: null, scenarioChartKeys: ['netWorth'],
+  tab: 'dashboard', inputTab: 'personal', projChartKeys: ['netWorth'], projShowTable: false, mcResults: null, scenario: null, rothOptResults: null, scenarioChartKeys: ['netWorth'], thisYearCollapsed: false,
   optScoreMode: 'balanced',
   reportGoal: 'netWorth',
   mcConfig: { numSims: 500, returnStdDev: 6, inflationStdDev: 1.5 },
@@ -2961,6 +2987,191 @@ function exportDashboardSummary() {
   else { alert('Pop-up blocked. Please allow pop-ups for this site and try again.'); }
 }
 
+function renderThisYear(proj, p, bust) {
+  if (!proj || proj.length < 2) return '';
+  const y = proj[0];
+  const y1 = proj[1];
+  const yr = 0; // year offset for deflate
+  const d = (v) => fmtD(v, yr);
+  const collapsed = state.thisYearCollapsed;
+  const titleLabel = y.retired
+    ? `This Year's Retirement Plan (Age ${y.age})`
+    : `This Year's Plan (Age ${y.age} &mdash; Still Working)`;
+
+  // Compute withdrawal-by-source from balance deltas + known flows
+  // Balance change = growth + contributions - withdrawals - conversions
+  // For pre-tax: delta = growth - withdrawal - rothConv + savings(pretax)
+  // We approximate: withdrawal from source ≈ max(0, prev_balance + growth - new_balance - conversions)
+  // Simpler: total withdrawal is known, and we can show the order
+  const wdOrder = (p.withdrawalOrder || ['cash','taxable','pretax','roth']);
+  const wdLabels = { cash:'Cash / HYS', taxable:'Brokerage', pretax:'Pre-Tax', roth:'Roth' };
+  const wdColors = { cash:'var(--cyan)', taxable:'var(--amber)', pretax:'var(--blue)', roth:'var(--green)' };
+
+  // Build line items as arrays of {label, value, color}
+  const sections = [];
+
+  // Income
+  const incomeRows = [];
+  if (y.earned > 0) incomeRows.push({ label: 'Employment Income', value: y.earned, color: 'var(--text)' });
+  if (y.ss > 0) incomeRows.push({ label: 'Social Security', value: y.ss, color: 'var(--green)' });
+  if (y.ssdi > 0) incomeRows.push({ label: 'SSDI Benefits', value: y.ssdi, color: 'var(--blue)' });
+  if (y.pension > 0) incomeRows.push({ label: 'Pension Income', value: y.pension, color: 'var(--text)' });
+  if (incomeRows.length > 0) sections.push({ label: 'Income', rows: incomeRows });
+
+  // Withdrawals
+  const wdRows = [];
+  if (y.withdrawal > 0) {
+    wdRows.push({ label: 'Portfolio Withdrawals', value: y.withdrawal, color: 'var(--amber)' });
+    // Show RMD if applicable
+    if (y.rmd > 0) wdRows.push({ label: 'Required Minimum Distribution (RMD)', value: y.rmd, color: 'var(--purple)', note: 'included in pre-tax withdrawal' });
+  }
+  if (wdRows.length > 0) sections.push({ label: 'Withdrawals', rows: wdRows });
+
+  // Roth Conversions
+  if (y.rothConv > 0) {
+    const rcRows = [
+      { label: 'Roth Conversion', value: y.rothConv, color: 'var(--cyan)' },
+    ];
+    if (y.conversionTax > 0) rcRows.push({ label: 'Tax on Conversion', value: y.conversionTax, color: 'var(--red)', negative: true });
+    sections.push({ label: 'Roth Conversions', rows: rcRows });
+  }
+
+  // Taxes & Medicare
+  const taxRows = [];
+  if (y.fedTax > 0) taxRows.push({ label: 'Estimated Federal Tax', value: y.fedTax, color: 'var(--red)' });
+  if (y.stateTax > 0) taxRows.push({ label: 'Estimated State Tax', value: y.stateTax, color: 'var(--red)' });
+  if (y.medicareCost > 0 && y.age >= 65) taxRows.push({ label: 'Medicare Premium', value: y.medicareCost, color: 'var(--pink)' });
+  if (y.irmaa > 0) taxRows.push({ label: 'Medicare Surcharge (IRMAA)', value: y.irmaa, color: 'var(--pink)' });
+  if (taxRows.length > 0) sections.push({ label: 'Taxes & Medicare', rows: taxRows });
+
+  // Expenses
+  const expRows = [];
+  if (y.expenses > 0) expRows.push({ label: 'Total Living Expenses', value: y.expenses, color: 'var(--text)' });
+  if (y.charityTotal > 0) expRows.push({ label: 'Charitable Giving', value: y.charityTotal, color: 'var(--amber)' });
+  if (y.qcd > 0) expRows.push({ label: 'Qualified Charitable Distribution (QCD)', value: y.qcd, color: 'var(--amber)', note: 'included in charitable giving' });
+  if (y.debtPayments > 0) expRows.push({ label: 'Debt/Liability Payments', value: y.debtPayments, color: 'var(--red)' });
+  if (expRows.length > 0) sections.push({ label: 'Expenses', rows: expRows });
+
+  // Bottom line
+  const totalIn = y.earned + y.ss + y.ssdi + (y.pension || 0) + y.withdrawal;
+  const totalOut = y.expenses + y.tax + y.debtPayments + (y.healthcare || 0) + (y.medicareCost || 0);
+  const moneyLastsAge = bust ? bust : p.endAge + '+';
+  const moneyLastsColor = bust ? 'var(--red)' : 'var(--green)';
+
+  const sectionsHtml = sections.map(s => `
+    <div class="ty-section">
+      <div class="ty-section-label">${s.label}</div>
+      ${s.rows.map(r => `<div class="ty-row">
+        <span class="ty-row-label">${r.label}${r.note ? ' <span style="font-size:10px;color:var(--text-faint)">(' + r.note + ')</span>' : ''}</span>
+        <span class="ty-row-value" style="color:${r.color}">${d(r.value)}</span>
+      </div>`).join('')}
+    </div>`).join('<hr class="ty-divider">');
+
+  return `<div class="ty-card">
+    <div class="ty-header" onclick="toggleThisYear()">
+      <span class="ty-title">${titleLabel}</span>
+      <div class="ty-actions">
+        <button class="ty-print-btn" onclick="event.stopPropagation();printThisYear()" title="Print or save as PDF">&#128424; Print</button>
+        <span class="ty-chevron${collapsed ? ' collapsed' : ''}">&#9660;</span>
+      </div>
+    </div>
+    <div class="ty-body${collapsed ? ' collapsed' : ''}">
+      ${sectionsHtml}
+      <div class="ty-bottom">
+        <div class="ty-bottom-row">
+          <span class="ty-bottom-label">Net Worth</span>
+          <span class="ty-bottom-value" style="color:${y.netWorth > 0 ? 'var(--blue)' : 'var(--red)'}">${d(y.netWorth)}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-faint);margin-top:6px">
+          Your money lasts through <strong style="color:${moneyLastsColor}">age ${moneyLastsAge}</strong>
+          ${showRealDollars ? ' <span style="font-size:10px">(today\'s dollars)</span>' : ''}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function printThisYear() {
+  const proj = runProjection(state.params);
+  if (!proj || proj.length < 2) return;
+  const p = state.params;
+  const y = proj[0];
+  const bust = proj.find(yr => yr.netWorth <= 0)?.age;
+  const titleLabel = y.retired
+    ? "This Year's Retirement Plan (Age " + y.age + ")"
+    : "This Year's Plan (Age " + y.age + " — Still Working)";
+
+  const line = (label, value, note) => value > 0 ? '<tr><td style="padding:4px 0;color:#475569">' + label + (note ? ' <span style="font-size:10px;color:#94a3b8">(' + note + ')</span>' : '') + '</td><td style="padding:4px 0;text-align:right;font-weight:600;font-family:monospace">$' + value.toLocaleString() + '</td></tr>' : '';
+  const section = (title, rows) => rows ? '<tr><td colspan="2" style="padding:14px 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#94a3b8;font-weight:600;border-bottom:1px solid #e2e8f0">' + title + '</td></tr>' + rows : '';
+
+  let rows = '';
+  // Income
+  let inc = '';
+  inc += line('Employment Income', y.earned);
+  inc += line('Social Security', y.ss);
+  inc += line('SSDI Benefits', y.ssdi);
+  inc += line('Pension Income', y.pension || 0);
+  if (inc) rows += section('Income', inc);
+  // Withdrawals
+  let wd = '';
+  wd += line('Portfolio Withdrawals', y.withdrawal);
+  wd += line('Required Minimum Distribution (RMD)', y.rmd, 'included in pre-tax withdrawal');
+  if (wd) rows += section('Withdrawals', wd);
+  // Roth
+  let rc = '';
+  rc += line('Roth Conversion', y.rothConv);
+  rc += line('Tax on Conversion', y.conversionTax);
+  if (rc) rows += section('Roth Conversions', rc);
+  // Taxes
+  let tx = '';
+  tx += line('Estimated Federal Tax', y.fedTax);
+  tx += line('Estimated State Tax', y.stateTax);
+  if (y.age >= 65) tx += line('Medicare Premium', y.medicareCost);
+  tx += line('Medicare Surcharge (IRMAA)', y.irmaa);
+  if (tx) rows += section('Taxes & Medicare', tx);
+  // Expenses
+  let ex = '';
+  ex += line('Total Living Expenses', y.expenses);
+  ex += line('Charitable Giving', y.charityTotal);
+  ex += line('Qualified Charitable Distribution (QCD)', y.qcd, 'included in charitable giving');
+  ex += line('Debt/Liability Payments', y.debtPayments);
+  if (ex) rows += section('Expenses', ex);
+
+  const moneyLasts = bust ? 'Age ' + bust : (p.endAge + '+');
+  const displayTs = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  const printScript = '<scr' + 'ipt>window.print();<\/scr' + 'ipt>';
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>RetIQ — ${titleLabel}</title>
+<style>
+  body { font-family: -apple-system, 'Segoe UI', system-ui, sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; color: #1a1a1a; line-height: 1.6; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+  table { width: 100%; border-collapse: collapse; }
+  .summary { margin-top: 24px; padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
+  .summary-row { display: flex; justify-content: space-between; font-size: 14px; }
+  .summary-label { color: #475569; }
+  .summary-value { font-weight: 700; font-family: monospace; }
+  .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; }
+  @media print { body { margin: 20px; } }
+</style></head><body>
+<h1>${titleLabel}</h1>
+<div class="subtitle">Generated ${displayTs} &middot; Year ${y.year}</div>
+<table>${rows}</table>
+<div class="summary">
+  <div class="summary-row"><span class="summary-label">Net Worth</span><span class="summary-value">$${y.netWorth.toLocaleString()}</span></div>
+  <div class="summary-row" style="margin-top:6px"><span class="summary-label">Money Lasts Through</span><span class="summary-value">${moneyLasts}</span></div>
+</div>
+<div class="footer">
+  Generated by RetIQ (retirementiq.app). This is a projection based on your inputs, not financial advice.
+</div>
+${printScript}
+</body></html>`;
+
+  const w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); }
+  else { alert('Pop-up blocked. Please allow pop-ups for this site and try again.'); }
+}
+
 function renderDashboard(proj) {
   const p = state.params;
   const totalAcct = p.accounts.reduce((s, a) => s + a.balance, 0);
@@ -3031,6 +3242,8 @@ function renderDashboard(proj) {
 
     ${verdictHtml}
     ${leversHtml}
+
+    ${renderThisYear(proj, p, bust)}
 
     <div class="stats-row">
       <div class="stat"><div class="stat-label">Current Net Worth</div><div class="stat-value" style="color:var(--blue)">${fmtK(totalAcct)}</div></div>
