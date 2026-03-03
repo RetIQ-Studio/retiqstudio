@@ -279,12 +279,30 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
   <!-- 10 -->
   <div class="sec" id="healthcare">
     <h2>10. Healthcare Tab</h2>
-    <p>If you retire before Medicare eligibility, you need to bridge the healthcare gap:</p>
+    <p>If you retire before Medicare eligibility, you need to bridge the healthcare gap. RetIQ lets you choose from six coverage sources, each with its own cost defaults and engine behavior:</p>
+
+    <h3>Coverage Sources</h3>
     <ul>
-      <li><strong>Annual Cost (Year 1):</strong> Estimated annual cost for ACA marketplace, COBRA, or private insurance.</li>
-      <li><strong>Healthcare Inflation:</strong> Annual increase in healthcare costs. Default: 5% (healthcare historically inflates faster than general CPI).</li>
+      <li><strong>ACA Marketplace:</strong> Individual or family plan from Healthcare.gov. Default ~$9K single / ~$18K couple. Costs shown are full unsubsidized rates (ACA premium tax credit modeling planned for a future version).</li>
+      <li><strong>Employer Retiree Plan:</strong> Subsidized coverage from your former employer. Default ~$6K single / ~$12K couple. Typically the cheapest option.</li>
+      <li><strong>COBRA Continuation:</strong> Continue your employer plan up to 18 months (36 for qualifying disability). You pay the full premium plus 2% admin. The projection models a <strong>two-phase cost</strong>: COBRA cost during the COBRA period, then an automatic switch to a follow-up cost (typically ACA rates) for the remaining gap.</li>
+      <li><strong>Spouse&rsquo;s Employer Plan:</strong> Coverage under your spouse&rsquo;s active employer plan. Ends when your spouse retires, then switches to a follow-up cost for the remaining gap.</li>
+      <li><strong>VA Healthcare:</strong> Veterans with qualifying service may have zero or very low healthcare costs. Modeled as $0.</li>
+      <li><strong>Other / Self-Pay:</strong> Health sharing ministries, short-term plans, direct primary care, or self-pay arrangements.</li>
     </ul>
-    <p>The tab shows the cumulative healthcare cost during the gap years and the final-year premium to help you plan.</p>
+
+    <h3>Fields</h3>
+    <ul>
+      <li><strong>Annual Cost (Year 1):</strong> Base annual cost for your selected source. Defaults adjust for single vs. couple based on whether a spouse is enabled.</li>
+      <li><strong>Healthcare Inflation:</strong> Annual increase in healthcare costs. Default: 4&ndash;5% depending on source (healthcare historically inflates faster than general CPI).</li>
+      <li><strong>COBRA Duration:</strong> (COBRA only) Months of COBRA coverage before follow-up kicks in. Default: 18.</li>
+      <li><strong>Follow-Up Annual Cost:</strong> (COBRA and Spouse Plan only) Cost after the primary source ends. Defaults to ACA marketplace rates.</li>
+    </ul>
+    <p>The tab shows a cumulative healthcare cost summary for the gap years, annotated with the source phasing (e.g., &ldquo;COBRA 18mo then follow-up&rdquo;).</p>
+
+    <h3>Smart Defaults</h3>
+    <p>When you switch sources, RetIQ updates cost and inflation fields only if they still match the previous source&rsquo;s defaults. If you&rsquo;ve customized a value, it&rsquo;s preserved.</p>
+
     <p><strong>SSDI and early Medicare:</strong> If you have SSDI enabled, RetIQ automatically shortens the healthcare gap. SSDI recipients qualify for Medicare after 24 months of benefits, so your gap coverage ends at your SSDI Start Age + 2 (or 65, whichever is earlier). See the <a href="#ssdi">Disability (SSDI) Tab</a> section for details.</p>
   </div>
 
@@ -442,7 +460,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <li><strong>Withdrawals:</strong> Total portfolio withdrawals and RMDs (if applicable).</li>
       <li><strong>Roth Conversions:</strong> Conversion amount and the associated conversion tax.</li>
       <li><strong>Taxes &amp; Medicare:</strong> Federal tax, state tax, Medicare premiums, and IRMAA surcharges.</li>
-      <li><strong>Expenses:</strong> Living expenses, debt payments, long-term care costs, and charitable giving (including QCDs).</li>
+      <li><strong>Expenses:</strong> Living expenses, pre-Medicare healthcare with source label (e.g., &ldquo;Healthcare (COBRA Continuation)&rdquo; &mdash; shown as a sub-line when active), debt payments, long-term care costs, and charitable giving (including QCDs).</li>
     </ul>
     <p>A bottom line shows your projected net worth at year-end. Click the chevron to collapse or expand the card. Click <strong>&#128424; Print / Save</strong> to open a clean, printable summary in a new window &mdash; it triggers your browser&rsquo;s print dialog automatically so you can print or save as PDF.</p>
 
@@ -453,7 +471,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
   <div class="sec" id="projection">
     <h2>18. Projection Table</h2>
     <p>The year-by-year projection table is the core output. Each row is one year of your plan. Columns include:</p>
-    <p>Age, Year, Earned Income, Social Security, SS W/H (earnings test withholding), SSDI, Pension, Expenses, Federal Tax, State Tax, Withdrawals, RMD, QCD, Charity, Roth Conversion, IRMAA, Medicare, Pre-Tax Balance, Roth Balance, Cash/HYS Balance, Brokerage Balance, and Net Worth. Columns with all-zero values are hidden automatically.</p>
+    <p>Age, Year, Earned Income, Social Security, SS W/H (earnings test withholding), SSDI, Pension, Healthcare, Expenses, Federal Tax, State Tax, Withdrawals, RMD, QCD, Charity, Roth Conversion, IRMAA, Medicare, Pre-Tax Balance, Roth Balance, Cash/HYS Balance, Brokerage Balance, and Net Worth. Columns with all-zero values are hidden automatically.</p>
     <p>The header row is sticky so column labels remain visible while scrolling. A totals row at the bottom sums lifetime values. The table scrolls both horizontally and vertically.</p>
     <p>Use the <strong>Today's $ / Future $</strong> toggle in the header to view values in inflation-adjusted or nominal terms.</p>
     <div class="tip"><strong>Tip:</strong> Use the CSV Export button (in the Projection view) to download the table for analysis in Excel or Google Sheets.</div>
@@ -576,7 +594,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Your SSDI payments stop, but your surviving spouse can claim a survivor benefit based on your Social Security work record. RetIQ calculates this from your PIA (or your SSDI amount if no separate SS income was entered). The survivor receives the higher of their own SS benefit or the survivor benefit &mdash; not both.</p>
   </div>
 
-  <div class="footer">RetIQ v1.7 &middot; retirementiq.app &middot; Not financial advice &middot; All computation runs locally in your browser</div>
+  <div class="footer">RetIQ v1.8 &middot; retirementiq.app &middot; Not financial advice &middot; All computation runs locally in your browser</div>
 </div>
 </body>
 </html>
