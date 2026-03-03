@@ -933,6 +933,116 @@ test('ACA SLCSP', 'Age 60 couple > age 55 single',
   estimateSLCSP(60, true, 0) > estimateSLCSP(55, false, 0) ? 1 : 0, 1);
 
 // ══════════════════════════════════════════════════════════════════
+// CATEGORY: Pension Enhancements (v2.0)
+// Survivor benefits, tax treatment, per-pension COLA
+// ══════════════════════════════════════════════════════════════════
+
+section('Pension Enhancements');
+
+const pensionBase = {
+  ...baseParams,
+  retirementAge: 65,
+  pension: { enabled: true, annualAmount: 24000, startAge: 65, cola: 2, name: 'State Pension', survivorBenefit: 'none', taxablePercent: 100 },
+  spousePension: { enabled: false, annualAmount: 0, startAge: 65, cola: 0, name: 'Spouse Pension', survivorBenefit: 'none', taxablePercent: 100 },
+};
+
+// 1. Basic pension income at start age
+const penProj = runProjection(pensionBase);
+const penYear65 = penProj.find(y => y.age === 65);
+test('Pension', 'Pension starts at age 65 with $24,000/yr',
+  'Engine: pension.startAge = 65, annualAmount = 24000',
+  penYear65 ? penYear65.pension : 0, 24000, 1);
+
+// 2. Per-pension COLA after 5 years: 24000 * 1.02^5 = 26497
+const penYear70 = penProj.find(y => y.age === 70);
+test('Pension', 'Pension COLA: $24K at 2% after 5yr ≈ $26,497',
+  'Engine: 24000 * 1.02^5',
+  penYear70 ? penYear70.pension : 0, 26497, 2);
+
+// 3. Taxable percent = 100% → pensionTaxable equals pensionIncome
+test('Pension', 'Taxable 100%: pensionTaxable = pension',
+  'Engine: taxablePercent 100 → full amount taxable',
+  penYear65 ? penYear65.pensionTaxable : -1, penYear65 ? penYear65.pension : 0, 1);
+
+// 4. Taxable percent < 100% (military disability)
+const penPartialTax = runProjection({
+  ...pensionBase,
+  pension: { ...pensionBase.pension, taxablePercent: 60 },
+});
+const penPartYear = penPartialTax.find(y => y.age === 65);
+test('Pension', 'Taxable 60%: pensionTaxable ≈ 60% of pension',
+  'Engine: 24000 * 0.60 = 14400',
+  penPartYear ? penPartYear.pensionTaxable : 0, 14400, 1);
+
+// 5. Taxable percent = 0% → no taxable pension income
+const penZeroTax = runProjection({
+  ...pensionBase,
+  pension: { ...pensionBase.pension, taxablePercent: 0 },
+});
+const penZeroYear = penZeroTax.find(y => y.age === 65);
+test('Pension', 'Taxable 0%: pensionTaxable = 0 (fully exempt)',
+  'Engine: 24000 * 0.00 = 0',
+  penZeroYear ? penZeroYear.pensionTaxable : -1, 0, 1);
+
+// 6. Survivor benefit: single-life → pension = 0 when survivor takes over
+// For this we need spouse + mortality scenario. We check the engine logic directly:
+// Single-life (survivorBenefit='none'): if primaryDead, pension=0
+// We can verify by running a mortality scenario
+const penSurvivorBase = {
+  ...pensionBase,
+  spouseEnabled: true, spouseAge: 48, spouseBirthYear: 1978, spouseBirthMonth: 0,
+  spouseRetirementAge: 65, spouseRetireMonth: 0,
+  survivorWho: 'primary', survivorAge: 70, survivorExpenseReduction: 30,
+  pension: { enabled: true, annualAmount: 24000, startAge: 65, cola: 0, name: 'Test Pension', survivorBenefit: 'none', taxablePercent: 100 },
+};
+const penSingleLife = runProjection(penSurvivorBase);
+// After primary dies at 70, single-life pension stops
+const afterDeath = penSingleLife.find(y => y.age === 71);
+test('Pension', 'Single-life: pension = 0 after pensioner dies',
+  'Engine: survivorBenefit=none → no survivor income',
+  afterDeath ? afterDeath.pension : -1, 0, 1);
+
+// 7. Joint & 50% survivor benefit
+const penJoint50 = runProjection({
+  ...penSurvivorBase,
+  pension: { ...penSurvivorBase.pension, survivorBenefit: 'joint50' },
+});
+const j50After = penJoint50.find(y => y.age === 71);
+test('Pension', 'Joint & 50%: survivor gets 50% of pension',
+  'Engine: survivorBenefit=joint50 → 24000 * 0.50 = 12000',
+  j50After ? j50After.pension : 0, 12000, 1);
+
+// 8. Joint & 75% survivor benefit
+const penJoint75 = runProjection({
+  ...penSurvivorBase,
+  pension: { ...penSurvivorBase.pension, survivorBenefit: 'joint75' },
+});
+const j75After = penJoint75.find(y => y.age === 71);
+test('Pension', 'Joint & 75%: survivor gets 75% of pension',
+  'Engine: survivorBenefit=joint75 → 24000 * 0.75 = 18000',
+  j75After ? j75After.pension : 0, 18000, 1);
+
+// 9. Joint & 100% survivor benefit
+const penJoint100 = runProjection({
+  ...penSurvivorBase,
+  pension: { ...penSurvivorBase.pension, survivorBenefit: 'joint100' },
+});
+const j100After = penJoint100.find(y => y.age === 71);
+test('Pension', 'Joint & 100%: survivor gets 100% of pension',
+  'Engine: survivorBenefit=joint100 → 24000 * 1.00 = 24000',
+  j100After ? j100After.pension : 0, 24000, 1);
+
+// 10. Survivor benefit with partial tax: J&50%, taxablePercent=60%
+const penJ50Tax = runProjection({
+  ...penSurvivorBase,
+  pension: { ...penSurvivorBase.pension, survivorBenefit: 'joint50', taxablePercent: 60 },
+});
+const j50TaxAfter = penJ50Tax.find(y => y.age === 71);
+test('Pension', 'J&50% + 60% taxable: survivor taxable = 50%*60%*24000 = 7200',
+  'Engine: survivorPct * taxablePercent * annualAmount',
+  j50TaxAfter ? j50TaxAfter.pensionTaxable : 0, 7200, 1);
+
+// ══════════════════════════════════════════════════════════════════
 // RESULTS
 // ══════════════════════════════════════════════════════════════════
 

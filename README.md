@@ -32,7 +32,7 @@ It's built as a single HTML file with no external dependencies beyond self-hoste
 
 ## Validation
 
-RetIQ includes 190 automated tests that verify every calculation against authoritative sources:
+RetIQ includes 200 automated tests that verify every calculation against authoritative sources:
 
 - **IRS:** Rev. Proc. 2024-40 (2025 brackets, deductions, capital gains), Pub 590-B (RMD tables), Pub 915 (SS taxation), Notice 2024-80 (contribution limits, QCD), IRC §1411 (NIIT)
 - **SSA:** 2025 bend points and wage base, FRA schedules, early reduction and delayed credit rates
@@ -79,7 +79,7 @@ retiq/
 ├── features.html           # Feature list
 ├── manual.html             # User manual (24 sections)
 ├── security.html           # Privacy & security transparency page
-├── validation.html         # Validation report (190 tests)
+├── validation.html         # Validation report (200 tests)
 ├── privacy.html            # Privacy policy
 ├── terms.html              # Terms of service
 ├── index.html              # Landing page
@@ -107,11 +107,11 @@ The build script minifies JavaScript, CSS, and HTML via esbuild, copies static a
 ## Running Tests
 
 ```bash
-# Validation tests (190 tests against IRS/SSA/CMS/HHS sources)
+# Validation tests (200 tests against IRS/SSA/CMS/HHS sources)
 node test-validation.js
 ```
 
-Tests run via Node.js against the calculation engine extracted from app-index.html. All 190 tests must pass before deployment.
+Tests run via Node.js against the calculation engine extracted from app-index.html. All 200 tests must pass before deployment.
 
 ## License
 
