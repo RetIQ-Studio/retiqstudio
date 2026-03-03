@@ -3318,7 +3318,7 @@ function renderInputs() {
           Other account types can be added manually with the button below.
         </div>
       </div>
-      <div class="acct-header"><div style="flex:2">Name</div><div style="flex:1">Type ${tip('&lt;b&gt;Pre-Tax:&lt;/b&gt; 401(k), Traditional IRA, 403(b), 457(b) &mdash; taxed when you withdraw.&lt;br&gt;&lt;b&gt;Roth:&lt;/b&gt; Roth 401(k) &amp; IRA &mdash; already taxed, withdrawals are tax-free.&lt;br&gt;&lt;b&gt;Brokerage:&lt;/b&gt; Regular investment accounts &mdash; growth taxed at capital gains rate.&lt;br&gt;&lt;b&gt;Cash/HYS:&lt;/b&gt; Savings, money market, CDs &mdash; withdrawals tax-free, interest taxed yearly.')}</div><div style="flex:1.5">Balance</div><div style="flex:0.7">Return ${tip('The annual growth rate you expect. Cash/savings: 3-5%. Bonds: 4-5%. Balanced portfolio: 6-7%. Stock-heavy: 8-10%.')}</div><div style="width:36px"></div></div>
+      <div class="acct-header"><div style="flex:2">Name</div><div style="flex:1">Type ${tip('<b>Pre-Tax:</b> 401(k), Traditional IRA, 403(b), 457(b) &mdash; taxed when you withdraw.<br><b>Roth:</b> Roth 401(k) &amp; IRA &mdash; already taxed, withdrawals are tax-free.<br><b>Brokerage:</b> Regular investment accounts &mdash; growth taxed at capital gains rate.<br><b>Cash/HYS:</b> Savings, money market, CDs &mdash; withdrawals tax-free, interest taxed yearly.')}</div><div style="flex:1.5">Balance</div><div style="flex:0.7">Return ${tip('The annual growth rate you expect. Cash/savings: 3-5%. Bonds: 4-5%. Balanced portfolio: 6-7%. Stock-heavy: 8-10%.')}</div><div style="width:36px"></div></div>
       ${rows}
       <button class="add-acct-btn" onclick="addAccount()">+ Add Account</button>
       <div class="acct-total"><span style="color:var(--text-muted);font-size:13px">Total Portfolio</span><span style="color:var(--text);font-size:15px;font-weight:600">${fmt(total)}</span></div>
@@ -3721,7 +3721,7 @@ function renderInputs() {
               </div></div>
           ` : ''}
           ${rc.strategy === 'fillBracket' || rc.strategy === 'smartFill' ? `
-            <div class="field"><label class="field-label">Fill Up To Bracket ${tip('The tax bracket to fill up to. 22% is a common sweet spot &mdash; higher brackets start to make conversions expensive.')}</label>
+            <div class="field"><label class="field-label">Fill Up To Bracket ${tip('The tax bracket to fill up to &mdash; 22% is a common sweet spot. Higher brackets start to make conversions expensive')}</label>
               <select class="field-input" onchange="setRothConv('targetBracket',Number(this.value))" style="cursor:pointer">
                 ${brackets.filter(b => b.rate <= 0.32).map(b => `<option value="${b.rate}"${rc.targetBracket===b.rate?' selected':''}>${(b.rate*100).toFixed(0)}% (${fmtK(b.min)} - ${fmtK(b.max)})</option>`).join('')}
               </select>
