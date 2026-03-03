@@ -837,6 +837,102 @@ test('SS Earnings Test', 'Integration: age 67 (FRA, retired) no withholding',
   earningsTestProj[5].ssWithheld, 0);
 
 // ══════════════════════════════════════════════════════════════════
+// CATEGORY: ACA Premium Tax Credit Calculations
+// Source: IRS Rev. Proc. 2024-35 (2025 enhanced), Rev. Proc. 2025-25 (2026+ original)
+// HHS 2025 Federal Poverty Guidelines
+// ══════════════════════════════════════════════════════════════════
+
+section('ACA Premium Tax Credit');
+
+// FPL calculations
+test('ACA FPL', 'Household of 1 base FPL = $15,650',
+  'HHS 2025 poverty guidelines',
+  getFPL(1, 0), 15650);
+
+test('ACA FPL', 'Household of 2 base FPL = $21,150',
+  'HHS 2025 poverty guidelines',
+  getFPL(2, 0), 21150);
+
+test('ACA FPL', 'Household of 3 base FPL = $26,650',
+  'HHS 2025 poverty guidelines',
+  getFPL(3, 0), 26650);
+
+test('ACA FPL', 'Household of 4 base FPL = $32,150',
+  'HHS 2025 poverty guidelines',
+  getFPL(4, 0), 32150);
+
+test('ACA FPL', 'Household of 5 base FPL = $37,650',
+  'HHS 2025: $32,150 + $5,500',
+  getFPL(5, 0), 37650);
+
+// Enhanced rules (2025): household of 2, FPL = $21,150
+// At 150% FPL ($31,725): applicable % = 0%, full subsidy
+test('ACA Subsidy', '150% FPL enhanced (2025) → 0% contribution, full subsidy',
+  'IRS Rev. Proc. 2024-35: 0% applicable at ≤150% FPL',
+  calcACASubsidy(31725, 20000, 2, 0, 2025).netPremium, 0, 100);
+
+// At 200% FPL ($42,300): applicable % = 2%
+test('ACA Subsidy', '200% FPL enhanced (2025) → 2% applicable',
+  'IRS Rev. Proc. 2024-35: 2% applicable at 200% FPL',
+  calcACASubsidy(42300, 20000, 2, 0, 2025).applicable, 2.0, 0.1);
+
+// At 300% FPL ($63,450): applicable % = 6%
+test('ACA Subsidy', '300% FPL enhanced (2025) → 6% applicable',
+  'IRS Rev. Proc. 2024-35: 6% applicable at 300% FPL',
+  calcACASubsidy(63450, 20000, 2, 0, 2025).applicable, 6.0, 0.1);
+
+// At 400% FPL ($84,600): applicable % = 8.5%
+test('ACA Subsidy', '400% FPL enhanced (2025) → 8.5% applicable',
+  'IRS Rev. Proc. 2024-35: 8.5% applicable at 400% FPL',
+  calcACASubsidy(84600, 20000, 2, 0, 2025).applicable, 8.5, 0.1);
+
+// Above 400% FPL enhanced: still 8.5% (no cliff)
+test('ACA Subsidy', '500% FPL enhanced (2025) → still eligible (no cliff)',
+  'ARPA/IRA: no income cap through 2025',
+  calcACASubsidy(105750, 20000, 2, 0, 2025).eligible ? 1 : 0, 1);
+
+// Below 100% FPL: not eligible
+test('ACA Subsidy', 'Below 100% FPL → not eligible for subsidy',
+  'ACA: minimum income requirement 100% FPL',
+  calcACASubsidy(10000, 20000, 2, 0, 2025).eligible ? 1 : 0, 0);
+
+// Original ACA rules (2026+): cliff at 400% FPL
+test('ACA Subsidy', '400%+ FPL original (2026) → no subsidy (cliff)',
+  'ACA original: no PTC above 400% FPL',
+  calcACASubsidy(85000, 20000, 2, 0, 2026).eligible ? 1 : 0, 0);
+
+// Original ACA: 300% FPL → applicable ~9.83%
+test('ACA Subsidy', '300% FPL original (2026) → 9.83% applicable',
+  'IRS Rev. Proc. 2025-25: 9.83% at 300-400% FPL',
+  calcACASubsidy(63450, 20000, 2, 0, 2026).applicable, 9.83, 0.2);
+
+// Original ACA: 130% FPL → applicable 2% (within ≤133% tier)
+test('ACA Subsidy', '130% FPL original (2026) → 2% applicable',
+  'IRS Rev. Proc. 2025-25: 2% at ≤133% FPL',
+  calcACASubsidy(27495, 20000, 2, 0, 2026).applicable, 2.0, 0.1);
+
+// Subsidy calculation: at 150% FPL enhanced, $0 expected → full subsidy = benchmark
+test('ACA Subsidy', 'Full subsidy at 150% FPL enhanced = benchmark premium',
+  'ACA: 0% applicable → subsidy covers full benchmark',
+  calcACASubsidy(31725, 20000, 2, 0, 2025).subsidy, 20000, 100);
+
+// Interpolation: 175% FPL enhanced (midpoint of 150-200% tier)
+// applicable = 0 + (175-150)/(200-150) * (2-0) = 1.0%
+test('ACA Subsidy', '175% FPL enhanced → 1.0% applicable (interpolation)',
+  'ACA linear interpolation within tier',
+  calcACASubsidy(37013, 20000, 2, 0, 2025).applicable, 1.0, 0.15);
+
+// SLCSP estimator: age 55, single, year 0 → ~$9,000
+test('ACA SLCSP', 'Age 55 single base → ~$9,000',
+  'RetIQ national average estimate',
+  estimateSLCSP(55, false, 0), 9000, 500);
+
+// SLCSP estimator: age 60, couple, year 0 → higher than single
+test('ACA SLCSP', 'Age 60 couple > age 55 single',
+  'RetIQ: couple rate ~1.9x single, age adjustment +4%/yr',
+  estimateSLCSP(60, true, 0) > estimateSLCSP(55, false, 0) ? 1 : 0, 1);
+
+// ══════════════════════════════════════════════════════════════════
 // RESULTS
 // ══════════════════════════════════════════════════════════════════
 
