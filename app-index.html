@@ -1241,7 +1241,7 @@ function runProjection(p) {
           // Year 0: estimate from available income components only.
           const priorYr = yr > 0 && years[yr - 1] ? years[yr - 1] : null;
           const acaMAGI = priorYr ? priorYr.magi
-            : (earned + ssdiIncome + pensionTaxable + calcTaxableSS(ss, earned + ssdiIncome + pensionTaxable, isSingle));
+            : (earned + ssdiIncome + pensionTaxable + other + calcTaxableSS(ss, earned + ssdiIncome + pensionTaxable + other, isSingle));
           const householdSize = hc.acaHouseholdSize || ((p.spouseEnabled || (p.spouseAge && p.spouseAge > 0)) ? 2 : 1);
           const acaRules = hc.acaSubsidyRules || 'auto';
           const useEnhancedOverride = acaRules === 'enhanced' ? true : acaRules === 'original' ? false : null;
@@ -1463,8 +1463,8 @@ function runProjection(p) {
       if (rc.strategy === 'fixed') {
         rothConv = Math.min(rc.fixedAmount || 0, preTax);
       } else if (rc.strategy === 'fillBracket' || rc.strategy === 'smartFill') {
-        const ssTaxForRoth = calcTaxableSS(ss, earned + taxableWd + capGains + cashInterest + ssdiIncome + pensionTaxable, isSingle);
-        const curTaxable = earned + taxableWd + cashInterest + ssdiIncome + pensionTaxable + ssTaxForRoth;
+        const ssTaxForRoth = calcTaxableSS(ss, earned + taxableWd + capGains + cashInterest + ssdiIncome + pensionTaxable + other, isSingle);
+        const curTaxable = earned + taxableWd + cashInterest + ssdiIncome + pensionTaxable + other + ssTaxForRoth;
         let stdDedTemp = isSingle ? STD_DEDUCTION_SINGLE : STD_DEDUCTION;
         // Include senior deductions so bracket room calculation matches actual tax computation
         if (age >= 65) {
@@ -1487,8 +1487,8 @@ function runProjection(p) {
 
         // Smart Fill: additionally cap at next IRMAA threshold to avoid triggering surcharges
         if (rc.strategy === 'smartFill') {
-          const ssTaxForMAGI = calcTaxableSS(ss, earned + taxableWd + capGains + cashInterest + ssdiIncome + pensionTaxable, isSingle);
-          const curMAGI = earned + taxableWd + capGains + cashInterest + ssdiIncome + pensionTaxable + ssTaxForMAGI;
+          const ssTaxForMAGI = calcTaxableSS(ss, earned + taxableWd + capGains + cashInterest + ssdiIncome + pensionTaxable + other, isSingle);
+          const curMAGI = earned + taxableWd + capGains + cashInterest + ssdiIncome + pensionTaxable + other + ssTaxForMAGI;
           const irmaaBrackets = isSingle ? IRMAA_BRACKETS_SINGLE : IRMAA_BRACKETS_MFJ;
           // Find the next IRMAA tier above current MAGI
           let nextIRMAAThreshold = Infinity;
@@ -1501,8 +1501,8 @@ function runProjection(p) {
 
         rothConv = Math.min(bracketRoom, preTax);
       } else if (rc.strategy === 'targetMAGI') {
-        const ssTaxForMAGI = calcTaxableSS(ss, earned + taxableWd + capGains + cashInterest + ssdiIncome + pensionTaxable, isSingle);
-        const curMAGI = earned + taxableWd + capGains + cashInterest + ssdiIncome + pensionTaxable + ssTaxForMAGI;
+        const ssTaxForMAGI = calcTaxableSS(ss, earned + taxableWd + capGains + cashInterest + ssdiIncome + pensionTaxable + other, isSingle);
+        const curMAGI = earned + taxableWd + capGains + cashInterest + ssdiIncome + pensionTaxable + other + ssTaxForMAGI;
         rothConv = Math.min(Math.max(0, (rc.targetMAGI || 200000) - curMAGI), preTax);
       } else if (rc.strategy === 'percentBalance') {
         rothConv = Math.min(Math.round(preTax * (rc.percentOfBalance || 10) / 100), preTax);
@@ -1969,6 +1969,7 @@ function exportProjectionCSV() {
     { head:'SSDI', key:'ssdi', isCurrency:true },
     { head:'Pension', key:'pension', isCurrency:true },
     { head:'Pension (Taxable)', key:'pensionTaxable', isCurrency:true },
+    { head:'Other Income', key:'other', isCurrency:true },
     { head:'Expenses', key:'expenses', isCurrency:true },
     { head:'Federal Tax', key:'fedTax', isCurrency:true },
     { head:'State Tax', key:'stateTax', isCurrency:true },
@@ -3414,6 +3415,7 @@ function renderThisYear(proj, p, bust) {
       incomeRows.push({ label: 'Pension Taxable Portion', value: y.pensionTaxable, color: 'var(--text-dim)', note: 'used for tax calculations' });
     }
   }
+  if (y.other > 0) incomeRows.push({ label: 'Other Income', value: y.other, color: 'var(--text)' });
   if (incomeRows.length > 0) sections.push({ label: 'Income', rows: incomeRows });
 
   // Withdrawals
@@ -3459,7 +3461,7 @@ function renderThisYear(proj, p, bust) {
   if (expRows.length > 0) sections.push({ label: 'Expenses', rows: expRows });
 
   // Bottom line
-  const totalIn = y.earned + y.ss + y.ssdi + (y.pension || 0) + y.withdrawal;
+  const totalIn = y.earned + y.ss + y.ssdi + (y.pension || 0) + (y.other || 0) + y.withdrawal;
   const totalOut = y.expenses + y.tax + y.debtPayments + (y.healthcare || 0) + (y.medicareCost || 0);
   const moneyLastsAge = bust ? bust : p.endAge + '+';
   const moneyLastsColor = bust ? 'var(--red)' : 'var(--green)';
