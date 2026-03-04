@@ -114,9 +114,9 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
       <div class="feat"><h3><span class="tag t5">Plan</span> This Year&rsquo;s Plan</h3>
         <p>A collapsible Dashboard card summarizing the current projection year: income sources, withdrawals, Roth conversions, taxes &amp; Medicare, and expenses &mdash; only non-zero items shown. Adapts its title for working vs. retired status. One-click print/save opens a clean popup with automatic print dialog for PDF export.</p></div>
       <div class="feat"><h3><span class="tag t5">Plan</span> Survivor Analysis</h3>
-        <p>Model what happens when either spouse passes at a configurable age. Expenses adjust by a survivor ratio, filing status switches from MFJ to single, and survivor SS benefits are calculated per SSA rules &mdash; including the higher-of-own-or-deceased benefit logic.</p></div>
+        <p>Model what happens when either spouse passes at a configurable age. Expenses adjust by a survivor ratio, filing status switches from MFJ to single, and survivor SS benefits are calculated per SSA rules &mdash; including the higher-of-own-or-deceased benefit logic. Life insurance death benefits (if configured) deposit tax-free into the survivor's portfolio at the time of death.</p></div>
       <div class="feat"><h3><span class="tag t5">Plan</span> Legacy &amp; Estate Goals</h3>
-        <p>Set a target inheritance amount and see a full composition breakdown of what your heirs actually inherit. A stacked bar and per-account detail show pre-tax (subject to SECURE Act 10-year distribution), Roth (tax-free to heirs), and taxable accounts (stepped-up cost basis). An after-tax estimate uses a configurable heir tax bracket, and a Roth conversion comparison shows how much more your heirs would keep if you convert now. Dashboard metric tracks goal progress with dominant-account-type hint.</p></div>
+        <p>Set a target inheritance amount and see a full composition breakdown of what your heirs actually inherit. A stacked bar and per-account detail show pre-tax (subject to SECURE Act 10-year distribution), Roth (tax-free to heirs), and taxable accounts (stepped-up cost basis). An after-tax estimate uses a configurable heir tax bracket, and a Roth conversion comparison shows how much more your heirs would keep if you convert now. When life insurance death benefits are received, the legacy composition annotates the insurance contribution to the taxable account balance. Dashboard metric tracks goal progress with dominant-account-type hint.</p></div>
     </div>
   </div>
 
@@ -127,7 +127,7 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
         <p>Separate expense inputs for working years and retirement with independent inflation rates. Pre-retirement expenses flow through full cash flow modeling (income minus expenses, savings, and taxes) with automatic shortfall detection. Post-retirement supports fixed-amount or percentage-of-portfolio withdrawal modes.</p></div>
       <div class="feat"><h3><span class="tag t1">Expenses</span> Retirement Expense Phases</h3>
         <p>Spending patterns change through retirement. Model the common pattern: full spending in active early retirement, reduced spending in your mid-70s, then increased costs in your 80s+ as healthcare needs grow. Fully configurable age boundaries and spending percentages.</p></div>
-      <div class="feat"><h3><span class="tag t4">Health</span> Long-Term Care <span style="font-size:11px;color:#22c55e;font-weight:600">&bull; v3.0</span></h3>
+      <div class="feat"><h3><span class="tag t4">Health</span> Long-Term Care <span style="font-size:11px;color:#22c55e;font-weight:600">&bull; v3.1</span></h3>
         <p>70% of people over 65 will need some form of long-term care. Model annual LTC costs (nursing home, assisted living, or home aide), start age, duration, and LTC-specific inflation. If you have LTC insurance, enter your annual coverage with inflation protection rider (none, 2%, 3%, or 5% compound) and policy purchase age. The engine inflates your insurance benefit over time to match how real policies work, giving you an accurate net out-of-pocket projection.</p></div>
       <div class="feat"><h3><span class="tag t5">Plan</span> Liabilities &amp; Debts</h3>
         <p>Track mortgages, alimony, student loans, and other recurring obligations. Each liability has a type, monthly payment, active age range, and tax-deductible flag. Payments are added to expenses during the active period and disappear after payoff.</p></div>
@@ -145,10 +145,10 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
         <p>When enabled, savings respect annual 401(k) and IRA limits ($23,500 + catch-up in 2025) with age 50+ catch-up and SECURE 2.0 age 60&ndash;63 super catch-up provisions. Any savings beyond the limits overflow to brokerage accounts automatically.</p></div>
       <div class="feat"><h3><span class="tag t1">Income</span> Other Retirement Income <span style="font-size:11px;color:#22c55e;font-weight:600">&bull; v2.2</span></h3>
         <p>Model additional income streams &mdash; rental income, part-time work, or annuity payments &mdash; separate from pensions and Social Security. Configurable start and end ages let you model income that begins before or after retirement and stops at a specific age (e.g., rental income ages 60&ndash;80). Fully integrated with tax and MAGI calculations.</p></div>
-      <div class="feat"><h3><span class="tag t1">Income</span> One-Time Cash Events <span style="font-size:11px;color:#22c55e;font-weight:600">&bull; v3.0</span></h3>
-        <p>Model large one-time inflows like selling a home, rental property, or other assets. Each event specifies age, gross amount, net percentage after selling costs, cost basis for capital gains, property type (investment or primary home with &sect;121 exclusion), and destination account. Capital gains are taxed in the event year and proceeds flow into your chosen account.</p></div>
+      <div class="feat"><h3><span class="tag t1">Income</span> One-Time Cash Events <span style="font-size:11px;color:#22c55e;font-weight:600">&bull; v3.1</span></h3>
+        <p>Plan for major property sales, downsizing, inheritance, or other lump-sum events at a specific age. Enter gross amount, selling costs (net %), and cost basis. The engine applies capital gains tax automatically on the appreciation &mdash; including the IRC &sect;121 primary home exclusion ($250K single / $500K MFJ). Choose whether proceeds flow to your brokerage account or cash/HYS. Multiple events supported across different ages.</p></div>
       <div class="feat"><h3><span class="tag t5">Plan</span> Life Insurance <span style="font-size:11px;color:#22c55e;font-weight:600">&bull; v3.2</span></h3>
-        <p>Model term and permanent life insurance policies. Premiums flow into annual expenses; tax-free death benefits (IRC &sect;101) deposit into the survivor's account when the insured dies. Integrates with legacy composition &mdash; see how insurance shifts your heir's inheritance mix. Supports multiple policies per person, term expiration modeling, and beneficiary designation. Configure death ages in the Personal tab to see benefit impacts.</p></div>
+        <p>Model term and permanent life insurance policies. Premiums are added to annual expenses while the policy is active. Tax-free death benefits (IRC &sect;101) deposit into the survivor's brokerage account when the insured dies. Integrates with legacy composition to show how insurance shifts your heir's inheritance mix. Term policies expire at a set age; permanent policies provide coverage until death. Supports multiple policies per person and spousal policies.</p></div>
     </div>
   </div>
 
@@ -168,11 +168,11 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
       <div class="feat"><h3><span class="tag t6">App</span> License Recovery</h3>
         <p>Lost your license key? Recover it directly from the Activate dialog by entering the email you used at checkout. Your key is emailed to you securely &mdash; never displayed on screen. Rate-limited and anti-enumeration protected.</p></div>
       <div class="feat"><h3><span class="tag t6">App</span> Verified Calculations</h3>
-        <p>Every financial calculation is validated against authoritative sources: IRS publications, SSA actuarial tables, CMS Medicare data, SECURE 2.0 Act, and OBBB Act 2025. The embedded Validation tab displays 218 automated tests you can review and verify directly in the app.</p></div>
+        <p>Every financial calculation is validated against authoritative sources: IRS publications, SSA actuarial tables, CMS Medicare data, SECURE 2.0 Act, and OBBB Act 2025. The embedded Validation tab displays 230 automated tests you can review and verify directly in the app.</p></div>
       <div class="feat"><h3><span class="tag t6">App</span> Share RetIQ</h3>
         <p>A built-in share button uses your device's native share sheet (on mobile) or copies a link to your clipboard (on desktop). Help someone else plan their retirement &mdash; it's one click away.</p></div>
       <div class="feat"><h3><span class="tag t6">App</span> Validation Report</h3>
-        <p>218 automated tests verify every calculation against authoritative sources &mdash; IRS publications, SSA tables, CMS Medicare data, SECURE Act 2.0 rules, and ACA subsidy tables. The full report is viewable inside the app under the Validation tab. Every test shows the expected value, actual result, source citation, and pass/fail status. 100% pass rate.</p></div>
+        <p>230 automated tests verify every calculation against authoritative sources &mdash; IRS publications, SSA tables, CMS Medicare data, SECURE Act 2.0 rules, and ACA subsidy tables. The full report is viewable inside the app under the Validation tab. Every test shows the expected value, actual result, source citation, and pass/fail status. 100% pass rate.</p></div>
       <div class="feat"><h3><span class="tag t1">Core</span> Configurable Withdrawal Order</h3>
         <p>Set the priority for which accounts fund retirement spending using a 4-bucket system: Cash/HYS, Brokerage, Pre-Tax, and Roth. Reorder with arrow buttons in the Assumptions tab. Cash withdrawals are tax-free (principal return); brokerage withdrawals trigger capital gains; pre-tax is taxed as ordinary income; Roth is tax-free. The engine handles RMDs and tax implications automatically regardless of order.</p></div>
     </div>
@@ -192,7 +192,7 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
     </div>
   </div>
 
-  <div class="footer">RetIQ v3.0 &middot; retirementiq.app &middot; Not financial advice &middot; All computation runs locally in your browser</div>
+  <div class="footer">RetIQ v3.2 &middot; retirementiq.app &middot; Not financial advice &middot; All computation runs locally in your browser</div>
 </div>
 </body>
 </html>
