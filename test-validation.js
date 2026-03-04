@@ -1162,6 +1162,64 @@ test('Additional Income', '$100K additional income raises IRMAA surcharges',
   'v2.2 fix: additionalIncome included in MAGI → higher IRMAA',
   irmaaWith >= irmaaWithout ? 1 : 0, 1);
 
+// 9. Roth conversion fillBracket: other income reduces bracket room
+const rothBracketBase = {
+  currentAge: 65, retirementAge: 65, endAge: 75, birthYear: 1961, birthMonth: 0, retireMonth: 0,
+  annualIncome: 0, annualSavings: 0, annualExpenses: 40000,
+  expenseMode: 'fixed', withdrawalRate: 4, preRetirementExpenses: 0, preRetirementExpenseInflation: 3,
+  incomeGrowth: 0, savingsGrowth: 0, ssClaimAge: 70, ssAnnualIncome: 60000, ssCOLA: 2,
+  ssManualMonthly: 0, ssUseManual: false, useDetailedSS: false, earningsHistory: [],
+  spouseEnabled: false, nominalReturn: 7, inflation: 3, stateCode: 'none',
+  pension: { enabled: false }, spousePension: { enabled: false },
+  preMedicareHealthcare: { enabled: false }, expensePhases: { enabled: false }, enforceContribLimits: true,
+  ssdiPrimary: { enabled: false }, ssdiSpouse: { enabled: false },
+  charitableGiving: { enabled: false }, debts: [], legacy: { enabled: false }, longTermCare: { enabled: false },
+  rothConversion: { enabled: true, strategy: 'fillBracket', targetBracket: 0.22, startAge: 65, endAge: 72, customSchedule: [] },
+  accounts: [
+    { id: 1, name: '401(k)', type: 'pretax', balance: 800000, returnRate: 7 },
+    { id: 2, name: 'Roth IRA', type: 'roth', balance: 50000, returnRate: 7 },
+  ],
+};
+
+// Without other income → more bracket room → larger conversion
+const rothNoOther = runProjection({ ...rothBracketBase, additionalIncome: 0 });
+// With $50K other income → less bracket room → smaller conversion
+const rothWithOther = runProjection({ ...rothBracketBase, additionalIncome: 50000 });
+const convNoOther = rothNoOther.find(y => y.age === 65)?.rothConv || 0;
+const convWithOther = rothWithOther.find(y => y.age === 65)?.rothConv || 0;
+test('Additional Income', 'FillBracket: $50K other income reduces Roth conversion amount',
+  'v2.2 audit fix: other income counted in bracket room calculation',
+  convNoOther > convWithOther ? 1 : 0, 1);
+
+// The reduction should be roughly $50K (other fills bracket room)
+test('Additional Income', 'FillBracket: conversion reduced by ~$50K with other income',
+  'v2.2 audit fix: bracket room shrinks by other income amount',
+  Math.abs((convNoOther - convWithOther) - 50000) < 5000 ? 1 : 0, 1);
+
+// 10. SmartFill: other income reduces IRMAA-capped conversion
+const rothSmartBase = { ...rothBracketBase,
+  rothConversion: { enabled: true, strategy: 'smartFill', targetBracket: 0.22, startAge: 65, endAge: 72, customSchedule: [] },
+};
+const smartNoOther = runProjection({ ...rothSmartBase, additionalIncome: 0 });
+const smartWithOther = runProjection({ ...rothSmartBase, additionalIncome: 50000 });
+const smartConvNo = smartNoOther.find(y => y.age === 65)?.rothConv || 0;
+const smartConvWith = smartWithOther.find(y => y.age === 65)?.rothConv || 0;
+test('Additional Income', 'SmartFill: $50K other income reduces Roth conversion',
+  'v2.2 audit fix: other income counted in MAGI for IRMAA cap',
+  smartConvNo > smartConvWith ? 1 : 0, 1);
+
+// 11. TargetMAGI: other income reduces conversion headroom
+const rothTargetBase = { ...rothBracketBase,
+  rothConversion: { enabled: true, strategy: 'targetMAGI', targetMAGI: 200000, startAge: 65, endAge: 72, customSchedule: [] },
+};
+const targetNoOther = runProjection({ ...rothTargetBase, additionalIncome: 0 });
+const targetWithOther = runProjection({ ...rothTargetBase, additionalIncome: 50000 });
+const targetConvNo = targetNoOther.find(y => y.age === 65)?.rothConv || 0;
+const targetConvWith = targetWithOther.find(y => y.age === 65)?.rothConv || 0;
+test('Additional Income', 'TargetMAGI: $50K other income reduces Roth conversion',
+  'v2.2 audit fix: other income counted in curMAGI',
+  targetConvNo > targetConvWith ? 1 : 0, 1);
+
 // ══════════════════════════════════════════════════════════════════
 // RESULTS
 // ══════════════════════════════════════════════════════════════════
