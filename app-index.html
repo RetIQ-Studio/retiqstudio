@@ -383,7 +383,7 @@ button:hover { opacity: 0.88; }
 <div class="header" style="flex-direction:column;align-items:stretch;">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;">
     <a href="https://retirementiq.app/?landing" class="logo-text" style="text-decoration:none;color:inherit">RetIQ</a>
-    <span class="logo-badge">v2.2</span>
+    <span class="logo-badge">v3.0</span>
     <span id="planBadge" class="plan-badge" title="Current plan">FREE</span>
     <button class="mobile-menu-btn" onclick="toggleMobileMenu()" id="mobileMenuBtn" aria-label="Menu">&#9776;</button>
     <div class="header-secondary" id="headerSecondary">
@@ -397,6 +397,7 @@ button:hover { opacity: 0.88; }
           <input type="file" id="importFile" accept=".json,.html,.htm" onchange="importData(event)">
         </div>
         <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">Dark</button>
+        <div class="mode-toggle" id="modeToggle"></div>
         <div class="dollar-toggle" id="dollarToggle"></div>
       </div>
       <div class="header-links" style="display:flex;gap:8px;align-items:center;justify-content:center;font-size:11px">
@@ -1859,6 +1860,18 @@ function migrateParams() {
   // v2.2 Migration: add income window fields
   if (state.params.additionalIncomeStartAge === undefined) state.params.additionalIncomeStartAge = null;
   if (state.params.additionalIncomeEndAge === undefined) state.params.additionalIncomeEndAge = null;
+  // v3.0 Migration: UI mode
+  if (state.params.uiMode === undefined) {
+    const hasSavedState = localStorage.getItem('retiq_v1') !== null;
+    if (!hasSavedState) {
+      state.params.uiMode = 'essentials';
+    } else {
+      state.params.uiMode = 'full';
+      if (!localStorage.getItem('retiq_mode_seen')) {
+        state._showModePrompt = true;
+      }
+    }
+  }
   // Migration: add 'cash' to withdrawal order if old 3-item order
   if (state.params.withdrawalOrder && !state.params.withdrawalOrder.includes('cash')) {
     const idx = state.params.withdrawalOrder.indexOf('taxable');
@@ -1881,6 +1894,90 @@ function migrateParams() {
 migrateParams();
 function saveState() { if (isPro()) { try { localStorage.setItem('retiq_v1', JSON.stringify(state.params)); } catch(e) {} } }
 function setParam(key, val) { if (!isPro()) return; state.params[key] = val; state.mcResults = null; state.rothOptResults = null; saveState(); render(); }
+
+// ── UI Mode: Essentials / Full Control ──────────────────────────
+function getActiveAdvancedFeatures(p) {
+  const active = [];
+  if (p.rothConversion && p.rothConversion.enabled) active.push('Roth Conversions');
+  if (p.expensePhases && p.expensePhases.enabled) active.push('Expense Phases');
+  if (p.longTermCare && p.longTermCare.enabled) active.push('Long-Term Care');
+  if (p.charitableGiving && p.charitableGiving.enabled) active.push('Charitable Giving');
+  if (p.legacy && p.legacy.enabled) active.push('Legacy Goal');
+  if (p.debts && p.debts.length > 0) active.push('Liabilities (' + p.debts.length + ')');
+  if ((p.ssdiPrimary && p.ssdiPrimary.enabled) || (p.ssdiSpouse && p.ssdiSpouse.enabled)) active.push('SSDI');
+  if (p.preMedicareHealthcare && p.preMedicareHealthcare.enabled) active.push('Pre-Medicare Healthcare');
+  const defaultWD = '["cash","taxable","pretax","roth"]';
+  if (JSON.stringify(p.withdrawalOrder || ['cash','taxable','pretax','roth']) !== defaultWD) active.push('Custom Withdrawal Order');
+  if (p.accounts && p.accounts.some(a => a.subtype === 'cash')) active.push('Cash/HYS Accounts');
+  if (p.accounts && p.accounts.some(a => a.returnRate !== undefined && a.returnRate !== p.nominalReturn)) active.push('Custom Account Return Rates');
+  if (p.pension && p.pension.enabled && (p.pension.survivorBenefit !== 'none' || p.pension.taxablePercent !== 100 || (p.pension.cola && p.pension.cola !== 0)))
+    active.push('Pension Advanced Settings');
+  if (p.spousePension && p.spousePension.enabled && (p.spousePension.survivorBenefit !== 'none' || p.spousePension.taxablePercent !== 100 || (p.spousePension.cola && p.spousePension.cola !== 0)))
+    active.push('Spouse Pension Advanced Settings');
+  if ((p.additionalIncome || 0) > 0) active.push('Additional Retirement Income');
+  if (p.preRetirementExpenses > 0) active.push('Pre-Retirement Expenses');
+  return active;
+}
+function isSimplePlan(p) { return getActiveAdvancedFeatures(p).length === 0; }
+function setUIMode(mode) {
+  const p = state.params;
+  const current = p.uiMode || 'full';
+  if (mode === current) return;
+  if (mode === 'essentials' && current === 'full') {
+    const active = getActiveAdvancedFeatures(p);
+    if (active.length > 0) {
+      const msg = 'These advanced features are currently active and will be hidden (but preserved):\n\n'
+        + active.map(f => '\u2022 ' + f).join('\n')
+        + '\n\nYour settings are not changed \u2014 switch back to Full Control anytime to edit them.\n\nSwitch to Essentials?';
+      if (!confirm(msg)) return;
+    }
+  }
+  p.uiMode = mode;
+  const essentialsTabs = ['personal','income','expenses','pension','accounts','ss','assumptions'];
+  if (mode === 'essentials' && !essentialsTabs.includes(state.inputTab)) state.inputTab = 'personal';
+  if (mode === 'essentials' && !['dashboard','inputs','projection','montecarlo'].includes(state.tab)) state.tab = 'dashboard';
+  state.mcResults = null;
+  saveState();
+  render();
+}
+function setEssentialsBalance(type, newBalance) {
+  if (proGuard()) return;
+  const p = state.params;
+  const accts = p.accounts.filter(a => a.type === type);
+  if (accts.length === 0) {
+    p.accounts.push({ id: Date.now(), name: type === 'pretax' ? '401(k)' : type === 'roth' ? 'Roth IRA' : 'Brokerage', type: type, balance: newBalance, returnRate: p.nominalReturn });
+  } else if (accts.length === 1) {
+    accts[0].balance = newBalance;
+  } else {
+    const currentTotal = accts.reduce((s, a) => s + a.balance, 0);
+    if (currentTotal > 0) { const ratio = newBalance / currentTotal; accts.forEach(a => a.balance = Math.round(a.balance * ratio)); }
+    else { accts[0].balance = newBalance; }
+  }
+  state.mcResults = null; state.rothOptResults = null;
+  saveState(); render();
+}
+function showModePrompt() {
+  if (!state._showModePrompt) return;
+  state._showModePrompt = false;
+  localStorage.setItem('retiq_mode_seen', '1');
+  const simple = isSimplePlan(state.params);
+  const overlay = document.createElement('div');
+  overlay.id = 'modePromptOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  const suggestion = simple
+    ? '<p style="margin:12px 0;font-size:13px;color:var(--text-dim)">Your plan is simple enough for <strong>Essentials</strong> mode \u2014 a cleaner view with fewer options. Would you like to try it?</p>'
+      + '<div style="display:flex;gap:8px;justify-content:center;margin-top:16px">'
+      + '<button onclick="setUIMode(\'essentials\');document.getElementById(\'modePromptOverlay\').remove()" style="background:var(--blue);color:#fff;border:none;border-radius:6px;padding:8px 20px;font-size:13px;cursor:pointer">Try Essentials</button>'
+      + '<button onclick="document.getElementById(\'modePromptOverlay\').remove()" style="background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px 20px;font-size:13px;cursor:pointer">Keep Full Control</button></div>'
+    : '<p style="margin:12px 0;font-size:13px;color:var(--text-dim)">Your plan uses advanced features, so you\'re in <strong>Full Control</strong> mode. You can switch to <strong>Essentials</strong> for a simpler view anytime using the toggle in the header.</p>'
+      + '<div style="display:flex;gap:8px;justify-content:center;margin-top:16px">'
+      + '<button onclick="document.getElementById(\'modePromptOverlay\').remove()" style="background:var(--blue);color:#fff;border:none;border-radius:6px;padding:8px 20px;font-size:13px;cursor:pointer">Got it</button></div>';
+  overlay.innerHTML = '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:440px;width:100%;text-align:center">'
+    + '<div style="font-size:18px;font-weight:700;color:var(--text)">New: Two Ways to Plan</div>'
+    + '<div style="margin:12px 0;font-size:13px;color:var(--text-dim)"><strong>Essentials</strong> \u2014 streamlined view, fewer options, perfect for straightforward plans.<br><strong>Full Control</strong> \u2014 every feature visible, for complex retirement scenarios.</div>'
+    + suggestion + '</div>';
+  document.body.appendChild(overlay);
+}
 
 // Age ↔ Birth Year auto-sync (accounts for birth month)
 function calcAgeFromBirth(birthYear, birthMonth) {
@@ -2599,12 +2696,23 @@ function cLeave(id) { document.getElementById(id+'_h').setAttribute('visibility'
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
 
 function renderNav() {
-  const tabs = [['dashboard','Dashboard'],['inputs','Inputs'],['projection','Projection'],['montecarlo','Monte Carlo'],['scenarios','Scenarios'],['validation','Validation']];
+  const isEssentials = state.params.uiMode === 'essentials';
+  const allTabs = [['dashboard','Dashboard'],['inputs','Inputs'],['projection','Projection'],['montecarlo','Monte Carlo'],['scenarios','Scenarios'],['validation','Validation']];
+  const tabs = isEssentials ? allTabs.filter(([k]) => !['scenarios','validation'].includes(k)) : allTabs;
   document.getElementById('mainNav').innerHTML = tabs.map(([k,v]) =>
     `<button class="tab${state.tab===k?' active':''}" onclick="state.tab='${k}';closeMobileMenu();render()">${v}</button>`).join('');
   // Scroll active main nav tab into view on mobile
   const activeNav = document.querySelector('#mainNav .tab.active');
   if (activeNav) activeNav.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+}
+function renderModeToggle() {
+  const m = state.params.uiMode || 'full';
+  const el = document.getElementById('modeToggle');
+  if (!el) return;
+  el.innerHTML = '<div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;font-size:11px">'
+    + '<button onclick="setUIMode(\'essentials\')" style="padding:4px 10px;background:' + (m==='essentials'?'var(--blue)':'transparent') + ';color:' + (m==='essentials'?'#fff':'var(--text-dim)') + ';border:none;cursor:pointer;font-size:11px;font-family:inherit">Essentials</button>'
+    + '<button onclick="setUIMode(\'full\')" style="padding:4px 10px;background:' + (m==='full'?'var(--blue)':'transparent') + ';color:' + (m==='full'?'#fff':'var(--text-dim)') + ';border:none;cursor:pointer;font-size:11px;font-family:inherit">Full Control</button>'
+    + '</div>';
 }
 
 function closeMobileMenu() {
@@ -3757,12 +3865,27 @@ function renderDashboard(proj) {
 
 function renderInputs() {
   const p = state.params;
-  const tabs = ['personal','income','expenses','pension','accounts','ss','ssdi','debts','healthcare','medicare','rothconv','charity','legacy','assumptions'];
-  const names = ['Personal','Income','Expenses','Pension','Accounts','Social Security','Disability (SSDI)','Liabilities','Healthcare','Medicare','Roth Conversions','Charitable Giving','Legacy','Assumptions'];
-  const subNav = `<div class="sub-nav">${tabs.map((t,i) =>
-    `<button class="tab${state.inputTab===t?' active':''}" onclick="state.inputTab='${t}';render()">${names[i]}</button>`).join('')}</div>`;
+  const isEssentials = p.uiMode === 'essentials';
+  const allTabs = ['personal','income','expenses','pension','accounts','ss','ssdi','debts','healthcare','medicare','rothconv','charity','legacy','assumptions'];
+  const allNames = ['Personal','Income','Expenses','Pension','Accounts','Social Security','Disability (SSDI)','Liabilities','Healthcare','Medicare','Roth Conversions','Charitable Giving','Legacy','Assumptions'];
+  const essentialsTabs = ['personal','income','expenses','pension','accounts','ss','assumptions'];
+  const visTabs = isEssentials ? allTabs.filter(t => essentialsTabs.includes(t)) : allTabs;
+  const visNames = visTabs.map(t => allNames[allTabs.indexOf(t)]);
+  const subNav = `<div class="sub-nav">${visTabs.map((t,i) =>
+    `<button class="tab${state.inputTab===t?' active':''}" onclick="state.inputTab='${t}';render()">${visNames[i]}</button>`).join('')}</div>`;
 
   let content = '';
+
+  // Hidden-features indicator in Essentials mode
+  if (isEssentials) {
+    const active = getActiveAdvancedFeatures(p);
+    if (active.length > 0) {
+      content += `<div style="padding:8px 14px;margin-bottom:12px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px;font-size:12px;color:var(--text-dim);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <span>${active.length} advanced feature${active.length > 1 ? 's' : ''} active in background: ${active.slice(0, 3).join(', ')}${active.length > 3 ? ', +' + (active.length - 3) + ' more' : ''}</span>
+        <button onclick="setUIMode('full')" style="background:var(--blue);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit">Switch to Full Control</button>
+      </div>`;
+    }
+  }
 
   if (!isPro()) {
     content += `<div style="background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(6,182,212,0.12));border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
@@ -3775,25 +3898,27 @@ function renderInputs() {
   }
 
   if (state.inputTab === 'personal') {
+    const monthSelect = (param) => 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.split(',').map((m,i) =>
+      `<option value="${i}"${(p[param]||0)===i?' selected':''}>${m}</option>`).join('');
     content += `<div class="grid-2">
       <div class="card"><div class="card-title">You</div>
         <div class="grid-2">
           <div class="field"><label class="field-label">Current Age</label><div class="field-wrap">
             <input type="number" class="field-input" value="${p.currentAge}" onchange="setAge(Number(this.value))">
           </div></div>
-          <div class="field"><label class="field-label">Birth Year</label><div class="field-wrap">
+          ${!isEssentials ? `<div class="field"><label class="field-label">Birth Year</label><div class="field-wrap">
             <input type="number" class="field-input" value="${p.birthYear}" onchange="setBirthYear(Number(this.value))">
-          </div></div>
+          </div></div>` : ''}
         </div>
-        <div class="field"><label class="field-label">Birth Month</label>
+        ${!isEssentials ? `<div class="field"><label class="field-label">Birth Month</label>
           <select class="field-input" onchange="setBirthMonth(Number(this.value))" style="cursor:pointer">
-            ${'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.split(',').map((m,i) => `<option value="${i}"${(p.birthMonth||0)===i?' selected':''}>${m}</option>`).join('')}
-          </select></div>
+            ${monthSelect('birthMonth')}
+          </select></div>` : ''}
         <div class="grid-2">${field('Retirement Age','retirementAge')}
-        <div class="field"><label class="field-label">Retire Month</label>
+        ${!isEssentials ? `<div class="field"><label class="field-label">Retire Month</label>
           <select class="field-input" onchange="setParam('retireMonth',Number(this.value))" style="cursor:pointer">
-            ${'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.split(',').map((m,i) => `<option value="${i}"${(p.retireMonth||0)===i?' selected':''}>${m}</option>`).join('')}
-          </select></div></div>
+            ${monthSelect('retireMonth')}
+          </select></div>` : ''}</div>
         ${field('Plan Through Age','endAge')}
       </div>
       <div class="card"><div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
@@ -3808,20 +3933,20 @@ function renderInputs() {
             <div class="field"><label class="field-label">Spouse Current Age</label><div class="field-wrap">
               <input type="number" class="field-input" value="${p.spouseAge}" onchange="setSpouseAge(Number(this.value))">
             </div></div>
-            <div class="field"><label class="field-label">Spouse Birth Year</label><div class="field-wrap">
+            ${!isEssentials ? `<div class="field"><label class="field-label">Spouse Birth Year</label><div class="field-wrap">
               <input type="number" class="field-input" value="${p.spouseBirthYear}" onchange="setSpouseBirthYear(Number(this.value))">
-            </div></div>
+            </div></div>` : ''}
           </div>
-          <div class="field"><label class="field-label">Spouse Birth Month</label>
+          ${!isEssentials ? `<div class="field"><label class="field-label">Spouse Birth Month</label>
             <select class="field-input" onchange="setSpouseBirthMonth(Number(this.value))" style="cursor:pointer">
-              ${'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.split(',').map((m,i) => `<option value="${i}"${(p.spouseBirthMonth||0)===i?' selected':''}>${m}</option>`).join('')}
-            </select></div>
+              ${monthSelect('spouseBirthMonth')}
+            </select></div>` : ''}
           <div class="grid-2">
             ${field('Spouse Retirement Age','spouseRetirementAge')}
-            <div class="field"><label class="field-label">Spouse Retire Month</label>
+            ${!isEssentials ? `<div class="field"><label class="field-label">Spouse Retire Month</label>
               <select class="field-input" onchange="setParam('spouseRetireMonth',Number(this.value))" style="cursor:pointer">
-                ${'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.split(',').map((m,i) => `<option value="${i}"${(p.spouseRetireMonth||0)===i?' selected':''}>${m}</option>`).join('')}
-              </select></div>
+                ${monthSelect('spouseRetireMonth')}
+              </select></div>` : ''}
           </div>
         ` : ''}
       </div></div>`;
@@ -3849,7 +3974,7 @@ function renderInputs() {
           ${(p.spouseEnabled || p.spouseAge > 0) ? ' &#183; Spouse: <strong style="color:var(--text)">' + fmt(Math.round((p.spouseIncome||0) * Math.pow(1 + (p.incomeGrowth||0) / 100, p.spouseRetirementAge - p.spouseAge))) + '</strong>' : ''}
         </div>
       </div>
-      <div class="card"><div class="card-title">Additional Retirement Income</div>
+      ${!isEssentials ? `<div class="card"><div class="card-title">Additional Retirement Income</div>
         ${field('Other Annual Income','additionalIncome',{prefix:'$',help:'Rental income, part-time work, consulting, annuities, etc.'})}
         <div class="grid-2" style="margin-top:8px">
           ${field('Starts at Age','additionalIncomeStartAge',{help:'Default: retirement age (' + p.retirementAge + '). Set earlier for income that begins before retirement.',placeholder:p.retirementAge})}
@@ -3859,7 +3984,7 @@ function renderInputs() {
           Taxed as ordinary income. Pensions have their own dedicated tab.
           ${(p.additionalIncome || 0) > 0 ? ' Active from age ' + (p.additionalIncomeStartAge || p.retirementAge) + ' to ' + (p.additionalIncomeEndAge || p.endAge) + '.' : ''}
         </div>
-      </div>`;
+      </div>` : ''}`;
   }
 
   if (state.inputTab === 'expenses') {
@@ -3879,6 +4004,7 @@ function renderInputs() {
       ? '(' + (p.withdrawalRate||4) + '% of portfolio)'
       : fmt(Math.round(p.annualExpenses * Math.pow(1 + p.inflation / 100, p.retirementAge - p.currentAge)));
 
+    if (!isEssentials) {
     content += `<div class="grid-2">
       <div class="card" data-accent="cyan"><div class="card-title">Pre-Retirement Expenses</div>
         <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;line-height:1.6">
@@ -3916,9 +4042,50 @@ function renderInputs() {
           Expense phases, healthcare gap costs, and LTC are configured in the Healthcare tab.
         </div>
       </div></div>`;
+    } else {
+    // Essentials: just post-retirement fixed amount
+    content += `<div class="card" data-accent="amber"><div class="card-title">Retirement Expenses</div>
+        <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;line-height:1.6">
+          Your annual spending in retirement (today's dollars). This grows with inflation each year.
+        </div>
+        ${field('Annual Expenses (today\'s $)','annualExpenses',{prefix:'$',help:'Housing, food, healthcare, travel in retirement. Grows with general inflation rate.'})}
+        <div style="font-size:12px;color:var(--text-dim);margin-top:8px;line-height:1.6">
+          At retirement (age ${p.retirementAge}): <strong style="color:var(--text)">${retExpAtRetire}</strong>
+        </div>
+      </div>`;
+    }
   }
 
   if (state.inputTab === 'accounts') {
+    const total = p.accounts.reduce((s,a) => s+a.balance, 0);
+    const preTaxTotal = p.accounts.filter(a=>a.type==='pretax').reduce((s,a)=>s+a.balance,0);
+    const rothTotal = p.accounts.filter(a=>a.type==='roth').reduce((s,a)=>s+a.balance,0);
+    const taxableTotal = p.accounts.filter(a=>a.type==='taxable').reduce((s,a)=>s+a.balance,0);
+    const birthYear = new Date().getFullYear() - p.currentAge;
+    const rmdAge = rmdStartAge(birthYear);
+
+    if (isEssentials) {
+    // Simplified 3-field accounts UI
+    content += `<div class="card"><div class="card-title">Investment Accounts</div>
+      <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
+        Enter your total balances by account type. Switch to Full Control for individual account management.
+      </div>
+      <div class="field"><label class="field-label">Pre-Tax (401k, IRA, 403b)</label><div class="field-wrap"><span class="field-prefix">$</span>
+        <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(preTaxTotal)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="setEssentialsBalance('pretax',parseC(this.value))">
+      </div>
+      <div class="field-help">Taxed when you withdraw. Includes 401(k), Traditional IRA, 403(b), 457(b).</div></div>
+      <div class="field"><label class="field-label">Roth (Roth 401k, Roth IRA)</label><div class="field-wrap"><span class="field-prefix">$</span>
+        <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(rothTotal)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="setEssentialsBalance('roth',parseC(this.value))">
+      </div>
+      <div class="field-help">Already taxed — withdrawals are tax-free.</div></div>
+      <div class="field"><label class="field-label">Brokerage (Taxable)</label><div class="field-wrap"><span class="field-prefix">$</span>
+        <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(taxableTotal)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="setEssentialsBalance('taxable',parseC(this.value))">
+      </div>
+      <div class="field-help">Regular investment accounts — growth taxed at capital gains rate.</div></div>
+      <div class="acct-total" style="margin-top:14px"><span style="color:var(--text-muted);font-size:13px">Total Portfolio</span><span style="color:var(--text);font-size:15px;font-weight:600">${fmt(total)}</span></div>
+    </div>`;
+    } else {
+
     const rows = p.accounts.map(a => `<div class="acct-row">
       <div style="flex:2"><input class="field-input" value="${a.name}" onchange="updateAccount(${a.id},'name',this.value)" style="font-size:13px"></div>
       <div style="flex:1"><select class="field-input" onchange="updateAccount(${a.id},'type',this.value)" style="font-size:13px;cursor:pointer">
@@ -3936,10 +4103,6 @@ function renderInputs() {
       </div>
       <button class="acct-remove" onclick="removeAccount(${a.id})">x</button>
     </div>`).join('');
-    const total = p.accounts.reduce((s,a) => s+a.balance, 0);
-    const preTaxTotal = p.accounts.filter(a=>a.type==='pretax').reduce((s,a)=>s+a.balance,0);
-    const birthYear = new Date().getFullYear() - p.currentAge;
-    const rmdAge = rmdStartAge(birthYear);
 
     content += `<div class="card"><div class="card-title">Investment Accounts <span style="font-size:11px;color:var(--text-faint);font-weight:400">-- each with its own return rate</span></div>
       <div class="acct-presets">
@@ -3977,6 +4140,7 @@ function renderInputs() {
         <div class="field-help" style="margin-left:24px">When enabled, savings respect annual 401(k) and IRA limits with age 50+ catch-up and SECURE 2.0 age 60-63 super catch-up. Overflow goes to taxable accounts.</div>
       </div>
     </div>`;
+    } // end Full Control accounts
   }
 
   if (state.inputTab === 'debts') {
@@ -4037,12 +4201,12 @@ function renderInputs() {
             <div class="grid-2">
               <div class="field"><label class="field-label">Start Age</label>
                 <input type="number" class="field-input" value="${pen.startAge||65}" onchange="setPension('${which}','startAge',Number(this.value))"></div>
-              <div class="field"><label class="field-label">COLA</label><div class="field-wrap">
+              ${!isEssentials ? `<div class="field"><label class="field-label">COLA</label><div class="field-wrap">
                 <input type="number" class="field-input has-suffix" value="${pen.cola||0}" onchange="setPension('${which}','cola',Number(this.value))">
                 <span class="field-suffix">%</span></div>
-                <div class="field-help">0% for fixed, 2-3% for COLA-adjusted</div></div>
+                <div class="field-help">0% for fixed, 2-3% for COLA-adjusted</div></div>` : ''}
             </div>
-            <div class="field"><label class="field-label">Survivor Benefit</label>
+            ${!isEssentials ? `<div class="field"><label class="field-label">Survivor Benefit</label>
               <select class="field-input" onchange="setPension('${which}','survivorBenefit',this.value)" style="cursor:pointer">
                 ${survivorOpts(which)}
               </select>
@@ -4050,7 +4214,7 @@ function renderInputs() {
             <div class="field"><label class="field-label">Taxable Percentage</label><div class="field-wrap">
               <input type="number" class="field-input has-suffix" value="${pen.taxablePercent??100}" min="0" max="100" onchange="setPension('${which}','taxablePercent',Number(this.value))">
               <span class="field-suffix">%</span></div>
-              <div class="field-help">100% for most pensions. Lower for military disability or after-tax contributions.</div></div>`;
+              <div class="field-help">100% for most pensions. Lower for military disability or after-tax contributions.</div></div>` : ''}`;
     };
     content += `<div class="card" data-accent="green"><div class="card-title">Pension / Annuity Income</div>
       <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
@@ -4073,7 +4237,7 @@ function renderInputs() {
           ${pen2.enabled ? pensionFields('spousePension') : ''}` : '<div style="color:var(--text-faint);font-size:13px">Enable spouse in Personal tab.</div>'}
         </div>
       </div>
-      ${pen1.enabled || pen2.enabled ? `
+      ${!isEssentials && (pen1.enabled || pen2.enabled) ? `
       <div style="background:linear-gradient(135deg,rgba(34,197,94,0.08),rgba(6,182,212,0.08));border:1px solid rgba(34,197,94,0.25);border-radius:10px;padding:14px 18px;margin-top:12px">
         <div style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:8px">&#128161; Pension Planning Tips</div>
         <ul style="font-size:12px;color:var(--text-dim);line-height:1.8;margin:0;padding-left:18px">
@@ -4873,7 +5037,7 @@ function renderInputs() {
           <strong style="color:var(--blue)">&#9432; SSDI Active</strong> &mdash; SSDI auto-converts to regular SS at FRA (age ${effectiveClaimAge}). The claim age setting below is overridden. Your projection uses FRA benefit amount.
         </div>` : ''}
         ${field('SS Claim Age ' + tip('When you start collecting Social Security. You can start as early as 62 (smaller monthly check) or wait until 70 (largest check &mdash; about 77% more than at 62).'),'ssClaimAge',{help:'62 (early) to 70 (max delayed credits)' + (ssdi1ss.enabled ? ' — overridden by SSDI auto-conversion at FRA' : '')})}
-        ${(p.spouseEnabled || p.spouseAge > 0) ? field('Survivor SS Claim Age','survivorSSClaimAge',{help:'Age to start collecting survivor SS if spouse passes away. Min 60.'}) : ''}
+        ${!isEssentials && (p.spouseEnabled || p.spouseAge > 0) ? field('Survivor SS Claim Age','survivorSSClaimAge',{help:'Age to start collecting survivor SS if spouse passes away. Min 60.'}) : ''}
         <div style="margin:14px 0;padding:12px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border)">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);margin-bottom:10px">
             <input type="checkbox" ${p.ssUseManual?'checked':''} onchange="setParam('ssUseManual',this.checked)" style="width:16px;height:16px;accent-color:var(--green)">
@@ -4899,7 +5063,7 @@ function renderInputs() {
           </div>
           ${!ssdi1ss.enabled && effectiveClaimAge < ssResult.fra ? '<div style="font-size:11px;color:var(--red);margin-top:4px">Claiming before FRA (' + ssResult.fra.toFixed(1) + ') permanently reduces your benefit by ' + Math.round((1 - ssResult.monthly/(useManual ? p.ssManualMonthly : estimateSS({avgIncome: p.ssAnnualIncome||p.annualIncome, claimAge: Math.round(ssResult.fra), birthYear}).monthly))*100) + '%.</div>' : ''}
         </div>
-        ${!ssdi1ss.enabled && effectiveClaimAge < ssResult.fra && p.currentAge <= p.retirementAge ? `<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:10px 14px;margin-top:10px;font-size:12px;color:var(--text-dim);line-height:1.6">
+        ${!isEssentials && !ssdi1ss.enabled && effectiveClaimAge < ssResult.fra && p.currentAge <= p.retirementAge ? `<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:10px 14px;margin-top:10px;font-size:12px;color:var(--text-dim);line-height:1.6">
           <strong style="color:var(--amber)">&#9432; Earnings Test</strong> &mdash;
           Since you plan to claim SS at ${effectiveClaimAge} (before your FRA of ${ssResult.fra.toFixed(1)}) and are still earning income, Social Security may temporarily withhold some benefits.
           In 2025, $1 is withheld for every $2 you earn above $${SS_RET_UNDER_FRA_LIMIT.toLocaleString()}/year.
@@ -4926,7 +5090,7 @@ function renderInputs() {
             <strong style="color:var(--blue)">&#9432; SSDI Active</strong> &mdash; Spouse SSDI auto-converts to regular SS at FRA (age ${effectiveSpClaimAge}). The claim age setting below is overridden. Projection uses FRA benefit amount.
           </div>` : ''}
           ${field('Spouse SS Claim Age','spouseSSClaimAge',{help:'62 (early) to 70 (max delayed credits)' + (ssdi2ss.enabled ? ' — overridden by SSDI auto-conversion at FRA' : '')})}
-          ${field('Spouse Survivor SS Claim Age','spouseSurvivorSSClaimAge',{help:'Age spouse starts collecting survivor SS if you pass away. Min 60.'})}
+          ${!isEssentials ? field('Spouse Survivor SS Claim Age','spouseSurvivorSSClaimAge',{help:'Age spouse starts collecting survivor SS if you pass away. Min 60.'}) : ''}
           <div style="margin:14px 0;padding:12px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border)">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);margin-bottom:10px">
               <input type="checkbox" ${p.spouseSSUseManual?'checked':''} onchange="setParam('spouseSSUseManual',this.checked)" style="width:16px;height:16px;accent-color:var(--green)">
@@ -4949,17 +5113,17 @@ function renderInputs() {
             <div style="font-size:11px;color:var(--text-faint);margin-top:4px">Monthly: ${fmt(spResult.monthly)} &#183; FRA: ${spResult.fra.toFixed(1)} &#183; Birth year: ${spBY}</div>
             ${!ssdi2ss.enabled && effectiveSpClaimAge < spResult.fra ? '<div style="font-size:11px;color:var(--red);margin-top:4px">Claiming before FRA (' + spResult.fra.toFixed(1) + ') permanently reduces spouse benefit by ' + Math.round((1 - spResult.monthly/(spUseManual ? p.spouseSSManualMonthly : estimateSS({avgIncome:p.spouseSSIncome||0, claimAge:Math.round(spResult.fra), birthYear:spBY}).monthly))*100) + '%.</div>' : ''}
           </div>
-          ${!ssdi2ss.enabled && effectiveSpClaimAge < spResult.fra && (p.spouseRetirementAge||67) >= (p.spouseAge||0) ? '<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:10px 14px;margin-top:10px;font-size:12px;color:var(--text-dim);line-height:1.6"><strong style="color:var(--amber)">&#9432; Earnings Test</strong> &mdash; Spouse claiming before FRA with earned income may have SS withheld. Withheld benefits are credited back at FRA.</div>' : ''}`;
+          ${!isEssentials && !ssdi2ss.enabled && effectiveSpClaimAge < spResult.fra && (p.spouseRetirementAge||67) >= (p.spouseAge||0) ? '<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:10px 14px;margin-top:10px;font-size:12px;color:var(--text-dim);line-height:1.6"><strong style="color:var(--amber)">&#9432; Earnings Test</strong> &mdash; Spouse claiming before FRA with earned income may have SS withheld. Withheld benefits are credited back at FRA.</div>' : ''}`;
         })()
           : '<div style="color:var(--text-faint);font-size:13px">Enable spouse in Personal tab.</div>'}
       </div>
     </div>
 
-    <div class="card"><div class="card-title">Cost-of-Living Adjustment (Both Spouses)</div>
+    ${!isEssentials ? `<div class="card"><div class="card-title">Cost-of-Living Adjustment (Both Spouses)</div>
       ${field('Social Security COLA ' + tip('Cost-of-living adjustment &mdash; how much Social Security increases each year to keep up with inflation. The historical average is about 2-3%.'),'ssCOLA',{suffix:'%',help:'Historical avg ~2%. Applied after claiming to both you and spouse.'})}
-    </div>
+    </div>` : ''}
 
-    ${(() => {
+    ${!isEssentials ? (() => {
       // Build YOUR claim comparison table
       const manualPIA = p.ssUseManual && p.ssManualMonthly > 0 ? p.ssManualMonthly : null;
       const tableData = [62,63,64,65,66,67,68,69,70].map(age => {
@@ -5046,7 +5210,7 @@ function renderInputs() {
         </div>`;
       }
       return html;
-    })()}`;
+    })() : ''}`;
   }
 
   // Feature #2: Charitable Giving tab
@@ -5302,26 +5466,25 @@ function renderInputs() {
           <div class="field-help">${p.stateCode && p.stateCode !== 'none' ? STATE_TAXES[p.stateCode]?.name + ' -- flat rate ' + STATE_TAXES[p.stateCode]?.rate + '%' : 'Federal taxes only'}</div>
         </div>
       </div>
-      <div style="margin-top:20px;padding:14px;background:var(--bg-base);border-radius:10px;border:1px solid var(--border)">
+      ${!isEssentials ? `<div style="margin-top:20px;padding:14px;background:var(--bg-base);border-radius:10px;border:1px solid var(--border)">
         <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Retirement Withdrawal Order ${tip('When you need money in retirement, which account should RetIQ draw from first? The order matters because each account type is taxed differently.')}</div>
         <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;line-height:1.5">This is the order RetIQ draws from your accounts in retirement. The default order (Cash &rarr; Brokerage &rarr; Pre-Tax &rarr; Roth) is a widely-used approach: spend taxable money first and let tax-advantaged accounts keep growing. Roth goes last because it grows tax-free and passes to heirs tax-free.</div>
         ${(p.withdrawalOrder || ['cash','taxable','pretax','roth']).map((src, i, arr) => {
           const labels = { cash: 'Cash / HYS', taxable: 'Brokerage', pretax: 'Pre-Tax (401k/IRA)', roth: 'Roth' };
           const colors = { cash: 'var(--cyan)', taxable: 'var(--amber)', pretax: 'var(--blue)', roth: 'var(--green)' };
           const notes = { cash: 'Zero capital gains — pure principal return', taxable: 'Gains taxed at capital gains rate (50% cost basis)', pretax: 'Taxable as ordinary income', roth: 'Tax-free withdrawals' };
-          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px">
-            <span style="font-size:13px;font-weight:700;color:var(--text-muted);width:18px;text-align:center">${i + 1}</span>
-            <div style="flex:1">
-              <div style="font-size:12px;font-weight:600;color:${colors[src]}">${labels[src]}</div>
-              <div style="font-size:10px;color:var(--text-faint)">${notes[src]}</div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:2px">
-              <button onclick="moveWithdrawalOrder(${i},-1)" style="background:var(--bg-input);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:12px;color:${i === 0 ? 'var(--text-faint)' : 'var(--text)'};cursor:${i === 0 ? 'default' : 'pointer'};opacity:${i === 0 ? '0.3' : '1'}" ${i === 0 ? 'disabled' : ''}>&#9650;</button>
-              <button onclick="moveWithdrawalOrder(${i},1)" style="background:var(--bg-input);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:12px;color:${i === arr.length - 1 ? 'var(--text-faint)' : 'var(--text)'};cursor:${i === arr.length - 1 ? 'default' : 'pointer'};opacity:${i === arr.length - 1 ? '0.3' : '1'}" ${i === arr.length - 1 ? 'disabled' : ''}>&#9660;</button>
-            </div>
-          </div>`;
+          return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px">'
+            + '<span style="font-size:13px;font-weight:700;color:var(--text-muted);width:18px;text-align:center">' + (i + 1) + '</span>'
+            + '<div style="flex:1">'
+            + '<div style="font-size:12px;font-weight:600;color:' + colors[src] + '">' + labels[src] + '</div>'
+            + '<div style="font-size:10px;color:var(--text-faint)">' + notes[src] + '</div>'
+            + '</div>'
+            + '<div style="display:flex;flex-direction:column;gap:2px">'
+            + '<button onclick="moveWithdrawalOrder(' + i + ',-1)" style="background:var(--bg-input);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:12px;color:' + (i === 0 ? 'var(--text-faint)' : 'var(--text)') + ';cursor:' + (i === 0 ? 'default' : 'pointer') + ';opacity:' + (i === 0 ? '0.3' : '1') + '"' + (i === 0 ? ' disabled' : '') + '>&#9650;</button>'
+            + '<button onclick="moveWithdrawalOrder(' + i + ',1)" style="background:var(--bg-input);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:12px;color:' + (i === arr.length - 1 ? 'var(--text-faint)' : 'var(--text)') + ';cursor:' + (i === arr.length - 1 ? 'default' : 'pointer') + ';opacity:' + (i === arr.length - 1 ? '0.3' : '1') + '"' + (i === arr.length - 1 ? ' disabled' : '') + '>&#9660;</button>'
+            + '</div></div>';
         }).join('')}
-        ${JSON.stringify(p.withdrawalOrder || ['cash','taxable','pretax','roth']) !== '["cash","taxable","pretax","roth"]' ? `<button onclick="state.params.withdrawalOrder=['cash','taxable','pretax','roth'];state.mcResults=null;state.rothOptResults=null;saveState();render()" style="margin-top:8px;background:transparent;border:1px dashed var(--border-active);border-radius:6px;color:var(--blue);padding:6px 14px;font-size:11px;width:100%;cursor:pointer">Reset to recommended order (Cash &rarr; Brokerage &rarr; Pre-Tax &rarr; Roth)</button>` : ''}
+        ${JSON.stringify(p.withdrawalOrder || ['cash','taxable','pretax','roth']) !== '["cash","taxable","pretax","roth"]' ? '<button onclick="state.params.withdrawalOrder=[' + "'" + 'cash' + "'" + ',' + "'" + 'taxable' + "'" + ',' + "'" + 'pretax' + "'" + ',' + "'" + 'roth' + "'" + '];state.mcResults=null;state.rothOptResults=null;saveState();render()" style="margin-top:8px;background:transparent;border:1px dashed var(--border-active);border-radius:6px;color:var(--blue);padding:6px 14px;font-size:11px;width:100%;cursor:pointer">Reset to recommended order (Cash &rarr; Brokerage &rarr; Pre-Tax &rarr; Roth)</button>' : ''}
       </div>
       <div style="margin-top:16px;font-size:12px;color:var(--text-faint);line-height:1.7">
         <strong style="color:var(--text-muted)">Model notes:</strong> 2025 tax brackets (OBBB Act). Std deduction $${STD_DEDUCTION.toLocaleString()} MFJ / $${STD_DEDUCTION_SINGLE.toLocaleString()} single + senior additions. SS taxation per IRS §86. SSA 2025 bend points &amp; wage base.
@@ -5331,7 +5494,7 @@ function renderInputs() {
         Pre-retirement expenses use a separate inflation rate and reduce available cash flow; shortfalls draw from taxable accounts.
         Expense phases reduce base spending in later retirement.
         RMD age per SECURE Act 2.0. IRMAA uses 2025 brackets. SS includes FRA by birth year, COLA, and independent survivor benefit claiming. Survivor SS integrates with SSDI (pays higher of the two).
-      </div>
+      </div>` : ''}
     </div>`;
   }
 
@@ -5535,6 +5698,18 @@ function renderMonteCarlo(proj) {
 
   // Button label
   const btnLabel = cfg.model === 'historical' ? 'Historical' : cfg.model === 'stress' ? 'Stress' : '';
+
+  const isEssentials = p.uiMode === 'essentials';
+
+  if (isEssentials) {
+    return `<div class="card" data-accent="purple"><div class="card-title">Monte Carlo Simulation</div>
+    <div style="font-size:13px;color:var(--text-dim);margin-bottom:16px;line-height:1.6">
+      Runs ${cfg.numSims} randomized simulations to estimate the probability your money lasts through age ${p.endAge}.
+      Switch to Full Control for model selection and advanced settings.
+    </div>
+    <button class="mc-btn" onclick="runMC()">Run ${cfg.numSims} Simulations</button>
+  </div>` + results;
+  }
 
   return `<div class="card" data-accent="purple"><div class="card-title">Monte Carlo Simulation</div>
     <div style="font-size:13px;color:var(--text-dim);margin-bottom:16px;line-height:1.6">
@@ -5839,6 +6014,7 @@ function renderValidation() {
 function render() {
   renderNav();
   renderDollarToggle();
+  renderModeToggle();
   const proj = runProjection(state.params);
   let html = '';
   switch (state.tab) {
@@ -5849,12 +6025,13 @@ function render() {
     case 'scenarios': html = renderScenarios(proj); break;
     case 'validation': html = renderValidation(); break;
   }
-  html += '<div class="footer">RetIQ v2.2 &#183; Build 2026-03-03 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a></div>';
+  html += '<div class="footer">RetIQ v3.0 &#183; Build 2026-03-04 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a></div>';
   document.getElementById('app').innerHTML = html;
   updateHeaderHeight();
   // Scroll active sub-nav tab into view on mobile
   const activeSub = document.querySelector('.sub-nav .tab.active');
   if (activeSub) activeSub.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  showModePrompt();
 }
 function updateHeaderHeight() {
   const hdr = document.querySelector('.header');
