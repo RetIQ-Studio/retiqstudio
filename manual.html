@@ -159,6 +159,20 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <tr><td>Other Annual Income</td><td>Additional income (rental, part-time, annuities). Separate from pensions which have their own tab. Use Start Age / End Age to control when this income is active (defaults to retirement age through end of plan). Income is included in tax and MAGI calculations.</td></tr>
     </table>
     <p>The tab shows a preview of projected income at retirement age based on current values and growth rates.</p>
+
+    <h3>One-Time Cash Events (Full Control)</h3>
+    <p>Model large one-time inflows such as selling a home or rental property. Each event specifies:</p>
+    <ul>
+      <li><strong>Age at Sale:</strong> When the event occurs in your projection.</li>
+      <li><strong>Gross Amount:</strong> Sale price before costs.</li>
+      <li><strong>Net After Selling Costs:</strong> Percentage remaining after agent fees, closing costs, repairs (e.g., 90%).</li>
+      <li><strong>Cost Basis:</strong> Original purchase price plus improvements. Used to compute capital gains.</li>
+      <li><strong>Property Type:</strong> <em>Investment Property</em> (full cap gains apply) or <em>Primary Home</em> (Section 121 exclusion: $250K single / $500K married filing jointly).</li>
+      <li><strong>Deposit To:</strong> Brokerage (taxable) or Cash/HYS account.</li>
+    </ul>
+    <p>Capital gains from cash events are taxed in the event year. The info boxes show your projected net proceeds and estimated capital gains.</p>
+    <div class="tip"><strong>Example &mdash; Home Downsizing:</strong> Selling a $600K primary home at age 72 with 90% net and $200K cost basis. For a married couple, the $340K net gain minus $500K exclusion = $0 taxable. Proceeds go to brokerage for continued growth.</div>
+    <div class="tip"><strong>Example &mdash; Rental Property:</strong> Selling a $400K rental at age 75 with 87% net and $150K basis. Net proceeds: $348K with $198K in taxable capital gains (no Section 121 exclusion for investment property).</div>
   </div>
 
   <!-- 5 -->
@@ -353,6 +367,15 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <div class="warn"><strong>Roth conversion trade-off:</strong> Roth conversions during ACA years increase your MAGI, which can reduce or eliminate your ACA subsidy. The Conversion Impact Analysis on the Roth Conversion tab shows the ACA Subsidy Delta &mdash; how much subsidy you lose (or keep) compared to not converting. Factor this hidden cost into your conversion strategy.</div>
 
     <p><strong>SSDI and early Medicare:</strong> If you have SSDI enabled, RetIQ automatically shortens the healthcare gap. SSDI recipients qualify for Medicare after 24 months of benefits, so your gap coverage ends at your SSDI Start Age + 2 (or 65, whichever is earlier). See the <a href="#ssdi">Disability (SSDI) Tab</a> section for details.</p>
+
+    <h3>Long-Term Care (LTC) Insurance Inflation</h3>
+    <p>The Healthcare tab includes LTC modeling. When you enable LTC insurance, two additional fields control how your insurance benefit grows over time:</p>
+    <ul>
+      <li><strong>Insurance Inflation Protection:</strong> Most LTC policies include inflation protection riders that increase benefits annually. Options: None (0%), 2% Compound, 3% Compound (most common), or 5% Compound. Without this setting, the model would subtract a flat benefit from inflating care costs, dramatically overstating your out-of-pocket expenses.</li>
+      <li><strong>Policy Purchase Age:</strong> The age when you bought the policy. Benefits compound from this age forward, so a policy purchased at 55 with 3% inflation will have a much larger benefit at age 82 than one purchased at 70.</li>
+    </ul>
+    <p>The info boxes show your projected care cost, insurance coverage, and gap at the LTC start age so you can see whether your policy keeps pace with rising care costs.</p>
+    <div class="tip"><strong>2025 LTC cost benchmarks:</strong> Nursing home: $110&ndash;130K/year. Assisted living: $70&ndash;75K/year. Home health aide: $75&ndash;80K/year (national medians). LTC costs inflate at roughly 5% annually.</div>
   </div>
 
   <!-- 11 -->

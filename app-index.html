@@ -1178,6 +1178,26 @@ function runProjection(p) {
 
     const totalInc = earned + ss + ssdiIncome + other + pensionIncome;
 
+    // One-Time Cash Events (real estate sale, etc.)
+    let cashEventGains = 0, cashEventNet = 0;
+    const events = p.cashEvents || [];
+    for (const ev of events) {
+      if (age === ev.age && !primaryDead) {
+        const net = Math.round((ev.grossAmount || 0) * (ev.netPercent || 100) / 100);
+        if (ev.costBasis !== undefined) {
+          let gain = Math.max(0, net - (ev.costBasis || 0));
+          if (ev.type === 'primary_home') {
+            const exclusion = isSingle ? 250000 : 500000;
+            gain = Math.max(0, gain - exclusion);
+          }
+          cashEventGains += gain;
+        }
+        cashEventNet += net;
+        if (ev.destination === 'cash') cash += net;
+        else taxableInv += net;
+      }
+    }
+
     // Expense phases (new): active -> later -> late retirement
     let expMultiplier = 1;
     if (lostSpouse) expMultiplier = 1 - expenseReduction / 100;
@@ -1367,7 +1387,12 @@ function runProjection(p) {
     const ltc = p.longTermCare || {};
     if (ltc.enabled && age >= (ltc.startAge || 82) && age < (ltc.startAge || 82) + (ltc.duration || 4)) {
       let cost = (ltc.annualCost || 100000) * Math.pow(1 + (ltc.inflation || 5) / 100, yr);
-      if (ltc.hasInsurance) cost = Math.max(0, cost - (ltc.insuranceCoverage || 0));
+      if (ltc.hasInsurance) {
+        const insInfRate = (ltc.insuranceInflation || 0) / 100;
+        const insYears = age - (ltc.insurancePurchaseAge || p.currentAge);
+        const inflatedCoverage = Math.round((ltc.insuranceCoverage || 0) * Math.pow(1 + insInfRate, Math.max(0, insYears)));
+        cost = Math.max(0, cost - inflatedCoverage);
+      }
       ltcCost = Math.round(cost);
       expenses += ltcCost;
     }
@@ -1452,6 +1477,9 @@ function runProjection(p) {
       // Not retired but RMD required — reinvest into taxable investment
       taxableInv += rmdCash; withdrawal += rmdCash; rmdCash = 0;
     }
+
+    // Add cash event capital gains to the capGains total (taxes computed below)
+    capGains += cashEventGains;
 
     // Cash/HYS interest income: taxable as ordinary income every year
     // Interest = current cash balance × return rate (this IS what the growth function adds to balance)
@@ -1637,6 +1665,7 @@ function runProjection(p) {
       rothConv: Math.round(rothConv), conversionTax: Math.round(conversionTax),
       irmaa: Math.round(irmaa.surcharge), medicareCost: Math.round(medicareCost),
       irmaaBracket: irmaa.bracketIdx, isSingle, magi: Math.round(magi),
+      cashEventNet: Math.round(cashEventNet), cashEventGains: Math.round(cashEventGains),
     });
   }
   return years;
@@ -1878,6 +1907,14 @@ function migrateParams() {
     if (idx >= 0) state.params.withdrawalOrder.splice(idx, 0, 'cash');
     else state.params.withdrawalOrder.unshift('cash');
   }
+  // v3.0 Migration: cash events
+  if (state.params.cashEvents === undefined) state.params.cashEvents = [];
+  // v3.0 Migration: LTC insurance inflation fields
+  const ltcm = state.params.longTermCare;
+  if (ltcm) {
+    if (ltcm.insuranceInflation === undefined) ltcm.insuranceInflation = 3;
+    if (ltcm.insurancePurchaseAge === undefined) ltcm.insurancePurchaseAge = null;
+  }
   // v1.8 migration: add healthcare source fields to existing flat-cost data
   const hcm = state.params.preMedicareHealthcare;
   if (hcm && hcm.source === undefined) {
@@ -1914,6 +1951,7 @@ function getActiveAdvancedFeatures(p) {
     active.push('Pension Advanced Settings');
   if (p.spousePension && p.spousePension.enabled && (p.spousePension.survivorBenefit !== 'none' || p.spousePension.taxablePercent !== 100 || (p.spousePension.cola && p.spousePension.cola !== 0)))
     active.push('Spouse Pension Advanced Settings');
+  if (p.cashEvents && p.cashEvents.length > 0) active.push('Cash Events (' + p.cashEvents.length + ')');
   if ((p.additionalIncome || 0) > 0) active.push('Additional Retirement Income');
   if (p.preRetirementExpenses > 0) active.push('Pre-Retirement Expenses');
   return active;
@@ -2258,6 +2296,23 @@ function setLegacy(key, val) {
   if (proGuard()) return;
   if (!state.params.legacy) state.params.legacy = { enabled: false, targetAmount: 500000, notes: '' };
   state.params.legacy[key] = val; state.mcResults = null; saveState(); render();
+}
+// Cash Events (real estate sale, etc.)
+function addCashEvent() {
+  if (proGuard()) return;
+  if (!state.params.cashEvents) state.params.cashEvents = [];
+  state.params.cashEvents.push({ id: Date.now(), name: 'Property Sale', age: 75, grossAmount: 400000, netPercent: 90, type: 'investment', costBasis: 150000, destination: 'taxable' });
+  state.mcResults = null; saveState(); render();
+}
+function updateCashEvent(id, key, val) {
+  if (proGuard()) return;
+  const ev = (state.params.cashEvents || []).find(e => e.id === id);
+  if (ev) { ev[key] = val; state.mcResults = null; state.rothOptResults = null; saveState(); render(); }
+}
+function removeCashEvent(id) {
+  if (proGuard()) return;
+  state.params.cashEvents = (state.params.cashEvents || []).filter(e => e.id !== id);
+  state.mcResults = null; saveState(); render();
 }
 function setLTC(key, val) {
   if (proGuard()) return;
@@ -3524,6 +3579,7 @@ function renderThisYear(proj, p, bust) {
     }
   }
   if (y.other > 0) incomeRows.push({ label: 'Other Income', value: y.other, color: 'var(--text)' });
+  if (y.cashEventNet > 0) incomeRows.push({ label: 'Cash Event Proceeds', value: y.cashEventNet, color: 'var(--amber)', note: y.cashEventGains > 0 ? fmt(y.cashEventGains) + ' capital gains' : 'no taxable gains' });
   if (incomeRows.length > 0) sections.push({ label: 'Income', rows: incomeRows });
 
   // Withdrawals
@@ -3915,10 +3971,11 @@ function renderInputs() {
             ${monthSelect('birthMonth')}
           </select></div>` : ''}
         <div class="grid-2">${field('Retirement Age','retirementAge')}
-        ${!isEssentials ? `<div class="field"><label class="field-label">Retire Month</label>
+        ${!isEssentials ? `<div class="field"><label class="field-label">Month of Retirement</label>
           <select class="field-input" onchange="setParam('retireMonth',Number(this.value))" style="cursor:pointer">
             ${monthSelect('retireMonth')}
-          </select></div>` : ''}</div>
+          </select>
+          <div class="field-help">For partial-year income calculations. Leave as January if exact month doesn't matter.</div></div>` : ''}</div>
         ${field('Plan Through Age','endAge')}
       </div>
       <div class="card"><div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
@@ -3943,10 +4000,11 @@ function renderInputs() {
             </select></div>` : ''}
           <div class="grid-2">
             ${field('Spouse Retirement Age','spouseRetirementAge')}
-            ${!isEssentials ? `<div class="field"><label class="field-label">Spouse Retire Month</label>
+            ${!isEssentials ? `<div class="field"><label class="field-label">Spouse Month of Retirement</label>
               <select class="field-input" onchange="setParam('spouseRetireMonth',Number(this.value))" style="cursor:pointer">
                 ${monthSelect('spouseRetireMonth')}
-              </select></div>` : ''}
+              </select>
+              <div class="field-help">For partial-year income calculations. Leave as January if exact month doesn't matter.</div></div>` : ''}
           </div>
         ` : ''}
       </div></div>`;
@@ -3984,7 +4042,64 @@ function renderInputs() {
           Taxed as ordinary income. Pensions have their own dedicated tab.
           ${(p.additionalIncome || 0) > 0 ? ' Active from age ' + (p.additionalIncomeStartAge || p.retirementAge) + ' to ' + (p.additionalIncomeEndAge || p.endAge) + '.' : ''}
         </div>
-      </div>` : ''}`;
+      </div>` : ''}
+      ${!isEssentials ? (() => {
+        const evts = p.cashEvents || [];
+        return `<div class="card" data-accent="amber"><div class="card-title">One-Time Cash Events</div>
+        <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
+          Model large one-time inflows like selling a home, rental property, or other assets.
+          Proceeds are deposited into the selected account and capital gains are taxed in that year.
+        </div>
+        ${evts.map(ev => {
+          const net = Math.round((ev.grossAmount||0) * (ev.netPercent||100) / 100);
+          let gain = Math.max(0, net - (ev.costBasis||0));
+          if (ev.type === 'primary_home') {
+            const excl = (p.spouseEnabled ? 500000 : 250000);
+            gain = Math.max(0, gain - excl);
+          }
+          return `<div style="padding:14px;margin-bottom:10px;background:var(--bg-base);border:1px solid var(--border);border-radius:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <input type="text" value="${ev.name||''}" onchange="updateCashEvent(${ev.id},'name',this.value)" style="background:transparent;border:none;color:var(--text);font-size:14px;font-weight:600;flex:1">
+              <button onclick="removeCashEvent(${ev.id})" style="background:none;border:none;color:var(--red);font-size:16px;cursor:pointer;padding:4px 8px" title="Remove">x</button>
+            </div>
+            <div class="grid-2">
+              <div class="field"><label class="field-label">Age at Sale</label>
+                <input type="number" class="field-input" value="${ev.age||75}" onchange="updateCashEvent(${ev.id},'age',Number(this.value))"></div>
+              <div class="field"><label class="field-label">Gross Amount</label><div class="field-wrap"><span class="field-prefix">$</span>
+                <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(ev.grossAmount||0)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="updateCashEvent(${ev.id},'grossAmount',parseC(this.value))">
+              </div></div>
+            </div>
+            <div class="grid-2">
+              <div class="field"><label class="field-label">Net After Selling Costs</label><div class="field-wrap">
+                <input type="number" class="field-input has-suffix" value="${ev.netPercent||90}" min="0" max="100" onchange="updateCashEvent(${ev.id},'netPercent',Number(this.value))">
+                <span class="field-suffix">%</span></div>
+                <div class="field-help">After agent fees, closing costs, repairs</div></div>
+              <div class="field"><label class="field-label">Cost Basis</label><div class="field-wrap"><span class="field-prefix">$</span>
+                <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(ev.costBasis||0)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="updateCashEvent(${ev.id},'costBasis',parseC(this.value))">
+              </div><div class="field-help">Original purchase price + improvements</div></div>
+            </div>
+            <div class="grid-2">
+              <div class="field"><label class="field-label">Property Type</label>
+                <select class="field-input" onchange="updateCashEvent(${ev.id},'type',this.value)" style="cursor:pointer">
+                  <option value="investment"${ev.type==='investment'?' selected':''}>Investment Property</option>
+                  <option value="primary_home"${ev.type==='primary_home'?' selected':''}>Primary Home</option>
+                </select>
+                <div class="field-help">${ev.type==='primary_home' ? 'Section 121 exclusion: $'+(p.spouseEnabled?'500':'250')+'K cap gains exempt' : 'Full capital gains apply'}</div></div>
+              <div class="field"><label class="field-label">Deposit To</label>
+                <select class="field-input" onchange="updateCashEvent(${ev.id},'destination',this.value)" style="cursor:pointer">
+                  <option value="taxable"${(ev.destination||'taxable')==='taxable'?' selected':''}>Brokerage (Taxable)</option>
+                  <option value="cash"${ev.destination==='cash'?' selected':''}>Cash / HYS</option>
+                </select></div>
+            </div>
+            <div class="grid-2" style="margin-top:8px">
+              <div class="info-box"><div class="info-box-label">Net Proceeds</div><div class="info-box-value" style="color:var(--green)">${fmt(net)}</div></div>
+              <div class="info-box"><div class="info-box-label">Est. Capital Gains</div><div class="info-box-value" style="color:${gain > 0 ? 'var(--amber)' : 'var(--green)'}">${fmt(gain)}</div></div>
+            </div>
+          </div>`;
+        }).join('')}
+        <button onclick="addCashEvent()" style="background:var(--bg-base);border:1px dashed var(--border);border-radius:8px;color:var(--text-dim);padding:10px 16px;font-size:13px;width:100%;cursor:pointer">+ Add Cash Event</button>
+      </div>`;
+      })() : ''}`;
   }
 
   if (state.inputTab === 'expenses') {
@@ -4417,20 +4532,32 @@ function renderInputs() {
       </label>
       ${(p.longTermCare||{}).enabled ? (() => {
         const ltc = p.longTermCare;
-        const totalLTC = Array.from({length: ltc.duration||4}, (_,i) => Math.round((ltc.annualCost||100000) * Math.pow(1+(ltc.inflation||5)/100, (ltc.startAge||82)-p.currentAge+i))).reduce((s,v) => s+v, 0);
-        const netLTC = ltc.hasInsurance ? Math.max(0, totalLTC - (ltc.insuranceCoverage||0) * (ltc.duration||4)) : totalLTC;
+        const ltcStartAge = ltc.startAge || 82;
+        const ltcDur = ltc.duration || 4;
+        const totalLTC = Array.from({length: ltcDur}, (_,i) => Math.round((ltc.annualCost||100000) * Math.pow(1+(ltc.inflation||5)/100, ltcStartAge-p.currentAge+i))).reduce((s,v) => s+v, 0);
+        const insInfRate = (ltc.insuranceInflation || 0) / 100;
+        const insPurchaseAge = ltc.insurancePurchaseAge || p.currentAge;
+        const netLTC = ltc.hasInsurance ? Array.from({length: ltcDur}, (_,i) => {
+          const yrAge = ltcStartAge + i;
+          const careCost = Math.round((ltc.annualCost||100000) * Math.pow(1+(ltc.inflation||5)/100, yrAge - p.currentAge));
+          const inflatedCov = Math.round((ltc.insuranceCoverage||0) * Math.pow(1 + insInfRate, Math.max(0, yrAge - insPurchaseAge)));
+          return Math.max(0, careCost - inflatedCov);
+        }).reduce((s,v) => s+v, 0) : totalLTC;
+        const costAtStart = Math.round((ltc.annualCost||100000) * Math.pow(1+(ltc.inflation||5)/100, ltcStartAge - p.currentAge));
+        const covAtStart = ltc.hasInsurance ? Math.round((ltc.insuranceCoverage||0) * Math.pow(1 + insInfRate, Math.max(0, ltcStartAge - insPurchaseAge))) : 0;
+        const gapAtStart = ltc.hasInsurance ? Math.max(0, costAtStart - covAtStart) : costAtStart;
         return `<div class="grid-2">
           <div class="grid-2">
             <div class="field"><label class="field-label">Annual Cost (today's $)</label><div class="field-wrap"><span class="field-prefix">$</span>
               <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(ltc.annualCost||100000)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="setLTC('annualCost',parseC(this.value))">
-            </div><div class="field-help">Nursing: $90-120K &#183; Assisted: $55-65K &#183; Home aide: $60-75K</div></div>
+            </div><div class="field-help">Nursing home: $110-130K &#183; Assisted living: $70-75K &#183; Home health aide: $75-80K (2025 national medians)</div></div>
             <div class="field"><label class="field-label">Start Age</label>
-              <input type="number" class="field-input" value="${ltc.startAge||82}" onchange="setLTC('startAge',Number(this.value))">
+              <input type="number" class="field-input" value="${ltcStartAge}" onchange="setLTC('startAge',Number(this.value))">
               <div class="field-help">Average need starts ~82</div></div>
           </div>
           <div class="grid-2">
             <div class="field"><label class="field-label">Duration (years)</label>
-              <input type="number" class="field-input" value="${ltc.duration||4}" onchange="setLTC('duration',Number(this.value))">
+              <input type="number" class="field-input" value="${ltcDur}" onchange="setLTC('duration',Number(this.value))">
               <div class="field-help">Average ~3-4 years; women avg longer</div></div>
             <div class="field"><label class="field-label">Care Cost Inflation</label><div class="field-wrap">
               <input type="number" class="field-input has-suffix" value="${ltc.inflation||5}" onchange="setLTC('inflation',Number(this.value))">
@@ -4444,10 +4571,28 @@ function renderInputs() {
           </label>
           ${ltc.hasInsurance ? `<div class="field"><label class="field-label">Annual Insurance Coverage</label><div class="field-wrap"><span class="field-prefix">$</span>
             <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(ltc.insuranceCoverage||0)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="setLTC('insuranceCoverage',parseC(this.value))">
-          </div><div class="field-help">Annual benefit your policy pays toward LTC</div></div>` : ''}
+          </div><div class="field-help">Annual benefit your policy pays toward LTC</div></div>
+          <div class="grid-2">
+            <div class="field"><label class="field-label">Insurance Inflation Protection</label>
+              <select class="field-input" onchange="setLTC('insuranceInflation',Number(this.value))" style="cursor:pointer">
+                <option value="0"${(ltc.insuranceInflation||0)===0?' selected':''}>None (0%)</option>
+                <option value="2"${ltc.insuranceInflation===2?' selected':''}>2% Compound</option>
+                <option value="3"${ltc.insuranceInflation===3?' selected':''}>3% Compound</option>
+                <option value="5"${ltc.insuranceInflation===5?' selected':''}>5% Compound</option>
+              </select>
+              <div class="field-help">Most policies include inflation riders. Check your policy details.</div></div>
+            <div class="field"><label class="field-label">Policy Purchase Age</label>
+              <input type="number" class="field-input" value="${ltc.insurancePurchaseAge||p.currentAge}" onchange="setLTC('insurancePurchaseAge',Number(this.value))">
+              <div class="field-help">Age when you bought the policy (affects inflation compounding)</div></div>
+          </div>` : ''}
         </div>
+        ${ltc.hasInsurance ? `<div style="margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div class="info-box"><div class="info-box-label">Annual Cost at Age ${ltcStartAge}</div><div class="info-box-value" style="color:var(--pink);font-size:14px">${fmtK(costAtStart)}</div><div style="font-size:10px;color:var(--text-faint);margin-top:2px">future $</div></div>
+          <div class="info-box"><div class="info-box-label">Insurance at Age ${ltcStartAge}</div><div class="info-box-value" style="color:var(--green);font-size:14px">${fmtK(covAtStart)}</div><div style="font-size:10px;color:var(--text-faint);margin-top:2px">${insInfRate > 0 ? (ltc.insuranceInflation)+'% compound' : 'no inflation'}</div></div>
+          <div class="info-box"><div class="info-box-label">Annual Gap at Age ${ltcStartAge}</div><div class="info-box-value" style="color:var(--amber);font-size:14px">${fmtK(gapAtStart)}</div></div>
+        </div>` : ''}
         <div class="grid-2">
-          <div class="info-box"><div class="info-box-label">Projected Total LTC Cost</div><div class="info-box-value" style="color:var(--pink)">${fmtK(totalLTC)}</div><div style="font-size:11px;color:var(--text-faint);margin-top:4px">Ages ${ltc.startAge||82}-${(ltc.startAge||82)+(ltc.duration||4)-1} in future $</div></div>
+          <div class="info-box"><div class="info-box-label">Projected Total LTC Cost</div><div class="info-box-value" style="color:var(--pink)">${fmtK(totalLTC)}</div><div style="font-size:11px;color:var(--text-faint);margin-top:4px">Ages ${ltcStartAge}-${ltcStartAge+ltcDur-1} in future $</div></div>
           <div class="info-box"><div class="info-box-label">Net After Insurance</div><div class="info-box-value" style="color:${ltc.hasInsurance?'var(--amber)':'var(--pink)'}">${fmtK(netLTC)}</div></div>
         </div>`;
       })() : ''}
