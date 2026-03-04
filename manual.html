@@ -77,6 +77,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <li><a href="#rothconv">Roth Conversion Tab</a></li>
       <li><a href="#charity">Charity / QCD Tab</a></li>
       <li><a href="#legacy">Legacy Tab</a></li>
+      <li><a href="#lifeinsurance">Life Insurance</a></li>
       <li><a href="#liabilities">Liabilities Tab</a></li>
       <li><a href="#assumptions">Assumptions Tab</a></li>
       <li><a href="#dashboard">Dashboard</a></li>
@@ -460,6 +461,33 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <h3>Roth Conversion Legacy Comparison</h3>
     <p>If Roth conversions are enabled in your plan, the composition section automatically runs a second projection with conversions disabled. The comparison shows how much more (or less) your heirs inherit in after-tax terms thanks to your Roth conversion strategy. This helps quantify the multi-generational benefit of paying taxes now so heirs receive tax-free Roth assets instead of taxable pre-tax accounts.</p>
     <div class="tip"><strong>Tip:</strong> If the composition shows your legacy is mostly pre-tax, consider Roth conversions &mdash; even modest conversions shift the inheritance toward tax-free Roth, reducing your heirs' 10-year tax burden under the SECURE Act.</div>
+  </div>
+
+  <!-- 14.5 -->
+  <div class="sec" id="lifeinsurance">
+    <h2>Life Insurance</h2>
+    <p>Life insurance policies are configured in the Legacy tab (Full Control mode). Click "+ Add Life Insurance Policy" to add a new policy. Each policy has:</p>
+    <ul>
+      <li><strong>Insured Person:</strong> You or your spouse. Determines when premiums stop and benefits trigger.</li>
+      <li><strong>Policy Type:</strong> Term (expires at a set age) or Permanent (whole life/universal &mdash; active until death).</li>
+      <li><strong>Death Benefit:</strong> The tax-free lump sum paid to beneficiaries at death.</li>
+      <li><strong>Annual Premium:</strong> Level annual cost added to your expenses. Not inflation-adjusted.</li>
+      <li><strong>Expires at Age (term only):</strong> Coverage and premiums end at this age. No payout if the insured is alive.</li>
+      <li><strong>Beneficiary:</strong> Surviving spouse (default) or estate.</li>
+    </ul>
+    <h3>How It Works in the Projection</h3>
+    <ul>
+      <li><strong>Premiums:</strong> Added to annual expenses each year the policy is active. For term policies, premiums stop at the expiration age. For permanent policies, premiums continue until death.</li>
+      <li><strong>Death Benefit:</strong> When the insured person dies (set via Survivor Analysis in the Personal tab), the death benefit is deposited tax-free into the brokerage account. It is not counted as taxable income &mdash; it directly increases the survivor's portfolio balance.</li>
+      <li><strong>Legacy Impact:</strong> Death benefits appear in the Legacy Composition breakdown, increasing the taxable (brokerage) account balance with an annotation showing the insurance contribution.</li>
+    </ul>
+    <h3>Key Notes</h3>
+    <ul>
+      <li>Death benefits are tax-free under IRC &sect;101. They don't affect MAGI, IRMAA, ACA subsidies, or any income-based calculations.</li>
+      <li>To see death benefit impacts, you must configure death ages in the Personal tab (Survivor Analysis).</li>
+      <li>If a term policy expires before the modeled death age, it provides no benefit &mdash; only premiums were paid. The strategy report flags this scenario.</li>
+      <li>Cash value modeling for permanent policies (borrowing, surrendering) is not currently supported.</li>
+    </ul>
   </div>
 
   <!-- 15 -->

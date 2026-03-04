@@ -383,7 +383,7 @@ button:hover { opacity: 0.88; }
 <div class="header" style="flex-direction:column;align-items:stretch;">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;">
     <a href="https://retirementiq.app/?landing" class="logo-text" style="text-decoration:none;color:inherit">RetIQ</a>
-    <span class="logo-badge">v3.0</span>
+    <span class="logo-badge">v3.2</span>
     <span id="planBadge" class="plan-badge" title="Current plan">FREE</span>
     <button class="mobile-menu-btn" onclick="toggleMobileMenu()" id="mobileMenuBtn" aria-label="Menu">&#9776;</button>
     <div class="header-secondary" id="headerSecondary">
@@ -1430,6 +1430,39 @@ function runProjection(p) {
       expenses += nonQCDCharity;
     }
 
+    // Life insurance premiums
+    let lifeInsPremiums = 0;
+    const liPolicies = p.lifeInsurance || [];
+    for (const li of liPolicies) {
+      const insuredAge = li.insured === 'spouse' ? spAge : age;
+      const insuredDead = li.insured === 'spouse' ? spouseDead : primaryDead;
+      if (!insuredAge) continue;
+      const isActive = !insuredDead
+        && (li.type === 'permanent' || insuredAge < (li.expiresAge || 999));
+      if (isActive) {
+        lifeInsPremiums += (li.annualPremium || 0);
+      }
+    }
+    expenses += lifeInsPremiums;
+
+    // Life insurance death benefits — fire in the year of death
+    let lifeInsBenefit = 0;
+    for (const li of liPolicies) {
+      const deathAge = li.insured === 'spouse' ? spouseDiesAge : primaryDiesAge;
+      const justDied = deathAge && age === deathAge;
+      if (!justDied) continue;
+      const deathInsuredAge = li.insured === 'spouse'
+        ? (p.spouseAge || 0) + (deathAge - p.currentAge)
+        : deathAge;
+      const wasActive = li.type === 'permanent'
+        || deathInsuredAge < (li.expiresAge || 999);
+      if (wasActive) {
+        const benefit = li.deathBenefit || 0;
+        taxableInv += benefit;
+        lifeInsBenefit += benefit;
+      }
+    }
+
     // Withdrawal phase
     let withdrawal = 0, taxableWd = 0, rmdUsed = 0, capGains = 0;
     // Step 1: RMDs are mandatory — always taken from pre-tax (minus QCDs)
@@ -1666,6 +1699,7 @@ function runProjection(p) {
       irmaa: Math.round(irmaa.surcharge), medicareCost: Math.round(medicareCost),
       irmaaBracket: irmaa.bracketIdx, isSingle, magi: Math.round(magi),
       cashEventNet: Math.round(cashEventNet), cashEventGains: Math.round(cashEventGains),
+      lifeInsPremiums: Math.round(lifeInsPremiums), lifeInsBenefit: Math.round(lifeInsBenefit),
     });
   }
   return years;
@@ -1832,6 +1866,9 @@ let state = {
     // Long-Term Care
     longTermCare: { enabled: true, annualCost: 110000, startAge: 82, duration: 4, inflation: 5, hasInsurance: false, insuranceCoverage: 0 },
 
+    // Life Insurance
+    lifeInsurance: [],
+
     // Withdrawal order (after RMDs)
     withdrawalOrder: ['cash', 'taxable', 'pretax', 'roth'],
 
@@ -1909,6 +1946,8 @@ function migrateParams() {
   }
   // v3.0 Migration: cash events
   if (state.params.cashEvents === undefined) state.params.cashEvents = [];
+  // v3.2 Migration: life insurance
+  if (state.params.lifeInsurance === undefined) state.params.lifeInsurance = [];
   // v3.0 Migration: LTC insurance inflation fields
   const ltcm = state.params.longTermCare;
   if (ltcm) {
@@ -1952,6 +1991,7 @@ function getActiveAdvancedFeatures(p) {
   if (p.spousePension && p.spousePension.enabled && (p.spousePension.survivorBenefit !== 'none' || p.spousePension.taxablePercent !== 100 || (p.spousePension.cola && p.spousePension.cola !== 0)))
     active.push('Spouse Pension Advanced Settings');
   if (p.cashEvents && p.cashEvents.length > 0) active.push('Cash Events (' + p.cashEvents.length + ')');
+  if (p.lifeInsurance && p.lifeInsurance.length > 0) active.push('Life Insurance (' + p.lifeInsurance.length + ')');
   if ((p.additionalIncome || 0) > 0) active.push('Additional Retirement Income');
   if (p.preRetirementExpenses > 0) active.push('Pre-Retirement Expenses');
   return active;
@@ -2312,6 +2352,30 @@ function updateCashEvent(id, key, val) {
 function removeCashEvent(id) {
   if (proGuard()) return;
   state.params.cashEvents = (state.params.cashEvents || []).filter(e => e.id !== id);
+  state.mcResults = null; saveState(); render();
+}
+function addLifeIns() {
+  if (proGuard()) return;
+  if (!state.params.lifeInsurance) state.params.lifeInsurance = [];
+  state.params.lifeInsurance.push({
+    id: Date.now(), insured: 'primary', type: 'term', name: 'Term Life',
+    deathBenefit: 500000, annualPremium: 2400, expiresAge: 75, beneficiary: 'spouse'
+  });
+  state.mcResults = null; saveState(); render();
+}
+function removeLifeIns(id) {
+  if (proGuard()) return;
+  state.params.lifeInsurance = (state.params.lifeInsurance || []).filter(li => li.id !== id);
+  state.mcResults = null; saveState(); render();
+}
+function setLifeIns(id, key, val) {
+  if (proGuard()) return;
+  const li = (state.params.lifeInsurance || []).find(l => l.id === id);
+  if (li) {
+    li[key] = val;
+    if (key === 'type' && !li._userNamed) li.name = val === 'term' ? 'Term Life' : 'Whole Life';
+    if (key === 'name') li._userNamed = true;
+  }
   state.mcResults = null; saveState(); render();
 }
 function setLTC(key, val) {
@@ -3227,6 +3291,24 @@ function buildStrategyReport(proj) {
     </div>`;
   }
 
+  // Life insurance: flag term policies that expire before death
+  const survivorMode = p.survivorAge && p.survivorWho;
+  const spouseDiesAge_ = survivorMode && p.survivorWho === 'spouse' ? p.survivorAge : null;
+  const primaryDiesAge_ = survivorMode && p.survivorWho === 'primary' ? p.survivorAge : null;
+  const termExpiredBeforeDeath = (p.lifeInsurance || []).some(li => {
+    if (li.type !== 'term') return false;
+    const deathAge = li.insured === 'spouse' ? spouseDiesAge_ : primaryDiesAge_;
+    const insuredAge = li.insured === 'spouse' ? (p.spouseAge || 0) : p.currentAge;
+    const expiresInsuredAge = li.expiresAge || 75;
+    const expiresAtPrimaryAge = expiresInsuredAge + (p.currentAge - insuredAge);
+    return deathAge && deathAge > expiresAtPrimaryAge;
+  });
+  if (termExpiredBeforeDeath) {
+    insight += `<div style="margin-top:8px;padding:10px 12px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:8px;font-size:12px;color:var(--amber);line-height:1.6">
+      &#9888; Your term life policy expires before the modeled death age &mdash; consider whether extending coverage or converting to permanent makes sense for your legacy goals.
+    </div>`;
+  }
+
   if (alts.length === 0) {
     return `<div class="card" data-accent="green">
       <div class="card-title">Strategy Report Card <span class="badge" style="background:rgba(16,185,129,0.15);color:var(--green)">What-If</span></div>
@@ -3580,6 +3662,7 @@ function renderThisYear(proj, p, bust) {
   }
   if (y.other > 0) incomeRows.push({ label: 'Other Income', value: y.other, color: 'var(--text)' });
   if (y.cashEventNet > 0) incomeRows.push({ label: 'Cash Event Proceeds', value: y.cashEventNet, color: 'var(--amber)', note: y.cashEventGains > 0 ? fmt(y.cashEventGains) + ' capital gains' : 'no taxable gains' });
+  if (y.lifeInsBenefit > 0) incomeRows.push({ label: 'Life Insurance Benefit', value: y.lifeInsBenefit, color: 'var(--green)', note: 'tax-free' });
   if (incomeRows.length > 0) sections.push({ label: 'Income', rows: incomeRows });
 
   // Withdrawals
@@ -3622,6 +3705,7 @@ function renderThisYear(proj, p, bust) {
   if (y.charityTotal > 0) expRows.push({ label: 'Charitable Giving', value: y.charityTotal, color: 'var(--amber)' });
   if (y.qcd > 0) expRows.push({ label: 'Qualified Charitable Distribution (QCD)', value: y.qcd, color: 'var(--amber)', note: 'included in charitable giving' });
   if (y.debtPayments > 0) expRows.push({ label: 'Debt/Liability Payments', value: y.debtPayments, color: 'var(--red)' });
+  if (y.lifeInsPremiums > 0) expRows.push({ label: 'Life Insurance Premiums', value: y.lifeInsPremiums, color: 'var(--text-dim)' });
   if (expRows.length > 0) sections.push({ label: 'Expenses', rows: expRows });
 
   // Bottom line
@@ -3684,6 +3768,7 @@ function printThisYear() {
   inc += line('SSDI Benefits', y.ssdi);
   inc += line('Pension Income', y.pension || 0);
   if (y.pensionTaxable !== undefined && y.pensionTaxable !== y.pension && y.pension > 0) inc += line('Pension Taxable Portion', y.pensionTaxable, 'used for tax calculations');
+  inc += line('Life Insurance Benefit', y.lifeInsBenefit, 'tax-free');
   if (inc) rows += section('Income', inc);
   // Withdrawals
   let wd = '';
@@ -3716,6 +3801,7 @@ function printThisYear() {
   ex += line('Charitable Giving', y.charityTotal);
   ex += line('Qualified Charitable Distribution (QCD)', y.qcd, 'included in charitable giving');
   ex += line('Debt/Liability Payments', y.debtPayments);
+  ex += line('Life Insurance Premiums', y.lifeInsPremiums);
   if (ex) rows += section('Expenses', ex);
 
   const moneyLasts = bust ? 'Age ' + bust : (p.endAge + '+');
@@ -3917,6 +4003,106 @@ function renderDashboard(proj) {
         })()}
       </div>
     </div>`;
+}
+
+function renderLifeInsurance(p) {
+  const policies = p.lifeInsurance || [];
+  let html = `<div class="card" data-accent="blue"><div class="card-title">Life Insurance</div>
+    <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
+      Model term or permanent life insurance policies. Premiums are added to annual expenses.
+      Death benefits deposit tax-free (IRC &sect;101) into the survivor's brokerage account when the insured dies.
+    </div>`;
+  if (policies.length === 0) {
+    html += `<div style="font-size:13px;color:var(--text-faint);margin-bottom:12px">No policies configured.</div>`;
+  }
+  for (const li of policies) {
+    const isTerm = li.type === 'term';
+    const insuredAge = li.insured === 'spouse' ? (p.spouseAge || 0) : p.currentAge;
+    const yearsOfPremiums = isTerm
+      ? Math.max(0, (li.expiresAge || 75) - insuredAge)
+      : Math.max(0, p.endAge - insuredAge);
+    const totalPremiums = (li.annualPremium || 0) * yearsOfPremiums;
+    html += `<div style="margin-bottom:16px;padding:14px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${li.name || (isTerm ? 'Term Life' : 'Whole Life')}</div>
+        <button onclick="removeLifeIns(${li.id})" style="background:transparent;border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:11px;color:var(--red);cursor:pointer" title="Remove policy">&times; Remove</button>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label class="field-label">Policy Name</label>
+          <input type="text" class="field-input" value="${li.name || ''}"
+            onchange="setLifeIns(${li.id},'name',this.value)">
+        </div>
+        <div class="field"><label class="field-label">Insured Person</label>
+          <select class="field-input" onchange="setLifeIns(${li.id},'insured',this.value)" style="cursor:pointer">
+            <option value="primary"${li.insured==='primary'?' selected':''}>You</option>
+            ${(p.spouseEnabled || p.spouseAge > 0) ? '<option value="spouse"' + (li.insured==='spouse'?' selected':'') + '>Spouse</option>' : ''}
+          </select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label class="field-label">Policy Type</label>
+          <select class="field-input" onchange="setLifeIns(${li.id},'type',this.value)" style="cursor:pointer">
+            <option value="term"${li.type==='term'?' selected':''}>Term Life</option>
+            <option value="permanent"${li.type==='permanent'?' selected':''}>Permanent (Whole/Universal)</option>
+          </select>
+        </div>
+        <div class="field"><label class="field-label">Death Benefit</label>
+          <div class="field-wrap"><span class="field-prefix">$</span>
+            <input type="text" inputmode="decimal" class="field-input has-prefix"
+              value="${fmtC(li.deathBenefit||0)}"
+              onfocus="this.value=this.value.replace(/,/g,'')"
+              onblur="this.value=fmtC(parseC(this.value))"
+              onchange="setLifeIns(${li.id},'deathBenefit',parseC(this.value))">
+          </div>
+          <div class="field-help">Tax-free lump sum paid to beneficiary at death</div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label class="field-label">Annual Premium</label>
+          <div class="field-wrap"><span class="field-prefix">$</span>
+            <input type="text" inputmode="decimal" class="field-input has-prefix"
+              value="${fmtC(li.annualPremium||0)}"
+              onfocus="this.value=this.value.replace(/,/g,'')"
+              onblur="this.value=fmtC(parseC(this.value))"
+              onchange="setLifeIns(${li.id},'annualPremium',parseC(this.value))">
+          </div>
+          <div class="field-help">Level annual premium (not inflation-adjusted)</div>
+        </div>
+        ${isTerm ? `
+        <div class="field"><label class="field-label">Policy Expires at Age</label>
+          <input type="number" class="field-input" value="${li.expiresAge||75}"
+            onchange="setLifeIns(${li.id},'expiresAge',Number(this.value))">
+          <div class="field-help">Coverage and premiums end at this age. No payout if alive.</div>
+        </div>` : `
+        <div class="field"><label class="field-label">Beneficiary</label>
+          <select class="field-input" onchange="setLifeIns(${li.id},'beneficiary',this.value)" style="cursor:pointer">
+            <option value="spouse"${(li.beneficiary||'spouse')==='spouse'?' selected':''}>Surviving Spouse</option>
+            <option value="estate"${li.beneficiary==='estate'?' selected':''}>Estate</option>
+          </select>
+        </div>`}
+      </div>
+      <div class="grid-2" style="margin-top:10px">
+        <div class="info-box">
+          <div class="info-box-label">Total Premiums</div>
+          <div class="info-box-value" style="color:var(--red)">${fmtK(totalPremiums)}</div>
+          <div style="font-size:11px;color:var(--text-faint);margin-top:4px">~${yearsOfPremiums} years at ${fmt(li.annualPremium||0)}/yr</div>
+        </div>
+        <div class="info-box">
+          <div class="info-box-label">Net Benefit</div>
+          <div class="info-box-value" style="color:var(--green)">${fmtK(Math.max(0, (li.deathBenefit||0) - totalPremiums))}</div>
+          <div style="font-size:11px;color:var(--text-faint);margin-top:4px">Death benefit minus total premiums paid</div>
+        </div>
+      </div>
+    </div>`;
+  }
+  html += `<button onclick="addLifeIns()" style="width:100%;padding:10px;background:transparent;border:1px dashed var(--border-active);border-radius:8px;color:var(--blue);font-size:13px;cursor:pointer;margin-top:8px">+ Add Life Insurance Policy</button>`;
+  if (!p.survivorAge || !p.survivorWho) {
+    html += `<div style="margin-top:10px;padding:10px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:6px;font-size:12px;color:var(--amber);line-height:1.6">
+      To see death benefit impacts, configure death ages in the Personal tab under Survivor Analysis. Without death ages, premiums are modeled but benefits won't trigger.
+    </div>`;
+  }
+  html += `</div>`;
+  return html;
 }
 
 function renderInputs() {
@@ -5476,6 +5662,7 @@ function renderInputs() {
           const endRoth = lastYear.roth;
           const endTaxable = lastYear.taxable;
           const endTotal = lastYear.netWorth;
+          const totalLifeInsBenefits = proj.reduce((s, y) => s + (y.lifeInsBenefit || 0), 0);
           if (endTotal <= 0) return '<div style="margin-top:16px;padding:14px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border);font-size:12px;color:var(--text-dim)">Your plan does not meet the legacy goal \u2014 portfolio depleted.</div>';
           const estimatedHeirBracket = 22;
           const afterTaxPreTax = Math.round(endPreTax * (1 - estimatedHeirBracket / 100));
@@ -5523,6 +5710,7 @@ function renderInputs() {
             + (endPreTax > 0 ? '<div style="display:flex;justify-content:space-between;align-items:baseline"><div><span style="color:var(--blue)">&#9632;</span> Pre-Tax (401k/IRA)</div><div style="font-weight:600">' + fmtK(endPreTax) + '</div></div><div style="font-size:11px;color:var(--text-dim);margin-top:-6px;padding-left:16px">Taxable to heirs as ordinary income. Non-spouse beneficiaries must distribute within 10 years (SECURE Act).</div>' : '')
             + (endRoth > 0 ? '<div style="display:flex;justify-content:space-between;align-items:baseline"><div><span style="color:var(--cyan)">&#9632;</span> Roth (401k/IRA)</div><div style="font-weight:600">' + fmtK(endRoth) + '</div></div><div style="font-size:11px;color:var(--text-dim);margin-top:-6px;padding-left:16px">Tax-free to heirs. Non-spouse beneficiaries must distribute within 10 years, but withdrawals are not taxed.</div>' : '')
             + (endTaxable > 0 ? '<div style="display:flex;justify-content:space-between;align-items:baseline"><div><span style="color:var(--amber)">&#9632;</span> Taxable (Brokerage)</div><div style="font-weight:600">' + fmtK(endTaxable) + '</div></div><div style="font-size:11px;color:var(--text-dim);margin-top:-6px;padding-left:16px">Heirs receive a stepped-up cost basis at date of death, eliminating unrealized capital gains.</div>' : '')
+            + (totalLifeInsBenefits > 0 ? '<div style="font-size:11px;color:var(--green);margin-top:-4px;padding-left:16px">Includes ' + fmtK(totalLifeInsBenefits) + ' life insurance death benefit (tax-free to beneficiaries).</div>' : '')
             + '</div>'
             + (endPreTax > 0 ? '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)"><div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">Estimated After-Tax Legacy</div><div style="font-size:12px;color:var(--text-dim);line-height:1.6">If heirs are in the ' + estimatedHeirBracket + '% tax bracket, the pre-tax portion (' + fmtK(endPreTax) + ') would yield approximately ' + fmtK(afterTaxPreTax) + ' after taxes. Combined with tax-free Roth (' + fmtK(endRoth) + ') and stepped-up taxable (' + fmtK(endTaxable) + '), your estimated after-tax legacy is approximately <strong style="color:var(--green)">' + fmtK(afterTaxLegacy) + '</strong>.</div><div style="font-size:11px;color:var(--text-faint);margin-top:4px">Assumes heirs in the 22% federal bracket. Actual tax depends on heir\u2019s income, state, and distribution timing.</div></div>' : '')
             + '</div>'
@@ -5536,6 +5724,9 @@ function renderInputs() {
         </div>
       ` : ''}
     </div>`;
+    if (!isEssentials) {
+      content += renderLifeInsurance(p);
+    }
   }
 
   if (state.inputTab === 'medicare') {
@@ -5671,6 +5862,8 @@ function renderProjectionTable(proj) {
     { key: 'cash', label: 'Cash / HYS Balance', color: '#06b6d4' },
     { key: 'taxableInv', label: 'Brokerage Balance', color: '#f59e0b' },
     { key: 'cashInterest', label: 'Cash Interest Income', color: '#8b5cf6' },
+    { key: 'lifeInsPremiums', label: 'LI Premiums', color: '#64748b' },
+    { key: 'lifeInsBenefit', label: 'LI Benefit', color: '#22c55e' },
   ];
   const available = categories.filter(cat => proj.some(y => (y[cat.key] || 0) !== 0));
   const selKeys = state.projChartKeys || ['netWorth'];
