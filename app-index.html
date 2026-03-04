@@ -383,7 +383,7 @@ button:hover { opacity: 0.88; }
 <div class="header" style="flex-direction:column;align-items:stretch;">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;">
     <a href="https://retirementiq.app/?landing" class="logo-text" style="text-decoration:none;color:inherit">RetIQ</a>
-    <span class="logo-badge">v2.1</span>
+    <span class="logo-badge">v2.2</span>
     <span id="planBadge" class="plan-badge" title="Current plan">FREE</span>
     <button class="mobile-menu-btn" onclick="toggleMobileMenu()" id="mobileMenuBtn" aria-label="Menu">&#9776;</button>
     <div class="header-secondary" id="headerSecondary">
@@ -1136,7 +1136,9 @@ function runProjection(p) {
       }
     }
 
-    const other = (effectivelyRetired || primaryDead) ? (p.additionalIncome || 0) : 0;
+    const otherStartAge = p.additionalIncomeStartAge || p.retirementAge;
+    const otherEndAge = p.additionalIncomeEndAge || p.endAge;
+    const other = (age >= otherStartAge && age <= otherEndAge && !primaryDead) ? (p.additionalIncome || 0) : 0;
 
     // Pension / Annuity income — survivor-benefit-aware (v2.0)
     let pensionIncome = 0;
@@ -1514,9 +1516,9 @@ function runProjection(p) {
 
     // Tax - federal + state + capital gains + NIIT
     // IRS §86: compute taxable portion of SS based on provisional income (includes cap gains)
-    const otherIncForSS = earned + taxableWd + rothConv + capGains + cashInterest + ssdiIncome + pensionTaxable;
+    const otherIncForSS = earned + taxableWd + rothConv + capGains + cashInterest + ssdiIncome + pensionTaxable + other;
     const ssTaxable = calcTaxableSS(ss, otherIncForSS, isSingle);
-    const otherIncNoConv = earned + taxableWd + capGains + cashInterest + ssdiIncome + pensionTaxable;
+    const otherIncNoConv = earned + taxableWd + capGains + cashInterest + ssdiIncome + pensionTaxable + other;
     const ssTaxableNoConv = calcTaxableSS(ss, otherIncNoConv, isSingle);
 
     // Standard deduction + senior additions
@@ -1546,8 +1548,8 @@ function runProjection(p) {
     }
 
     // Ordinary income tax (excludes capital gains — they're taxed at preferential rates)
-    const ordinaryInc = earned + taxableWd + rothConv + cashInterest + ssdiIncome + pensionTaxable + ssTaxable;
-    const ordinaryIncNoConv = earned + taxableWd + cashInterest + ssdiIncome + pensionTaxable + ssTaxableNoConv;
+    const ordinaryInc = earned + taxableWd + rothConv + cashInterest + ssdiIncome + pensionTaxable + other + ssTaxable;
+    const ordinaryIncNoConv = earned + taxableWd + cashInterest + ssdiIncome + pensionTaxable + other + ssTaxableNoConv;
     const ordinaryTaxable = Math.max(0, ordinaryInc - stdDed);
     const fedTaxOrdinary = calcTax(ordinaryTaxable, isSingle);
     const taxWithoutConv = calcTax(Math.max(0, ordinaryIncNoConv - stdDed), isSingle);
@@ -1854,6 +1856,9 @@ function migrateParams() {
       if (pen.taxablePercent === undefined) pen.taxablePercent = 100;
     }
   });
+  // v2.2 Migration: add income window fields
+  if (state.params.additionalIncomeStartAge === undefined) state.params.additionalIncomeStartAge = null;
+  if (state.params.additionalIncomeEndAge === undefined) state.params.additionalIncomeEndAge = null;
   // Migration: add 'cash' to withdrawal order if old 3-item order
   if (state.params.withdrawalOrder && !state.params.withdrawalOrder.includes('cash')) {
     const idx = state.params.withdrawalOrder.indexOf('taxable');
@@ -3668,7 +3673,11 @@ function renderDashboard(proj) {
         if (!lg.enabled || !lg.targetAmount) return '';
         const pct = Math.min(100, Math.round(Math.max(0, final) / lg.targetAmount * 100));
         const color = pct >= 100 ? 'var(--green)' : pct >= 50 ? 'var(--amber)' : 'var(--red)';
-        return '<div class="stat"><div class="stat-label">Legacy Goal</div><div class="stat-value" style="color:'+color+'">'+pct+'%</div><div class="stat-sub">' + fmtK(final) + ' / ' + fmtK(lg.targetAmount) + '</div></div>';
+        const lastYr = proj[proj.length - 1];
+        const accts = [{n:'Pre-Tax',v:lastYr.preTax},{n:'Roth',v:lastYr.roth},{n:'Taxable',v:lastYr.taxable}].filter(a => a.v > 0);
+        const dominant = accts.length > 0 ? accts.sort((a,b) => b.v - a.v)[0] : null;
+        const domHint = dominant ? ' · Mostly ' + dominant.n : '';
+        return '<div class="stat"><div class="stat-label">Legacy Goal</div><div class="stat-value" style="color:'+color+'">'+pct+'%</div><div class="stat-sub">' + fmtK(final) + ' / ' + fmtK(lg.targetAmount) + domHint + '</div></div>';
       })()}
     </div>
 
@@ -3839,9 +3848,14 @@ function renderInputs() {
         </div>
       </div>
       <div class="card"><div class="card-title">Additional Retirement Income</div>
-        ${field('Other Annual Income in Retirement','additionalIncome',{prefix:'$',help:'Rental income, part-time work, annuities, etc. Starts at retirement age.'})}
+        ${field('Other Annual Income','additionalIncome',{prefix:'$',help:'Rental income, part-time work, consulting, annuities, etc.'})}
+        <div class="grid-2" style="margin-top:8px">
+          ${field('Starts at Age','additionalIncomeStartAge',{help:'Default: retirement age (' + p.retirementAge + '). Set earlier for income that begins before retirement.',placeholder:p.retirementAge})}
+          ${field('Ends at Age','additionalIncomeEndAge',{help:'Default: end of plan (age ' + p.endAge + '). Set earlier for temporary income like consulting or rental property you plan to sell.',placeholder:p.endAge})}
+        </div>
         <div style="font-size:12px;color:var(--text-dim);margin-top:8px;line-height:1.6">
-          Pensions have their own dedicated tab. Use this for other recurring retirement income not captured elsewhere.
+          Taxed as ordinary income. Pensions have their own dedicated tab.
+          ${(p.additionalIncome || 0) > 0 ? ' Active from age ' + (p.additionalIncomeStartAge || p.retirementAge) + ' to ' + (p.additionalIncomeEndAge || p.endAge) + '.' : ''}
         </div>
       </div>`;
   }
@@ -5145,6 +5159,67 @@ function renderInputs() {
           </div>
         </div>
 
+        ${(() => {
+          const lastYear = proj[proj.length - 1];
+          const endPreTax = lastYear.preTax;
+          const endRoth = lastYear.roth;
+          const endTaxable = lastYear.taxable;
+          const endTotal = lastYear.netWorth;
+          if (endTotal <= 0) return '<div style="margin-top:16px;padding:14px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border);font-size:12px;color:var(--text-dim)">Your plan does not meet the legacy goal \u2014 portfolio depleted.</div>';
+          const estimatedHeirBracket = 22;
+          const afterTaxPreTax = Math.round(endPreTax * (1 - estimatedHeirBracket / 100));
+          const afterTaxLegacy = afterTaxPreTax + endRoth + endTaxable;
+          const ptPct = endTotal > 0 ? Math.round(endPreTax / endTotal * 100) : 0;
+          const roPct = endTotal > 0 ? Math.round(endRoth / endTotal * 100) : 0;
+          const txPct = Math.max(0, 100 - ptPct - roPct);
+          // Roth conversion comparison
+          let rothInsight = '';
+          const rc = p.rothConversion || {};
+          if (rc.enabled) {
+            const noConvParams = { ...p, rothConversion: { ...rc, enabled: false } };
+            const noConvProj = runProjection(noConvParams);
+            const noConvLast = noConvProj[noConvProj.length - 1];
+            const noConvAfterTax = Math.round(noConvLast.preTax * (1 - estimatedHeirBracket / 100)) + noConvLast.roth + noConvLast.taxable;
+            const legacyDelta = afterTaxLegacy - noConvAfterTax;
+            rothInsight = '<div style="margin-top:14px;padding:14px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border)">'
+              + '<div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Roth Conversion Impact on Legacy</div>'
+              + '<div style="font-size:12px;color:var(--text-dim);line-height:1.8">'
+              + '<div>Without conversions: ' + fmtK(noConvLast.preTax) + ' pre-tax / ' + fmtK(noConvLast.roth) + ' Roth / ' + fmtK(noConvLast.taxable) + ' taxable</div>'
+              + '<div>With conversions: ' + fmtK(endPreTax) + ' pre-tax / ' + fmtK(endRoth) + ' Roth / ' + fmtK(endTaxable) + ' taxable</div>'
+              + '<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">'
+              + (legacyDelta > 0
+                ? '<span style="color:var(--green)">&#10003;</span> Your Roth conversions increase the estimated after-tax legacy by approximately <strong style="color:var(--green)">' + fmtK(legacyDelta) + '</strong>, shifting wealth from taxable-to-heirs to tax-free-to-heirs.'
+                : legacyDelta < -1000
+                ? '<span style="color:var(--amber)">&#9888;</span> Your Roth conversions reduce the after-tax legacy by approximately <strong>' + fmtK(Math.abs(legacyDelta)) + '</strong>. This can happen if conversion taxes reduce the total portfolio more than the tax-free shift benefits heirs.'
+                : 'Roth conversions have minimal impact on your after-tax legacy value at the assumed ' + estimatedHeirBracket + '% heir bracket.')
+              + '</div>'
+              + '<div style="font-size:11px;color:var(--text-faint);margin-top:6px">Roth conversions shift pre-tax (taxable to heirs) into Roth (tax-free to heirs). The trade-off is paying conversion taxes now. Assumes heirs in the ' + estimatedHeirBracket + '% bracket.</div>'
+              + '</div></div>';
+          }
+          return '<div style="margin-top:20px;padding:16px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border)">'
+            + '<div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px">Legacy Composition</div>'
+            + '<div style="height:16px;display:flex;border-radius:8px;overflow:hidden;margin:0 0 4px">'
+            + (ptPct > 0 ? '<div style="width:' + ptPct + '%;background:var(--blue)" title="Pre-Tax ' + ptPct + '%"></div>' : '')
+            + (roPct > 0 ? '<div style="width:' + roPct + '%;background:var(--cyan)" title="Roth ' + roPct + '%"></div>' : '')
+            + (txPct > 0 ? '<div style="width:' + txPct + '%;background:var(--amber)" title="Taxable ' + txPct + '%"></div>' : '')
+            + '</div>'
+            + '<div style="display:flex;gap:12px;font-size:11px;color:var(--text-dim);margin-bottom:12px">'
+            + (ptPct > 0 ? '<span><span style="color:var(--blue)">&#9632;</span> Pre-Tax ' + ptPct + '%</span>' : '')
+            + (roPct > 0 ? '<span><span style="color:var(--cyan)">&#9632;</span> Roth ' + roPct + '%</span>' : '')
+            + (txPct > 0 ? '<span><span style="color:var(--amber)">&#9632;</span> Taxable ' + txPct + '%</span>' : '')
+            + '</div>'
+            + '<div style="display:flex;flex-direction:column;gap:10px;font-size:13px">'
+            + (endPreTax > 0 ? '<div style="display:flex;justify-content:space-between;align-items:baseline"><div><span style="color:var(--blue)">&#9632;</span> Pre-Tax (401k/IRA)</div><div style="font-weight:600">' + fmtK(endPreTax) + '</div></div><div style="font-size:11px;color:var(--text-dim);margin-top:-6px;padding-left:16px">Taxable to heirs as ordinary income. Non-spouse beneficiaries must distribute within 10 years (SECURE Act).</div>' : '')
+            + (endRoth > 0 ? '<div style="display:flex;justify-content:space-between;align-items:baseline"><div><span style="color:var(--cyan)">&#9632;</span> Roth (401k/IRA)</div><div style="font-weight:600">' + fmtK(endRoth) + '</div></div><div style="font-size:11px;color:var(--text-dim);margin-top:-6px;padding-left:16px">Tax-free to heirs. Non-spouse beneficiaries must distribute within 10 years, but withdrawals are not taxed.</div>' : '')
+            + (endTaxable > 0 ? '<div style="display:flex;justify-content:space-between;align-items:baseline"><div><span style="color:var(--amber)">&#9632;</span> Taxable (Brokerage)</div><div style="font-weight:600">' + fmtK(endTaxable) + '</div></div><div style="font-size:11px;color:var(--text-dim);margin-top:-6px;padding-left:16px">Heirs receive a stepped-up cost basis at date of death, eliminating unrealized capital gains.</div>' : '')
+            + '</div>'
+            + (endPreTax > 0 ? '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)"><div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">Estimated After-Tax Legacy</div><div style="font-size:12px;color:var(--text-dim);line-height:1.6">If heirs are in the ' + estimatedHeirBracket + '% tax bracket, the pre-tax portion (' + fmtK(endPreTax) + ') would yield approximately ' + fmtK(afterTaxPreTax) + ' after taxes. Combined with tax-free Roth (' + fmtK(endRoth) + ') and stepped-up taxable (' + fmtK(endTaxable) + '), your estimated after-tax legacy is approximately <strong style="color:var(--green)">' + fmtK(afterTaxLegacy) + '</strong>.</div><div style="font-size:11px;color:var(--text-faint);margin-top:4px">Assumes heirs in the 22% federal bracket. Actual tax depends on heir\u2019s income, state, and distribution timing.</div></div>' : '')
+            + '</div>'
+            + (ptPct === 100 ? '<div style="margin-top:10px;font-size:12px;color:var(--amber);line-height:1.5">&#9888; Your entire legacy is in pre-tax accounts \u2014 heirs will owe income tax on every dollar. Consider Roth conversions to shift some wealth to tax-free.</div>' : '')
+            + (roPct === 100 ? '<div style="margin-top:10px;font-size:12px;color:var(--green);line-height:1.5">&#10003; Your entire legacy is in Roth accounts \u2014 tax-free to heirs.</div>' : '')
+            + rothInsight;
+        })()}
+
         <div class="field" style="margin-top:14px"><label class="field-label">Notes</label>
           <textarea class="field-input" rows="2" style="resize:vertical;font-size:13px;padding:8px" placeholder="e.g., Trust for children, charity endowment..." onchange="setLegacy('notes',this.value)">${lg.notes||''}</textarea>
         </div>
@@ -5772,7 +5847,7 @@ function render() {
     case 'scenarios': html = renderScenarios(proj); break;
     case 'validation': html = renderValidation(); break;
   }
-  html += '<div class="footer">RetIQ v2.1 &#183; Build 2026-03-03 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a></div>';
+  html += '<div class="footer">RetIQ v2.2 &#183; Build 2026-03-03 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a></div>';
   document.getElementById('app').innerHTML = html;
   updateHeaderHeight();
   // Scroll active sub-nav tab into view on mobile
