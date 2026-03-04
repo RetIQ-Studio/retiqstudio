@@ -54,7 +54,7 @@
     <div class="stat"><div class="num">230</div><div class="label">Total Tests</div></div>
     <div class="stat"><div class="num">230</div><div class="label">Passed</div></div>
     <div class="stat"><div class="num">0</div><div class="label">Failed</div></div>
-    <div class="stat"><div class="num">27</div><div class="label">Categories</div></div>
+    <div class="stat"><div class="num">28</div><div class="label">Categories</div></div>
   </div>
 </div>
 
@@ -623,6 +623,29 @@
     <tr class="pass"><td>FillBracket: conversion reduced by ~$50K with other income</td><td>Yes</td><td>Yes</td><td class="pass">&#10003;</td></tr>
     <tr class="pass"><td>SmartFill: $50K other income reduces Roth conversion</td><td>Yes</td><td>Yes</td><td class="pass">&#10003;</td></tr>
     <tr class="pass"><td>TargetMAGI: $50K other income reduces Roth conversion</td><td>Yes</td><td>Yes</td><td class="pass">&#10003;</td></tr>
+  </table>
+</div>
+
+<div class="cat">
+  <div class="cat-head">
+    <span class="cat-name">Life Insurance (v3.2)</span>
+    <span class="cat-badge pass">12/12</span>
+  </div>
+  <div class="source-box"><strong>Sources:</strong> IRC &sect;101 (death benefit exclusion from gross income); engine logic: premium collection, term expiry, death benefit payout to taxable account</div>
+  <table class="results">
+    <tr><th>Test</th><th>Expected</th><th>Actual</th><th>Result</th></tr>
+    <tr class="pass"><td>Term premiums active before expiry (age 74)</td><td>2,400</td><td>2,400</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Term premiums stop at expiresAge (age 75)</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Term: no benefit if insured outlives term (death 80, expires 75)</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Term: benefit pays when death before expiry (death 72, expires 75)</td><td>500,000</td><td>500,000</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Permanent: premiums active before death (age 84)</td><td>5,000</td><td>5,000</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Permanent: premiums stop at death (age 85)</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Permanent: benefit pays at death age 85</td><td>500,000</td><td>500,000</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Death benefit does NOT inflate MAGI by benefit amount (IRC &sect;101)</td><td>Pass</td><td>Pass</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Death benefit increases brokerage balance</td><td>Pass</td><td>Pass</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>No benefit when no death age configured</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Multiple policies: both pay out at death</td><td>750,000</td><td>750,000</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Spouse policy: benefit triggers at spouse death</td><td>300,000</td><td>300,000</td><td class="pass">&#10003;</td></tr>
   </table>
 </div>
 
