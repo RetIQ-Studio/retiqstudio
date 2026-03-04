@@ -148,7 +148,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <tr><td>Spouse Income / Savings</td><td>Same fields for spouse if enabled.</td></tr>
       <tr><td>Income Growth Rate</td><td>Annual raise percentage. Applied to both spouses. Typical: 2-5%.</td></tr>
       <tr><td>Savings Growth Rate</td><td>Annual increase in savings amount. Match income growth or set higher to model increasing savings rate.</td></tr>
-      <tr><td>Other Annual Income</td><td>Additional retirement income (rental, part-time, annuities) that starts at retirement age. Separate from pensions which have their own tab.</td></tr>
+      <tr><td>Other Annual Income</td><td>Additional income (rental, part-time, annuities). Separate from pensions which have their own tab. Use Start Age / End Age to control when this income is active (defaults to retirement age through end of plan). Income is included in tax and MAGI calculations.</td></tr>
     </table>
     <p>The tab shows a preview of projected income at retirement age based on current values and growth rates.</p>
   </div>
@@ -411,6 +411,24 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
   <div class="sec" id="legacy">
     <h2>14. Legacy Tab</h2>
     <p>Set a target inheritance amount (today's dollars). The dashboard and projection track whether your plan achieves this goal at end-of-plan. The legacy target is inflation-adjusted in projections.</p>
+
+    <h3>Legacy Composition Breakdown</h3>
+    <p>Below the legacy goal inputs, a detailed composition analysis shows <em>what</em> your heirs actually inherit and the tax implications:</p>
+    <ul>
+      <li><strong>Stacked bar:</strong> Visual split of your end-of-plan net worth by account type &mdash; Pre-Tax (blue), Roth (cyan), and Taxable (amber).</li>
+      <li><strong>Per-account detail:</strong> Each account type shows its ending balance, percentage of total, and heir tax treatment:
+        <ul>
+          <li><em>Pre-Tax (401k/IRA):</em> Subject to SECURE Act 10-year distribution rule &mdash; heirs must withdraw and pay income tax within 10 years.</li>
+          <li><em>Roth:</em> Tax-free to heirs (10-year rule applies but no tax on withdrawals).</li>
+          <li><em>Taxable (Brokerage):</em> Receives stepped-up cost basis at death &mdash; only post-inheritance gains are taxed.</li>
+        </ul>
+      </li>
+      <li><strong>After-tax legacy estimate:</strong> Applies an assumed 22% heir tax bracket to the pre-tax portion to show the approximate after-tax inheritance.</li>
+    </ul>
+
+    <h3>Roth Conversion Legacy Comparison</h3>
+    <p>If Roth conversions are enabled in your plan, the composition section automatically runs a second projection with conversions disabled. The comparison shows how much more (or less) your heirs inherit in after-tax terms thanks to your Roth conversion strategy. This helps quantify the multi-generational benefit of paying taxes now so heirs receive tax-free Roth assets instead of taxable pre-tax accounts.</p>
+    <div class="tip"><strong>Tip:</strong> If the composition shows your legacy is mostly pre-tax, consider Roth conversions &mdash; even modest conversions shift the inheritance toward tax-free Roth, reducing your heirs' 10-year tax burden under the SECURE Act.</div>
   </div>
 
   <!-- 15 -->
@@ -455,7 +473,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <h2>17. Dashboard</h2>
     <p>The dashboard provides a high-level summary of your plan:</p>
     <ul>
-      <li><strong>Key metrics:</strong> Final net worth, peak net worth, retire age, years funded, RMD start age, IRMAA surcharges, and legacy goal tracking.</li>
+      <li><strong>Key metrics:</strong> Final net worth, peak net worth, retire age, years funded, RMD start age, IRMAA surcharges, and legacy goal tracking (with dominant account type hint).</li>
       <li><strong>Plan Health verdict:</strong> An at-a-glance assessment of your plan (Strong / Caution / Needs Attention) based on whether your portfolio lasts, your margin, and overall risk factors.</li>
       <li><strong>Highest-impact levers:</strong> Auto-detected action items ranked by dollar impact &mdash; Roth conversion opportunities, SS timing, IRMAA surcharges, pre-tax concentration, expense sensitivity, and healthcare gap costs. Each lever card shows the dollar amount at stake, a brief explanation, and a link to the relevant input tab.</li>
       <li><strong>Charts:</strong> Net Worth Over Time (stacked by account type: Pre-Tax, Roth, Cash/HYS, and Brokerage), Income vs. Expenses, Taxes &amp; RMDs, and Retirement Cash Flows (SS &amp; SSDI, withdrawals, Medicare).</li>

@@ -1043,6 +1043,126 @@ test('Pension', 'J&50% + 60% taxable: survivor taxable = 50%*60%*24000 = 7200',
   j50TaxAfter ? j50TaxAfter.pensionTaxable : 0, 7200, 1);
 
 // ══════════════════════════════════════════════════════════════════
+// CATEGORY: Additional Income — Tax Integration & Income Window (v2.2)
+// Verifies additionalIncome is included in tax/MAGI, and start/end age works
+// ══════════════════════════════════════════════════════════════════
+
+section('Additional Income — Tax & Window');
+
+// Base: retired person with additionalIncome
+const addIncBase = {
+  currentAge: 65, retirementAge: 65, endAge: 80, birthYear: 1961, birthMonth: 0, retireMonth: 0,
+  annualIncome: 0, annualSavings: 0, annualExpenses: 40000,
+  expenseMode: 'fixed', withdrawalRate: 4, preRetirementExpenses: 0, preRetirementExpenseInflation: 3,
+  incomeGrowth: 0, savingsGrowth: 0, ssClaimAge: 70, ssAnnualIncome: 60000, ssCOLA: 2,
+  ssManualMonthly: 0, ssUseManual: false, useDetailedSS: false, earningsHistory: [],
+  spouseEnabled: false, nominalReturn: 7, inflation: 3, stateCode: 'none',
+  additionalIncome: 30000,
+  pension: { enabled: false }, spousePension: { enabled: false },
+  preMedicareHealthcare: { enabled: false }, expensePhases: { enabled: false }, enforceContribLimits: true,
+  ssdiPrimary: { enabled: false }, ssdiSpouse: { enabled: false },
+  charitableGiving: { enabled: false }, debts: [], legacy: { enabled: false }, longTermCare: { enabled: false },
+  rothConversion: { enabled: false },
+  accounts: [
+    { id: 1, name: '401(k)', type: 'pretax', balance: 500000, returnRate: 7 },
+    { id: 2, name: 'Roth IRA', type: 'roth', balance: 100000, returnRate: 7 },
+  ],
+};
+
+// 1. additionalIncome appears in projection as 'other'
+const addIncProj = runProjection(addIncBase);
+const addIncY65 = addIncProj.find(y => y.age === 65);
+test('Additional Income', 'Other income shows in projection at age 65',
+  'Engine: additionalIncome → other field in projection',
+  addIncY65 ? addIncY65.other : 0, 30000, 1);
+
+// 2. additionalIncome increases tax vs no additionalIncome
+const noAddIncProj = runProjection({ ...addIncBase, additionalIncome: 0 });
+const taxWith = addIncProj.reduce((s, y) => s + y.tax, 0);
+const taxWithout = noAddIncProj.reduce((s, y) => s + y.tax, 0);
+test('Additional Income', '$30K additional income increases lifetime tax',
+  'v2.2 fix: additionalIncome now included in tax/MAGI',
+  taxWith > taxWithout ? 1 : 0, 1);
+
+// 3. Tax difference is meaningful (not just rounding)
+test('Additional Income', 'Tax increase is meaningful (>$10K lifetime)',
+  'v2.2 fix: $30K/yr × ~12% avg rate × 16 years',
+  taxWith - taxWithout > 10000 ? 1 : 0, 1);
+
+// 4. Income window: default (no start/end age = retirement age through end)
+const defaultWindowProj = runProjection(addIncBase);
+const dwY65 = defaultWindowProj.find(y => y.age === 65);
+const dwY80 = defaultWindowProj.find(y => y.age === 80);
+test('Additional Income', 'Default window: other income at retirement age',
+  'Engine: default start = retirementAge',
+  dwY65 ? dwY65.other : 0, 30000, 1);
+test('Additional Income', 'Default window: other income at end age',
+  'Engine: default end = endAge',
+  dwY80 ? dwY80.other : 0, 30000, 1);
+
+// 5. Income window: custom start age (later than retirement)
+const lateStartProj = runProjection({
+  ...addIncBase, additionalIncomeStartAge: 70, additionalIncomeEndAge: null,
+});
+const lsY65 = lateStartProj.find(y => y.age === 65);
+const lsY69 = lateStartProj.find(y => y.age === 69);
+const lsY70 = lateStartProj.find(y => y.age === 70);
+test('Additional Income', 'Late start (70): no other income at 65',
+  'Engine: age < startAge → other = 0',
+  lsY65 ? lsY65.other : -1, 0, 1);
+test('Additional Income', 'Late start (70): no other income at 69',
+  'Engine: age < startAge → other = 0',
+  lsY69 ? lsY69.other : -1, 0, 1);
+test('Additional Income', 'Late start (70): other income begins at 70',
+  'Engine: age >= startAge → other = 30000',
+  lsY70 ? lsY70.other : 0, 30000, 1);
+
+// 6. Income window: custom end age (stops before end of plan)
+const earlyEndProj = runProjection({
+  ...addIncBase, additionalIncomeStartAge: null, additionalIncomeEndAge: 72,
+});
+const eeY72 = earlyEndProj.find(y => y.age === 72);
+const eeY73 = earlyEndProj.find(y => y.age === 73);
+test('Additional Income', 'Early end (72): other income at 72',
+  'Engine: age <= endAge → other = 30000',
+  eeY72 ? eeY72.other : 0, 30000, 1);
+test('Additional Income', 'Early end (72): no other income at 73',
+  'Engine: age > endAge → other = 0',
+  eeY73 ? eeY73.other : -1, 0, 1);
+
+// 7. Income window: start before retirement (e.g., rental income while working)
+const earlyStartProj = runProjection({
+  ...addIncBase, currentAge: 60, retirementAge: 65, annualIncome: 80000,
+  additionalIncomeStartAge: 60, additionalIncomeEndAge: 75,
+});
+const esY60 = earlyStartProj.find(y => y.age === 60);
+const esY75 = earlyStartProj.find(y => y.age === 75);
+const esY76 = earlyStartProj.find(y => y.age === 76);
+test('Additional Income', 'Pre-retirement start (60): other income while working',
+  'Engine: age >= startAge even before retirement',
+  esY60 ? esY60.other : 0, 30000, 1);
+test('Additional Income', 'Window end (75): last year of other income',
+  'Engine: age <= endAge → other = 30000',
+  esY75 ? esY75.other : 0, 30000, 1);
+test('Additional Income', 'After window (76): no other income',
+  'Engine: age > endAge → other = 0',
+  esY76 ? esY76.other : -1, 0, 1);
+
+// 8. MAGI impact: additionalIncome raises MAGI (affecting IRMAA)
+// Use high enough income to potentially trigger IRMAA
+const irmaaBumpBase = {
+  ...addIncBase, additionalIncome: 100000,
+  ssClaimAge: 65, ssUseManual: true, ssManualMonthly: 3000,
+};
+const irmaaWithAddInc = runProjection(irmaaBumpBase);
+const irmaaWithoutAddInc = runProjection({ ...irmaaBumpBase, additionalIncome: 0 });
+const irmaaWith = irmaaWithAddInc.reduce((s, y) => s + y.irmaa, 0);
+const irmaaWithout = irmaaWithoutAddInc.reduce((s, y) => s + y.irmaa, 0);
+test('Additional Income', '$100K additional income raises IRMAA surcharges',
+  'v2.2 fix: additionalIncome included in MAGI → higher IRMAA',
+  irmaaWith >= irmaaWithout ? 1 : 0, 1);
+
+// ══════════════════════════════════════════════════════════════════
 // RESULTS
 // ══════════════════════════════════════════════════════════════════
 
