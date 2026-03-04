@@ -1221,6 +1221,140 @@ test('Additional Income', 'TargetMAGI: $50K other income reduces Roth conversion
   targetConvNo > targetConvWith ? 1 : 0, 1);
 
 // ══════════════════════════════════════════════════════════════════
+// LIFE INSURANCE (v3.2)
+// ══════════════════════════════════════════════════════════════════
+console.log('Testing Life Insurance...');
+
+const liBase = {
+  ...baseParams,
+  retirementAge: 65, endAge: 95,
+  survivorAge: 80, survivorWho: 'primary',
+  spouseEnabled: true, spouseAge: 48, spouseRetirementAge: 65,
+  spouseIncome: 50000, spouseSavings: 5000,
+  lifeInsurance: [{
+    id: 1, insured: 'primary', type: 'term', name: 'Term Life',
+    deathBenefit: 500000, annualPremium: 2400, expiresAge: 75, beneficiary: 'spouse'
+  }],
+};
+
+// 1. Term life premium stops at expiresAge
+const liProj1 = runProjection(liBase);
+const liYear74 = liProj1.find(y => y.age === 74);
+const liYear75 = liProj1.find(y => y.age === 75);
+test('Life Insurance', 'Term premiums active before expiry (age 74)',
+  'Engine: insuredAge < expiresAge → premium collected',
+  liYear74 ? liYear74.lifeInsPremiums : 0, 2400, 1);
+test('Life Insurance', 'Term premiums stop at expiresAge (age 75)',
+  'Engine: insuredAge >= expiresAge → no premium',
+  liYear75 ? liYear75.lifeInsPremiums : -1, 0, 1);
+
+// 2. Term life benefit pays at death if policy still active
+const liYear80 = liProj1.find(y => y.age === 80);
+// Death at 80, term expires at 75 → no benefit
+test('Life Insurance', 'Term: no benefit if insured outlives term (death 80, expires 75)',
+  'Engine: deathInsuredAge >= expiresAge → no payout',
+  liYear80 ? liYear80.lifeInsBenefit : -1, 0, 1);
+
+// 3. Term life benefit pays when death < expiresAge
+const liActiveAtDeath = {
+  ...liBase,
+  survivorAge: 72, // dies at 72, policy expires 75
+};
+const liProj3 = runProjection(liActiveAtDeath);
+const liDeathYr = liProj3.find(y => y.age === 72);
+test('Life Insurance', 'Term: benefit pays when death before expiry (death 72, expires 75)',
+  'Engine: deathInsuredAge < expiresAge → pays deathBenefit',
+  liDeathYr ? liDeathYr.lifeInsBenefit : 0, 500000, 1);
+
+// 4. Permanent life premium continues until death
+const liPerm = {
+  ...liBase,
+  lifeInsurance: [{
+    id: 1, insured: 'primary', type: 'permanent', name: 'Whole Life',
+    deathBenefit: 500000, annualPremium: 5000, beneficiary: 'spouse'
+  }],
+  survivorAge: 85,
+};
+const liProj4 = runProjection(liPerm);
+const liPermYear84 = liProj4.find(y => y.age === 84);
+const liPermYear85 = liProj4.find(y => y.age === 85);
+test('Life Insurance', 'Permanent: premiums active before death (age 84)',
+  'Engine: permanent type, not dead → premium collected',
+  liPermYear84 ? liPermYear84.lifeInsPremiums : 0, 5000, 1);
+test('Life Insurance', 'Permanent: premiums stop at death (age 85)',
+  'Engine: insuredDead → no premium',
+  liPermYear85 ? liPermYear85.lifeInsPremiums : -1, 0, 1);
+
+// 5. Permanent life benefit pays at death regardless of age
+test('Life Insurance', 'Permanent: benefit pays at death age 85',
+  'Engine: permanent type, justDied → pays deathBenefit',
+  liPermYear85 ? liPermYear85.lifeInsBenefit : 0, 500000, 1);
+
+// 6. Death benefit is NOT taxable income (MAGI unchanged)
+// The $500K benefit changes withdrawal sources (indirect MAGI effect via account mix).
+// Verify benefit does NOT add $500K directly to MAGI — MAGI diff must be << benefit amount.
+const liNoIns = {
+  ...liActiveAtDeath,
+  lifeInsurance: [],
+};
+const liProjNoIns = runProjection(liNoIns);
+const liWithInsYr72 = liProj3.find(y => y.age === 72);
+const liNoInsYr72 = liProjNoIns.find(y => y.age === 72);
+const magiDiff = Math.abs((liWithInsYr72 ? liWithInsYr72.magi : 0) - (liNoInsYr72 ? liNoInsYr72.magi : 0));
+test('Life Insurance', 'Death benefit does NOT inflate MAGI by benefit amount (IRC §101)',
+  'IRC §101: $500K benefit not in gross income. MAGI diff from withdrawal mix only.',
+  magiDiff < 100000 ? 1 : 0, 1);
+
+// 7. Death benefit increases taxable account balance
+// Compare taxable balance in the year after death with vs without insurance
+const liWithInsYr73 = liProj3.find(y => y.age === 73);
+const liNoInsYr73 = liProjNoIns.find(y => y.age === 73);
+const taxableDiff = (liWithInsYr73 ? liWithInsYr73.taxableInv : 0) - (liNoInsYr73 ? liNoInsYr73.taxableInv : 0);
+test('Life Insurance', 'Death benefit increases brokerage balance',
+  'Engine: taxableInv += benefit',
+  taxableDiff > 400000 ? 1 : 0, 1);
+
+// 8. No death benefit when no death age configured
+const liNoSurvivor = {
+  ...liBase,
+  survivorAge: null, survivorWho: null,
+};
+const liProj8 = runProjection(liNoSurvivor);
+const totalBenefit8 = liProj8.reduce((s, y) => s + (y.lifeInsBenefit || 0), 0);
+test('Life Insurance', 'No benefit when no death age configured',
+  'Engine: deathAge is null → justDied never true',
+  totalBenefit8, 0, 1);
+
+// 9. Multiple policies on same person: both pay out
+const liMulti = {
+  ...liActiveAtDeath,
+  lifeInsurance: [
+    { id: 1, insured: 'primary', type: 'term', name: 'Term 1', deathBenefit: 500000, annualPremium: 2400, expiresAge: 75, beneficiary: 'spouse' },
+    { id: 2, insured: 'primary', type: 'permanent', name: 'Whole Life', deathBenefit: 250000, annualPremium: 3000, beneficiary: 'spouse' },
+  ],
+};
+const liProj9 = runProjection(liMulti);
+const liMultiDeath = liProj9.find(y => y.age === 72);
+test('Life Insurance', 'Multiple policies: both pay out at death',
+  'Engine: loop over all policies, each eligible one pays',
+  liMultiDeath ? liMultiDeath.lifeInsBenefit : 0, 750000, 1);
+
+// 10. Spouse policy: premium uses spouse age, benefit triggers at spouse death
+const liSpouse = {
+  ...liBase,
+  survivorAge: 78, survivorWho: 'spouse', // spouse dies at age 78 of primary (= spouse age 76)
+  lifeInsurance: [{
+    id: 1, insured: 'spouse', type: 'permanent', name: 'Spouse Whole Life',
+    deathBenefit: 300000, annualPremium: 2000, beneficiary: 'spouse'
+  }],
+};
+const liProj10 = runProjection(liSpouse);
+const liSpDeath = liProj10.find(y => y.age === 78);
+test('Life Insurance', 'Spouse policy: benefit triggers at spouse death',
+  'Engine: insured=spouse, deathAge=spouseDiesAge',
+  liSpDeath ? liSpDeath.lifeInsBenefit : 0, 300000, 1);
+
+// ══════════════════════════════════════════════════════════════════
 // RESULTS
 // ══════════════════════════════════════════════════════════════════
 
