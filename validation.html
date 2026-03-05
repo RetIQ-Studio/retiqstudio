@@ -51,8 +51,8 @@
   <div class="score">100.0%</div>
   <p style="margin:0">pass rate</p>
   <div class="stats">
-    <div class="stat"><div class="num">230</div><div class="label">Total Tests</div></div>
-    <div class="stat"><div class="num">230</div><div class="label">Passed</div></div>
+    <div class="stat"><div class="num">254</div><div class="label">Total Tests</div></div>
+    <div class="stat"><div class="num">254</div><div class="label">Passed</div></div>
     <div class="stat"><div class="num">0</div><div class="label">Failed</div></div>
     <div class="stat"><div class="num">28</div><div class="label">Categories</div></div>
   </div>
@@ -447,19 +447,20 @@
 </div>
 
 <div class="category">
-  <h3>State Tax <span class="badge pass">10/10</span></h3>
+  <h3>State Tax &mdash; Progressive Bracket Model <span class="badge pass">10/10</span></h3>
+  <div class="source-box"><strong>Sources:</strong> State revenue department publications. Progressive brackets for CA, NY, MD; flat rates for IL, PA. All tested against $100K MFJ earned income.</div>
   <table class="results">
     <tr><th>Test</th><th>Expected</th><th>Actual</th><th>Result</th></tr>
-    <tr class="pass"><td>Florida — no income tax on $100K</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
-    <tr class="pass"><td>Texas — no income tax on $100K</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
-    <tr class="pass"><td>California — top marginal ~9.3% on $100K</td><td>9,300</td><td>9,300</td><td class="pass">&#10003;</td></tr>
-    <tr class="pass"><td>New York — ~6.85% on $100K</td><td>6,850</td><td>6,850</td><td class="pass">&#10003;</td></tr>
-    <tr class="pass"><td>Maryland — top marginal ~5.75% on $100K</td><td>5,750</td><td>5,750</td><td class="pass">&#10003;</td></tr>
-    <tr class="pass"><td>Illinois — flat 4.95% on $100K</td><td>4,950</td><td>4,950</td><td class="pass">&#10003;</td></tr>
-    <tr class="pass"><td>Pennsylvania — flat 3.07% on $100K</td><td>3,070</td><td>3,070</td><td class="pass">&#10003;</td></tr>
-    <tr class="pass"><td>Nevada — no income tax on $100K</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
-    <tr class="pass"><td>Washington — no income tax on $100K</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
-    <tr class="pass"><td>No state selected — zero tax on $100K</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Florida &mdash; no income tax</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Texas &mdash; no income tax</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>California &mdash; progressive brackets on $100K</td><td>3,246</td><td>3,246</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>New York &mdash; progressive brackets on $100K</td><td>5,420</td><td>5,420</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Maryland &mdash; progressive brackets on $100K</td><td>4,698</td><td>4,698</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Illinois &mdash; flat 4.95% on $100K</td><td>4,950</td><td>4,950</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Pennsylvania &mdash; flat 3.07% on $100K</td><td>3,070</td><td>3,070</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Nevada &mdash; no income tax</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Washington &mdash; no income tax</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>No state selected &mdash; zero tax</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
   </table>
 </div>
 
@@ -649,9 +650,44 @@
   </table>
 </div>
 
+<div class="cat">
+  <div class="cat-head">
+    <span class="cat-name">Progressive State Tax (v3.3)</span>
+    <span class="cat-badge pass">24/24</span>
+  </div>
+  <div class="source-box"><strong>Sources:</strong> State DOR publications &mdash; progressive brackets, SS exemptions with age/income gates, retirement income exclusions. IRC &sect;86 state conformity.</div>
+  <table class="results">
+    <tr><th>Test</th><th>Expected</th><th>Actual</th><th>Result</th></tr>
+    <tr class="pass"><td>FL: SS+IRA income, no tax</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>TX: $200K income, no tax</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>WA: any income, no tax</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>NH: IRA distribution, no tax</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>none: federal only, no state tax</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>IL: SS+IRA both fully exempt</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>IL: earned income taxable (4.95%)</td><td>4,950</td><td>4,950</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>IL: mixed &mdash; wages taxable, IRA exempt</td><td>2,475</td><td>2,475</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>PA: IRA exempt age 60+</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>PA: IRA taxable age 58 (3.07%)</td><td>1,535</td><td>1,535</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>PA: SS always exempt (all ages)</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>CA: MFJ $80K &mdash; progressive brackets</td><td>2,046</td><td>2,046</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>CA: SS exempt, IRA taxable</td><td>804</td><td>804</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>CA: single filer pays more than MFJ same income</td><td>Pass</td><td>Pass</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>NY: MFJ $100K with $20K pension exclusion</td><td>4,250</td><td>4,250</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>NY: SS exempt from state tax</td><td>Pass</td><td>Pass</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>KS: SS exempt under $75K AGI</td><td>Pass</td><td>Pass</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>KS: SS taxable above $75K AGI</td><td>Pass</td><td>Pass</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>CT: SS exempt under $150K MFJ AGI</td><td>Pass</td><td>Pass</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>RI: SS exempt under $114,900 AGI</td><td>Pass</td><td>Pass</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Invalid state code returns $0</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>Zero income returns $0</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>PA age gate: $40K IRA age 58 taxable</td><td>1,228</td><td>1,228</td><td class="pass">&#10003;</td></tr>
+    <tr class="pass"><td>PA age gate: $40K IRA age 60 exempt</td><td>0</td><td>0</td><td class="pass">&#10003;</td></tr>
+  </table>
+</div>
+
 
 <div class="footer">
-  Generated 2026-03-04 &bull; RetIQ v3.2 &bull; <a href="https://retiqstudio.com" style="color:var(--accent2)">retiqstudio.com</a><br>
+  Generated 2026-03-05 &bull; RetIQ v3.3 &bull; <a href="https://retiqstudio.com" style="color:var(--accent2)">retiqstudio.com</a><br>
   Tests run against app-index.html engine code. Results are reproducible via <code>node test-validation.js</code>
 </div>
 

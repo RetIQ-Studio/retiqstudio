@@ -18,7 +18,7 @@ It's built as a single HTML file with no external dependencies beyond self-hoste
 
 **Planning Engine** — Year-by-year projection from current age through end of plan. Multi-account modeling (Pre-Tax, Roth, Cash/HYS, Brokerage) with independent return rates. Full spouse integration with independent retirement ages, income, and benefits. Inflation-adjusted and nominal views.
 
-**Tax Modeling** — 2025 federal brackets (MFJ and single), all 50 states + DC, capital gains brackets, NIIT, SS taxation (up to 85%), and OBBB Act 2025 updates. Taxable income computed from all sources every year.
+**Tax Modeling** — 2025 federal brackets (MFJ and single), all 50 states + DC with progressive brackets (CA, NY, NJ, etc.), flat rates (IL, PA, etc.), SS exemptions with age/income gates, and retirement income exclusions. Capital gains brackets, NIIT, SS taxation (up to 85%), and OBBB Act 2025 updates. Taxable income computed from all sources every year.
 
 **Social Security & Medicare** — PIA calculation with 2025 bend points, FRA by birth year, early/delayed claiming adjustments, spousal and survivor benefits, SSDI with automatic FRA conversion. Medicare Part B/D premiums with IRMAA surcharges.
 
@@ -32,7 +32,7 @@ It's built as a single HTML file with no external dependencies beyond self-hoste
 
 ## Validation
 
-RetIQ includes 230 automated tests that verify every calculation against authoritative sources:
+RetIQ includes 254 automated tests that verify every calculation against authoritative sources:
 
 - **IRS:** Rev. Proc. 2024-40 (2025 brackets, deductions, capital gains), Pub 590-B (RMD tables), Pub 915 (SS taxation), Notice 2024-80 (contribution limits, QCD), IRC §1411 (NIIT)
 - **SSA:** 2025 bend points and wage base, FRA schedules, early reduction and delayed credit rates
@@ -79,7 +79,7 @@ retiq/
 ├── features.html           # Feature list
 ├── manual.html             # User manual (24 sections)
 ├── security.html           # Privacy & security transparency page
-├── validation.html         # Validation report (230 tests)
+├── validation.html         # Validation report (254 tests)
 ├── privacy.html            # Privacy policy
 ├── terms.html              # Terms of service
 ├── index.html              # Landing page
@@ -107,11 +107,11 @@ The build script minifies JavaScript, CSS, and HTML via esbuild, copies static a
 ## Running Tests
 
 ```bash
-# Validation tests (230 tests against IRS/SSA/CMS/HHS sources)
+# Validation tests (254 tests against IRS/SSA/CMS/HHS sources)
 node test-validation.js
 ```
 
-Tests run via Node.js against the calculation engine extracted from app-index.html. All 230 tests must pass before deployment.
+Tests run via Node.js against the calculation engine extracted from app-index.html. All 254 tests must pass before deployment.
 
 ## License
 
