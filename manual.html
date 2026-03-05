@@ -512,7 +512,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <tr><td>Nominal Return</td><td>Expected average annual investment return before inflation</td><td>6-8%</td></tr>
       <tr><td>Inflation</td><td>Expected average annual inflation rate</td><td>2-3%</td></tr>
       <tr><td>SS COLA</td><td>Annual Social Security cost-of-living adjustment</td><td>2%</td></tr>
-      <tr><td>State for Tax Purposes</td><td>Select your state from the dropdown. All 50 states and DC are available with flat effective rates. Choose "None" for federal-only projections.</td><td>Your state</td></tr>
+      <tr><td>State for Tax Purposes</td><td>Select your state from the dropdown. All 50 states + DC are modeled with their actual tax structure &mdash; progressive brackets for states like California and New York, flat rates for Illinois and Pennsylvania, and no tax for Florida and Texas. Social Security exemptions, retirement income exclusions (pensions and IRA/401k), and filing-status-aware schedules are applied automatically. Choose &ldquo;None&rdquo; for federal-only projections.</td><td>Your state</td></tr>
     </table>
     <p>The real (after-inflation) return is computed as: (1 + nominal) / (1 + inflation) - 1. For example, 7% nominal with 3% inflation gives approximately 3.9% real return.</p>
 
@@ -663,7 +663,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
   <!-- 23 -->
   <div class="sec" id="validation">
     <h2>23. Validation Report</h2>
-    <p>RetIQ includes a built-in Validation tab that runs 230 automated tests against every calculation in the engine. Each test compares the engine's output to values derived from authoritative sources:</p>
+    <p>RetIQ includes a built-in Validation tab that runs 254 automated tests against every calculation in the engine. Each test compares the engine's output to values derived from authoritative sources:</p>
     <ul>
       <li><strong>IRS:</strong> Rev. Proc. 2024-40 (2025 tax brackets, standard deduction, capital gains thresholds), Pub 590-B (RMD Uniform Lifetime Table), Pub 915 (SS taxation worksheets), Notice 2024-80 (QCD limits, contribution limits), IRC &sect;1411 (NIIT).</li>
       <li><strong>SSA:</strong> 2025 bend points and wage base, FRA schedules (POMS RS 00615.003), early reduction rates (RS 00615.301), delayed retirement credits (RS 00615.304), retirement earnings test limits (Pub 05-10069).</li>
@@ -672,7 +672,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <li><strong>OBBB Act 2025:</strong> Senior standard deduction (&sect;102), updated bracket structure (P.L. 119-21).</li>
       <li><strong>HHS/ACA:</strong> 2025 Federal Poverty Level guidelines, ACA Premium Tax Credit applicable percentage tables (enhanced 2021&ndash;2025 and original 2026+), ARPA/IRA subsidy extensions.</li>
     </ul>
-    <p>Tests cover 26 categories: federal tax (MFJ and single), standard deduction, SS taxation, SS PIA and FRA, SS claiming adjustments, SS retirement earnings test, RMD table and calculations, capital gains brackets, NIIT, IRMAA (MFJ and single), state tax, contribution limits, QCD, ACA FPL, ACA subsidy calculations, ACA SLCSP estimates, pension enhancements (survivor benefits, tax treatment, COLA), integration tests, and edge cases.</p>
+    <p>Tests cover 28 categories: federal tax (MFJ and single), standard deduction, SS taxation, SS PIA and FRA, SS claiming adjustments, SS retirement earnings test, RMD table and calculations, capital gains brackets, NIIT, IRMAA (MFJ and single), state tax (progressive brackets, SS exemptions, retirement exclusions), contribution limits, QCD, ACA FPL, ACA subsidy calculations, ACA SLCSP estimates, pension enhancements (survivor benefits, tax treatment, COLA), additional income, life insurance, integration tests, and edge cases.</p>
     <p>The full report &mdash; with every test name, expected value, actual value, tolerance, source citation, and pass/fail status &mdash; is viewable inside the app under the <strong>Validation</strong> tab in the main navigation.</p>
     <div class="tip"><strong>Transparency:</strong> The validation suite runs automatically before each release to ensure every calculation matches its authoritative source. You can run these same tests yourself in the <strong>Validation</strong> tab or inspect the full report at <a href="https://retirementiq.app/validation.html" style="color:var(--accent)">retirementiq.app/validation.html</a>. If you find a discrepancy, please report it — accuracy is our highest priority.</div>
   </div>
@@ -685,7 +685,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Yes. RetIQ runs entirely in your browser. No financial data is ever sent to any server. The only network calls are for license verification (license key only) and optional PWA updates. You can verify this yourself using View Page Source or browser DevTools. For a complete audit of every network request, storage key, and privacy measure, see the <a href="https://retirementiq.app/security.html" style="color:var(--accent)">Privacy &amp; Security Transparency</a> page.</p>
 
     <h3>Which tax brackets does RetIQ use?</h3>
-    <p>2025 Married Filing Jointly federal brackets. State tax uses a simplified effective rate based on the state you select from the dropdown in the Assumptions tab (all 50 states and DC are available). The brackets are applied to computed taxable income each year.</p>
+    <p>2025 federal brackets (Married Filing Jointly and single) as updated by the One Big Beautiful Bill Act. State taxes use progressive brackets for bracketed states (e.g. California, New York, New Jersey) and flat rates where applicable (e.g. Illinois 4.95%, Pennsylvania 3.07%). Social Security exemptions with age and income gates, retirement income exclusions for pensions and IRA/401k distributions, and filing-status-aware schedules are applied automatically for each state. All 50 states + DC are available in the Assumptions tab dropdown.</p>
 
     <h3>How accurate are the Social Security estimates?</h3>
     <p>RetIQ matches SSA calculations exactly when using the manual entry mode (entering your FRA benefit from ssa.gov). The income-based estimate uses 2025 bend points and is a good approximation but may differ from SSA's indexed earnings calculation.</p>
@@ -715,13 +715,13 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Use the <strong>Strategy Report Card</strong> on the Dashboard. It automatically tests alternative SS timing, Roth conversion, and retirement age strategies against your current plan. Choose your goal (max net worth, min taxes, etc.) and the table ranks every alternative. Click Apply on any row to adopt it instantly. For deeper Roth analysis, use the <a href="#rothconv">Roth Optimizer</a>. For stress-testing, use <a href="#scenarios">Scenario Comparison</a> and <a href="#montecarlo">Monte Carlo</a>.</p>
 
     <h3>How can I verify the calculations are correct?</h3>
-    <p>Open the <strong>Validation</strong> tab in the app's main navigation. It displays 230 automated tests grouped by category, each showing the expected value (from IRS/SSA/CMS sources), the engine's actual result, and a pass/fail status. You can also right-click the app and select View Page Source to inspect the calculation code directly. See the <a href="#validation">Validation Report</a> section for details on sources and methodology.</p>
+    <p>Open the <strong>Validation</strong> tab in the app's main navigation. It displays 254 automated tests grouped by category, each showing the expected value (from IRS/SSA/CMS sources), the engine's actual result, and a pass/fail status. You can also right-click the app and select View Page Source to inspect the calculation code directly. See the <a href="#validation">Validation Report</a> section for details on sources and methodology.</p>
 
     <h3>What happens to my spouse's benefits if I'm on SSDI and die?</h3>
     <p>Your SSDI payments stop, but your surviving spouse can claim a survivor benefit based on your Social Security work record. RetIQ calculates this from your PIA (or your SSDI amount if no separate SS income was entered). The survivor receives the higher of their own SS benefit or the survivor benefit &mdash; not both.</p>
   </div>
 
-  <div class="footer">RetIQ v3.2 &middot; retirementiq.app &middot; Not financial advice &middot; All computation runs locally in your browser</div>
+  <div class="footer">RetIQ v3.3 &middot; retirementiq.app &middot; Not financial advice &middot; All computation runs locally in your browser</div>
 </div>
 </body>
 </html>

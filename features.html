@@ -70,13 +70,15 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
     <div class="cat-hdr"><span class="ic">&#127963;</span> Tax &amp; RMD Engine</div>
     <div class="grid">
       <div class="feat"><h3><span class="tag t2">Tax</span> Federal &amp; State Tax</h3>
-        <p>2025 federal tax brackets (MFJ and single) applied year by year. State taxes modeled using a dropdown of all 50 states and DC with appropriate rates &mdash; just select your state. Taxable income computed from earned income, Social Security (up to 85% taxable), RMDs, Roth conversions, pensions, and capital gains.</p></div>
+        <p>2025 federal tax brackets (MFJ and single) applied year by year. All 50 states + DC with progressive brackets for bracketed states and flat rates where applicable. Social Security exemptions (with age and income gates), retirement income exclusions for pensions and IRA/401k distributions, and filing-status-aware schedules. Taxable income computed from earned income, Social Security (up to 85% taxable), RMDs, Roth conversions, pensions, and capital gains.</p></div>
       <div class="feat"><h3><span class="tag t2">Tax</span> RMD Calculations (SECURE 2.0)</h3>
         <p>Required Minimum Distributions using the Uniform Lifetime Table with SECURE Act 2.0 start ages (73&ndash;75 depending on birth year). RMDs come from pre-tax accounts and flow into taxable income. The dashboard shows your RMD start age and peak annual RMD so there are no surprises.</p></div>
       <div class="feat"><h3><span class="tag t2">Tax</span> Roth Conversion Optimizer</h3>
         <p>Tests ~200+ strategies varying fixed amounts, bracket targets (fill 12%/22%/24%), Smart Fill (IRMAA-aware bracket fill), and timing windows. Ranks the top 8 by a composite score that weighs tax savings, IRMAA impact, and net worth gain. Apply any result with one click &mdash; it becomes your active strategy across all tabs.</p></div>
       <div class="feat"><h3><span class="tag t2">Tax</span> Roth Conversion Strategies</h3>
         <p>Six strategy types to match how you actually think about conversions: Fixed Amount, Fill Tax Bracket, Smart Fill (IRMAA-Aware), Target Income (MAGI) Ceiling, % of Pre-Tax Balance, and Custom Schedule. Each shows only its relevant controls. Impact Analysis gives an instant before/after comparison with a Conversion Advantage chart showing where the strategy breaks even. ACA subsidy impact is tracked during pre-Medicare years.</p></div>
+      <div class="feat"><h3><span class="tag t2">Tax</span> Progressive State Tax <span style="font-size:11px;color:#22c55e;font-weight:600">&bull; v3.3</span></h3>
+        <p>All 50 states + DC modeled with their actual tax structure &mdash; progressive brackets for states like California, New York, and Oregon; flat rates for Illinois, Pennsylvania, and others; no tax for Florida, Texas, and 7 more. Social Security exemptions with age and income thresholds (e.g. Kansas exempts SS below $75K AGI). Retirement income exclusions for pensions and IRA/401k distributions with age gates (e.g. Pennsylvania exempts all retirement income at 60+, Illinois exempts it at any age). Filing status determines which bracket schedule applies where MFJ and single differ. The dropdown shows each state&rsquo;s type and notes applicable retirement exemptions.</p></div>
     </div>
   </div>
 
@@ -168,11 +170,11 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
       <div class="feat"><h3><span class="tag t6">App</span> License Recovery</h3>
         <p>Lost your license key? Recover it directly from the Activate dialog by entering the email you used at checkout. Your key is emailed to you securely &mdash; never displayed on screen. Rate-limited and anti-enumeration protected.</p></div>
       <div class="feat"><h3><span class="tag t6">App</span> Verified Calculations</h3>
-        <p>Every financial calculation is validated against authoritative sources: IRS publications, SSA actuarial tables, CMS Medicare data, SECURE 2.0 Act, and OBBB Act 2025. The embedded Validation tab displays 230 automated tests you can review and verify directly in the app.</p></div>
+        <p>Every financial calculation is validated against authoritative sources: IRS publications, SSA actuarial tables, CMS Medicare data, SECURE 2.0 Act, and OBBB Act 2025. The embedded Validation tab displays 254 automated tests you can review and verify directly in the app.</p></div>
       <div class="feat"><h3><span class="tag t6">App</span> Share RetIQ</h3>
         <p>A built-in share button uses your device's native share sheet (on mobile) or copies a link to your clipboard (on desktop). Help someone else plan their retirement &mdash; it's one click away.</p></div>
       <div class="feat"><h3><span class="tag t6">App</span> Validation Report</h3>
-        <p>230 automated tests verify every calculation against authoritative sources &mdash; IRS publications, SSA tables, CMS Medicare data, SECURE Act 2.0 rules, and ACA subsidy tables. The full report is viewable inside the app under the Validation tab. Every test shows the expected value, actual result, source citation, and pass/fail status. 100% pass rate.</p></div>
+        <p>254 automated tests verify every calculation against authoritative sources &mdash; IRS publications, SSA tables, CMS Medicare data, SECURE Act 2.0 rules, and ACA subsidy tables. The full report is viewable inside the app under the Validation tab. Every test shows the expected value, actual result, source citation, and pass/fail status. 100% pass rate.</p></div>
       <div class="feat"><h3><span class="tag t1">Core</span> Configurable Withdrawal Order</h3>
         <p>Set the priority for which accounts fund retirement spending using a 4-bucket system: Cash/HYS, Brokerage, Pre-Tax, and Roth. Reorder with arrow buttons in the Assumptions tab. Cash withdrawals are tax-free (principal return); brokerage withdrawals trigger capital gains; pre-tax is taxed as ordinary income; Roth is tax-free. The engine handles RMDs and tax implications automatically regardless of order.</p></div>
     </div>
@@ -192,7 +194,7 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
     </div>
   </div>
 
-  <div class="footer">RetIQ v3.2 &middot; retirementiq.app &middot; Not financial advice &middot; All computation runs locally in your browser</div>
+  <div class="footer">RetIQ v3.3 &middot; retirementiq.app &middot; Not financial advice &middot; All computation runs locally in your browser</div>
 </div>
 </body>
 </html>

@@ -383,7 +383,7 @@ button:hover { opacity: 0.88; }
 <div class="header" style="flex-direction:column;align-items:stretch;">
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;">
     <a href="https://retirementiq.app/?landing" class="logo-text" style="text-decoration:none;color:inherit">RetIQ</a>
-    <span class="logo-badge">v3.2</span>
+    <span class="logo-badge">v3.3</span>
     <span id="planBadge" class="plan-badge" title="Current plan">FREE</span>
     <button class="mobile-menu-btn" onclick="toggleMobileMenu()" id="mobileMenuBtn" aria-label="Menu">&#9776;</button>
     <div class="header-secondary" id="headerSecondary">
@@ -463,31 +463,164 @@ function shareRetIQ() {
 // STATE TAXES (Feature #4) & DOLLAR TOGGLE (Feature #5)
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
 
+// Progressive state income tax — all 50 states + DC (v3.3)
+// Known limitations documented inline:
+//   - State standard deductions: not modeled (all $0). Actual deductions range $2K–$30K. Future enhancement.
+//   - MD local tax: Maryland county/city tax (2.25%–3.2%) not modeled. State-only rate understates total MD tax.
+//   - MN SS exemption: Minnesota has income-based SS exemption phase-out, not modeled. SS treated as fully taxable (conservative).
+//   - MI pension: exclusion varies by birth year. Simplified to flat $20K age 62+.
+//   - CO/GA/SC age step-ups: larger exclusions at higher age thresholds simplified to lower figure with lower age gate.
+//   - NJ pension exclusion: phases out above $150K income. Not modeled; exclusion always applied if age qualifies.
+//   - CA 1% mental health surcharge (Prop 63, income >$1M): omitted. Negligible for target users.
 const STATE_TAXES = {
-  'none':{name:'No State (Federal Only)',rate:0},'AK':{name:'Alaska',rate:0},'FL':{name:'Florida',rate:0},
-  'NV':{name:'Nevada',rate:0},'NH':{name:'New Hampshire',rate:0},'SD':{name:'South Dakota',rate:0},
-  'TN':{name:'Tennessee',rate:0},'TX':{name:'Texas',rate:0},'WA':{name:'Washington',rate:0},
-  'WY':{name:'Wyoming',rate:0},'AL':{name:'Alabama',rate:5.0},'AZ':{name:'Arizona',rate:2.5},
-  'AR':{name:'Arkansas',rate:4.4},'CA':{name:'California',rate:9.3},'CO':{name:'Colorado',rate:4.4},
-  'CT':{name:'Connecticut',rate:5.0},'DE':{name:'Delaware',rate:5.5},'GA':{name:'Georgia',rate:5.49},
-  'HI':{name:'Hawaii',rate:7.25},'ID':{name:'Idaho',rate:5.8},'IL':{name:'Illinois',rate:4.95},
-  'IN':{name:'Indiana',rate:3.05},'IA':{name:'Iowa',rate:5.7},'KS':{name:'Kansas',rate:5.7},
-  'KY':{name:'Kentucky',rate:4.0},'LA':{name:'Louisiana',rate:4.25},'ME':{name:'Maine',rate:7.15},
-  'MD':{name:'Maryland',rate:5.75},'MA':{name:'Massachusetts',rate:5.0},'MI':{name:'Michigan',rate:4.25},
-  'MN':{name:'Minnesota',rate:7.85},'MS':{name:'Mississippi',rate:5.0},'MO':{name:'Missouri',rate:4.95},
-  'MT':{name:'Montana',rate:5.9},'NE':{name:'Nebraska',rate:5.84},'NJ':{name:'New Jersey',rate:6.37},
-  'NM':{name:'New Mexico',rate:4.9},'NY':{name:'New York',rate:6.85},'NC':{name:'North Carolina',rate:4.5},
-  'ND':{name:'North Dakota',rate:2.5},'OH':{name:'Ohio',rate:3.5},'OK':{name:'Oklahoma',rate:4.75},
-  'OR':{name:'Oregon',rate:8.75},'PA':{name:'Pennsylvania',rate:3.07},'RI':{name:'Rhode Island',rate:5.99},
-  'SC':{name:'South Carolina',rate:6.4},'UT':{name:'Utah',rate:4.65},'VT':{name:'Vermont',rate:6.6},
-  'VA':{name:'Virginia',rate:5.75},'WV':{name:'West Virginia',rate:5.12},'WI':{name:'Wisconsin',rate:5.3},
-  'DC':{name:'Washington DC',rate:8.5},
+  // — No income tax states —
+  'none': { name:'No State (Federal Only)', type:'none', rate:0, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:Infinity, retirementExclusionAge:0, cgAsOrdinary:true, notes:'' },
+  'AK': { name:'Alaska', type:'none', rate:0, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:Infinity, retirementExclusionAge:0, cgAsOrdinary:true, notes:'No state income tax' },
+  'FL': { name:'Florida', type:'none', rate:0, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:Infinity, retirementExclusionAge:0, cgAsOrdinary:true, notes:'No state income tax' },
+  'NV': { name:'Nevada', type:'none', rate:0, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:Infinity, retirementExclusionAge:0, cgAsOrdinary:true, notes:'No state income tax' },
+  'NH': { name:'New Hampshire', type:'none', rate:0, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:Infinity, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Hall Tax repealed 2025; no tax on wages, SS, or retirement' },
+  'SD': { name:'South Dakota', type:'none', rate:0, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:Infinity, retirementExclusionAge:0, cgAsOrdinary:true, notes:'No state income tax' },
+  'TN': { name:'Tennessee', type:'none', rate:0, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:Infinity, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Hall Tax repealed 2021; no income tax' },
+  'TX': { name:'Texas', type:'none', rate:0, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:Infinity, retirementExclusionAge:0, cgAsOrdinary:true, notes:'No state income tax' },
+  'WA': { name:'Washington', type:'none', rate:0, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:Infinity, retirementExclusionAge:0, cgAsOrdinary:true, notes:'No income tax; CG tax >$262K not modeled' },
+  'WY': { name:'Wyoming', type:'none', rate:0, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:Infinity, retirementExclusionAge:0, cgAsOrdinary:true, notes:'No state income tax' },
+
+  // — Flat-rate states —
+  'AZ': { name:'Arizona', type:'flat', rate:2.5, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Flat since 2023 (Prop 208 repealed). Arizona DOR.' },
+  'CO': { name:'Colorado', type:'flat', rate:4.4, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:65, ssExemptIncomeLimit:0, retirementExclusion:20000, retirementExclusionAge:55, cgAsOrdinary:true, notes:'CO HB22-1029. $20K@55, $24K@65 — simplified to $20K@55.' },
+  'GA': { name:'Georgia', type:'flat', rate:5.49, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:35000, retirementExclusionAge:62, cgAsOrdinary:true, notes:'Flat since 2024. $35K@62, $65K@65 — simplified to $35K@62. GA DOR IT-511.' },
+  'ID': { name:'Idaho', type:'flat', rate:5.8, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Flat since 2023. Idaho State Tax Commission.' },
+  'IL': { name:'Illinois', type:'flat', rate:4.95, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:Infinity, retirementExclusionAge:0, cgAsOrdinary:true, notes:'ALL retirement income exempt (IRA, 401k, pension, SS). IDOR Pub 120.' },
+  'IN': { name:'Indiana', type:'flat', rate:3.05, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Indiana DOR.' },
+  'IA': { name:'Iowa', type:'flat', rate:3.8, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:Infinity, retirementExclusionAge:55, cgAsOrdinary:true, notes:'2025 rate. ALL retirement income exempt at 55+. Iowa Code §422.7(31).' },
+  'KY': { name:'Kentucky', type:'flat', rate:4.0, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:31110, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Kentucky DOR Schedule P.' },
+  'LA': { name:'Louisiana', type:'flat', rate:3.0, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:6000, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Flat as of 2025 (Prop 2). Louisiana DOR.' },
+  'MA': { name:'Massachusetts', type:'flat', rate:5.0, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Massachusetts DOR.' },
+  'MI': { name:'Michigan', type:'flat', rate:4.25, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:20000, retirementExclusionAge:62, cgAsOrdinary:true, notes:'Pension exclusion varies by birth year; simplified to $20K@62. MI Treasury Pub 4119.' },
+  'MS': { name:'Mississippi', type:'flat', rate:5.0, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:Infinity, retirementExclusionAge:0, cgAsOrdinary:true, notes:'ALL retirement income exempt. Mississippi DOR.' },
+  'NC': { name:'North Carolina', type:'flat', rate:4.5, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'North Carolina DOR.' },
+  'ND': { name:'North Dakota', type:'flat', rate:2.5, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Flat since 2023. ND Office of State Tax Commissioner.' },
+  'PA': { name:'Pennsylvania', type:'flat', rate:3.07, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:Infinity, retirementExclusionAge:60, cgAsOrdinary:true, notes:'ALL retirement income exempt at 60+. PA DOR REV-636.' },
+  'UT': { name:'Utah', type:'flat', rate:4.65, brackets:[], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:false, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'SS credit-based (complex) — not modeled. Utah TC-40A.' },
+
+  // — Bracketed states —
+  'AL': { name:'Alabama', type:'bracketed', rate:0, brackets:[{min:0,max:1000,rate:0.02},{min:1000,max:6000,rate:0.04},{min:6000,max:Infinity,rate:0.05}], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:6000, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Alabama DOR. $6K private pension exclusion.' },
+  'AR': { name:'Arkansas', type:'bracketed', rate:0, brackets:[{min:0,max:4300,rate:0.02},{min:4300,max:8500,rate:0.04},{min:8500,max:Infinity,rate:0.044}], singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:62, ssExemptIncomeLimit:0, retirementExclusion:6000, retirementExclusionAge:59, cgAsOrdinary:true, notes:'Arkansas DFA.' },
+  'CA': { name:'California', type:'bracketed', rate:0,
+    brackets:[{min:0,max:20824,rate:0.01},{min:20824,max:49368,rate:0.02},{min:49368,max:77918,rate:0.04},{min:77918,max:108162,rate:0.06},{min:108162,max:136700,rate:0.08},{min:136700,max:698274,rate:0.093},{min:698274,max:837922,rate:0.103},{min:837922,max:1000000,rate:0.113},{min:1000000,max:Infinity,rate:0.123}],
+    singleBrackets:[{min:0,max:10412,rate:0.01},{min:10412,max:24684,rate:0.02},{min:24684,max:38959,rate:0.04},{min:38959,max:54081,rate:0.06},{min:54081,max:68350,rate:0.08},{min:68350,max:349137,rate:0.093},{min:349137,max:418961,rate:0.103},{min:418961,max:500000,rate:0.113},{min:500000,max:Infinity,rate:0.123}],
+    stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'California FTB.' },
+  'CT': { name:'Connecticut', type:'bracketed', rate:0,
+    brackets:[{min:0,max:20000,rate:0.02},{min:20000,max:100000,rate:0.045},{min:100000,max:200000,rate:0.055},{min:200000,max:400000,rate:0.06},{min:400000,max:600000,rate:0.065},{min:600000,max:1000000,rate:0.069},{min:1000000,max:Infinity,rate:0.0699}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:150000, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'CT DRS. SS exempt MFJ AGI ≤$150K (single $75K — uses MFJ limit).' },
+  'DE': { name:'Delaware', type:'bracketed', rate:0,
+    brackets:[{min:0,max:2000,rate:0.0},{min:2000,max:5000,rate:0.022},{min:5000,max:10000,rate:0.039},{min:10000,max:20000,rate:0.048},{min:20000,max:25000,rate:0.052},{min:25000,max:60000,rate:0.0555},{min:60000,max:Infinity,rate:0.066}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:12500, retirementExclusionAge:60, cgAsOrdinary:true, notes:'Delaware Division of Revenue.' },
+  'HI': { name:'Hawaii', type:'bracketed', rate:0,
+    brackets:[{min:0,max:4800,rate:0.014},{min:4800,max:9600,rate:0.032},{min:9600,max:19200,rate:0.055},{min:19200,max:28800,rate:0.064},{min:28800,max:38400,rate:0.068},{min:38400,max:48000,rate:0.072},{min:48000,max:150000,rate:0.076},{min:150000,max:175000,rate:0.079},{min:175000,max:200000,rate:0.0825},{min:200000,max:300000,rate:0.09},{min:300000,max:350000,rate:0.10},{min:350000,max:Infinity,rate:0.11}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Hawaii DOTAX. Public pensions exempt; private taxable — conservative $0 exclusion.' },
+  'KS': { name:'Kansas', type:'bracketed', rate:0,
+    brackets:[{min:0,max:30000,rate:0.031},{min:30000,max:60000,rate:0.0525},{min:60000,max:Infinity,rate:0.057}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:75000, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Kansas DOR. SS exempt if AGI ≤$75K.' },
+  'ME': { name:'Maine', type:'bracketed', rate:0,
+    brackets:[{min:0,max:59600,rate:0.058},{min:59600,max:141300,rate:0.0675},{min:141300,max:Infinity,rate:0.0715}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:25000, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Maine Revenue Services. $25K pension exclusion (income-tested — simplified to flat).' },
+  'MD': { name:'Maryland', type:'bracketed', rate:0,
+    // ⚠ MD also has local/county income tax (2.25%–3.2%) NOT modeled. Total MD tax is understated.
+    brackets:[{min:0,max:1000,rate:0.02},{min:1000,max:2000,rate:0.03},{min:2000,max:3000,rate:0.04},{min:3000,max:100000,rate:0.0475},{min:100000,max:125000,rate:0.05},{min:125000,max:150000,rate:0.0525},{min:150000,max:250000,rate:0.055},{min:250000,max:Infinity,rate:0.0575}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:36200, retirementExclusionAge:65, cgAsOrdinary:true, notes:'Maryland Comptroller Form 502. Local tax not modeled.' },
+  'MN': { name:'Minnesota', type:'bracketed', rate:0,
+    brackets:[{min:0,max:46330,rate:0.0535},{min:46330,max:184040,rate:0.068},{min:184040,max:321450,rate:0.0785},{min:321450,max:Infinity,rate:0.0985}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:false, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'MN DOR. SS partially taxable (complex phase-out not modeled — conservative: fully taxable).' },
+  'MO': { name:'Missouri', type:'bracketed', rate:0,
+    brackets:[{min:0,max:1121,rate:0.015},{min:1121,max:2242,rate:0.02},{min:2242,max:3363,rate:0.025},{min:3363,max:4484,rate:0.03},{min:4484,max:5605,rate:0.035},{min:5605,max:6726,rate:0.04},{min:6726,max:7847,rate:0.045},{min:7847,max:8968,rate:0.048},{min:8968,max:Infinity,rate:0.0495}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:6000, retirementExclusionAge:65, cgAsOrdinary:true, notes:'Missouri DOR. $6K exclusion (income-tested — simplified to flat).' },
+  'MT': { name:'Montana', type:'bracketed', rate:0,
+    brackets:[{min:0,max:39000,rate:0.047},{min:39000,max:Infinity,rate:0.059}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:false, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:4370, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Montana DOR. Follows federal SS taxation. $4,370 exclusion (income-tested — simplified).' },
+  'NE': { name:'Nebraska', type:'bracketed', rate:0,
+    brackets:[{min:0,max:7510,rate:0.0246},{min:7510,max:18000,rate:0.0351},{min:18000,max:29000,rate:0.0501},{min:29000,max:Infinity,rate:0.0584}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Nebraska DOR. SS exempt effective 2024 (LB 825).' },
+  'NJ': { name:'New Jersey', type:'bracketed', rate:0,
+    brackets:[{min:0,max:20000,rate:0.014},{min:20000,max:50000,rate:0.0175},{min:50000,max:70000,rate:0.0245},{min:70000,max:80000,rate:0.035},{min:80000,max:150000,rate:0.05525},{min:150000,max:500000,rate:0.0637},{min:500000,max:1000000,rate:0.0897},{min:1000000,max:Infinity,rate:0.1075}],
+    singleBrackets:[{min:0,max:20000,rate:0.014},{min:20000,max:35000,rate:0.0175},{min:35000,max:40000,rate:0.0245},{min:40000,max:75000,rate:0.035},{min:75000,max:500000,rate:0.05525},{min:500000,max:1000000,rate:0.0637},{min:1000000,max:Infinity,rate:0.0897}],
+    stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:100000, retirementExclusionAge:62, cgAsOrdinary:true, notes:'NJ Division of Taxation GIT-1&2. $100K pension exclusion (phases out >$150K — not modeled).' },
+  'NM': { name:'New Mexico', type:'bracketed', rate:0,
+    brackets:[{min:0,max:8000,rate:0.017},{min:8000,max:16000,rate:0.032},{min:16000,max:24000,rate:0.047},{min:24000,max:Infinity,rate:0.049}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'NM Taxation & Revenue. SS exempt since 2022.' },
+  'NY': { name:'New York', type:'bracketed', rate:0,
+    brackets:[{min:0,max:17150,rate:0.04},{min:17150,max:23600,rate:0.045},{min:23600,max:27900,rate:0.0525},{min:27900,max:161550,rate:0.0585},{min:161550,max:323200,rate:0.0625},{min:323200,max:2155350,rate:0.0685},{min:2155350,max:5000000,rate:0.0965},{min:5000000,max:25000000,rate:0.103},{min:25000000,max:Infinity,rate:0.109}],
+    singleBrackets:[{min:0,max:8500,rate:0.04},{min:8500,max:11700,rate:0.045},{min:11700,max:13900,rate:0.0525},{min:13900,max:80650,rate:0.0585},{min:80650,max:215400,rate:0.0625},{min:215400,max:1077550,rate:0.0685},{min:1077550,max:5000000,rate:0.0965},{min:5000000,max:25000000,rate:0.103},{min:25000000,max:Infinity,rate:0.109}],
+    stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:20000, retirementExclusionAge:59, cgAsOrdinary:true, notes:'NY DTF. $20K private pension exclusion (public/federal fully exempt — simplified to $20K).' },
+  'OH': { name:'Ohio', type:'bracketed', rate:0,
+    brackets:[{min:0,max:26050,rate:0.0},{min:26050,max:100000,rate:0.02765},{min:100000,max:Infinity,rate:0.035}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Ohio DOR.' },
+  'OK': { name:'Oklahoma', type:'bracketed', rate:0,
+    brackets:[{min:0,max:1000,rate:0.0025},{min:1000,max:2500,rate:0.0075},{min:2500,max:3750,rate:0.0175},{min:3750,max:4900,rate:0.0275},{min:4900,max:7200,rate:0.0375},{min:7200,max:Infinity,rate:0.0475}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:10000, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Oklahoma Tax Commission.' },
+  'OR': { name:'Oregon', type:'bracketed', rate:0,
+    brackets:[{min:0,max:18400,rate:0.0475},{min:18400,max:46200,rate:0.0675},{min:46200,max:250000,rate:0.0875},{min:250000,max:Infinity,rate:0.099}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:6250, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Oregon DOR Pub OR-17. $6,250 qualifying public pension exclusion (conservative).' },
+  'RI': { name:'Rhode Island', type:'bracketed', rate:0,
+    brackets:[{min:0,max:73450,rate:0.0375},{min:73450,max:166950,rate:0.0475},{min:166950,max:Infinity,rate:0.0599}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:114900, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'RI Division of Taxation. SS exempt if AGI ≤$114,900.' },
+  'SC': { name:'South Carolina', type:'bracketed', rate:0,
+    brackets:[{min:0,max:3460,rate:0.0},{min:3460,max:17330,rate:0.03},{min:17330,max:Infinity,rate:0.064}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:10000, retirementExclusionAge:0, cgAsOrdinary:true, notes:'SC DOR Form I-335. $10K@any age, $15K@65 — simplified to $10K@0.' },
+  'VT': { name:'Vermont', type:'bracketed', rate:0,
+    brackets:[{min:0,max:73050,rate:0.0335},{min:73050,max:152050,rate:0.066},{min:152050,max:231950,rate:0.076},{min:231950,max:Infinity,rate:0.0875}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:65000, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Vermont Tax Dept. SS exempt MFJ AGI ≤$65K (single $45K — uses MFJ limit).' },
+  'VA': { name:'Virginia', type:'bracketed', rate:0,
+    brackets:[{min:0,max:3000,rate:0.02},{min:3000,max:5000,rate:0.03},{min:5000,max:17000,rate:0.05},{min:17000,max:Infinity,rate:0.0575}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:12000, retirementExclusionAge:65, cgAsOrdinary:true, notes:'VA Tax Form 760. $12K exclusion (income-tested — simplified to flat).' },
+  'WV': { name:'West Virginia', type:'bracketed', rate:0,
+    brackets:[{min:0,max:10000,rate:0.0236},{min:10000,max:25000,rate:0.0315},{min:25000,max:40000,rate:0.0354},{min:40000,max:60000,rate:0.0472},{min:60000,max:Infinity,rate:0.0512}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'WV State Tax Division. SS exempt effective 2022.' },
+  'WI': { name:'Wisconsin', type:'bracketed', rate:0,
+    brackets:[{min:0,max:18420,rate:0.035},{min:18420,max:36840,rate:0.044},{min:36840,max:405550,rate:0.053},{min:405550,max:Infinity,rate:0.0765}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'Wisconsin DOR.' },
+  'DC': { name:'Washington DC', type:'bracketed', rate:0,
+    brackets:[{min:0,max:10000,rate:0.04},{min:10000,max:40000,rate:0.06},{min:40000,max:60000,rate:0.065},{min:60000,max:350000,rate:0.085},{min:350000,max:1000000,rate:0.0925},{min:1000000,max:Infinity,rate:0.1075}],
+    singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'DC Office of Tax and Revenue.' },
 };
-function calcStateTax(taxableIncome, stateCode) {
+function calcStateTax(ctx, stateCode) {
+  // ctx = { ordinaryInc, capGains, ss, ssTaxable, pensionTaxable,
+  //         taxableWd, earned, other, stdDed, isSingle, age }
   if (!stateCode || stateCode === 'none') return 0;
-  const code = stateCode.toUpperCase();
-  const st = STATE_TAXES[code];
-  return (!st || st.rate === 0) ? 0 : Math.round(Math.max(0, taxableIncome) * st.rate / 100);
+  const st = STATE_TAXES[stateCode.toUpperCase()];
+  if (!st || st.type === 'none') return 0;
+  const { ordinaryInc, capGains, ss, pensionTaxable, taxableWd, isSingle, age } = ctx;
+  let stateIncome = ordinaryInc + (st.cgAsOrdinary !== false ? capGains : 0);
+  // 1. SS exemption
+  if (st.ssExempt && age >= (st.ssExemptAge || 0)) {
+    const totalInc = ordinaryInc + capGains;
+    const limit = st.ssExemptIncomeLimit || 0;
+    if (limit === 0 || totalInc <= limit) {
+      stateIncome -= (ss || 0);
+    }
+  }
+  // 2. Retirement income exclusion (pension + IRA/401k distributions)
+  if (st.retirementExclusion > 0 && age >= (st.retirementExclusionAge || 0)) {
+    const retInc = (pensionTaxable || 0) + (taxableWd || 0);
+    stateIncome -= Math.min(retInc, st.retirementExclusion);
+  }
+  // 3. State standard deduction (defaults 0 — future enhancement)
+  const stateDed = isSingle ? (st.stdDedSingle || 0) : (st.stdDed || 0);
+  stateIncome -= stateDed;
+  stateIncome = Math.max(0, stateIncome);
+  if (stateIncome === 0) return 0;
+  // Flat rate
+  if (st.type === 'flat') {
+    return Math.round(stateIncome * st.rate / 100);
+  }
+  // Progressive brackets
+  const brackets = (isSingle && st.singleBrackets) ? st.singleBrackets : st.brackets;
+  let tax = 0;
+  for (const b of brackets) {
+    if (stateIncome <= b.min) break;
+    tax += (Math.min(stateIncome, b.max) - b.min) * b.rate;
+  }
+  return Math.round(tax);
 }
 
 let showRealDollars = false;
@@ -1296,7 +1429,12 @@ function runProjection(p) {
       // Pre-retirement cash flow: check if after-tax income covers expenses + savings
       // Compute approximate tax on earned income for cash flow check
       const preRetTaxEst = calcTax(Math.max(0, earned - (isSingle ? STD_DEDUCTION_SINGLE : STD_DEDUCTION)), isSingle)
-        + calcStateTax(Math.max(0, earned - (isSingle ? STD_DEDUCTION_SINGLE : STD_DEDUCTION)), p.stateCode);
+        + calcStateTax({
+            ordinaryInc: earned, capGains: 0, ss: 0, ssTaxable: 0,
+            pensionTaxable: 0, taxableWd: 0, earned, other: 0,
+            stdDed: isSingle ? STD_DEDUCTION_SINGLE : STD_DEDUCTION,
+            isSingle, age,
+          }, p.stateCode);
       const afterTaxIncome = earned + other + ssdiIncome + pensionIncome - preRetTaxEst;
       const preRetExpenses = expenses; // already set above (pre-retirement or fallback)
       const cashAfterExpenses = afterTaxIncome - preRetExpenses;
@@ -1645,7 +1783,10 @@ function runProjection(p) {
       ? Math.round(Math.min(nii, magi - niitThresh) * 0.038) : 0;
 
     const fedTax = fedTaxOrdinary + cgTax + niitTax;
-    const stateTax = calcStateTax(Math.max(0, ordinaryInc + capGains - stdDed), p.stateCode);
+    const stateTax = calcStateTax({
+      ordinaryInc, capGains, ss, ssTaxable, pensionTaxable, taxableWd,
+      earned, other, stdDed, isSingle, age,
+    }, p.stateCode);
     const tax = fedTax + stateTax;
 
     // IRMAA: 2-year MAGI lookback (your 2028 IRMAA is based on 2026 tax return)
@@ -4295,7 +4436,12 @@ function renderInputs() {
     const preRetExp = p.preRetirementExpenses || 0;
     const estTaxInc = Math.max(0, hhIncome - (p.spouseEnabled ? STD_DEDUCTION : STD_DEDUCTION_SINGLE));
     const estFedTax = calcTax(estTaxInc, !p.spouseEnabled);
-    const estStateTax = calcStateTax(estTaxInc, p.stateCode);
+    const estStateTax = calcStateTax({
+      ordinaryInc: hhIncome, capGains: 0, ss: 0, ssTaxable: 0,
+      pensionTaxable: 0, taxableWd: 0, earned: hhIncome, other: 0,
+      stdDed: p.spouseEnabled ? STD_DEDUCTION : STD_DEDUCTION_SINGLE,
+      isSingle: !p.spouseEnabled, age: p.currentAge,
+    }, p.stateCode);
     const estTotalTax = estFedTax + estStateTax;
     const cashFlow = hhIncome - preRetExp - hhSavings - estTotalTax;
     const cashFlowColor = cashFlow >= 0 ? 'var(--green)' : 'var(--red)';
@@ -5797,9 +5943,22 @@ function renderInputs() {
         <div class="info-box"><div class="info-box-label">Real Return</div><div class="info-box-value" style="color:var(--cyan)">${realRet.toFixed(2)}%</div></div>
         <div class="field"><label class="field-label">State for Tax Purposes</label>
           <select class="field-input" onchange="setParam('stateCode',this.value)" style="cursor:pointer">
-            ${Object.entries(STATE_TAXES).map(([code,st]) => `<option value="${code}"${p.stateCode===code?' selected':''}>${st.name}${st.rate?' ('+st.rate+'%)':''}</option>`).join('')}
+            ${Object.entries(STATE_TAXES).map(([code,st]) => {
+              const label = st.type === 'bracketed' ? st.name + ' (progressive)'
+                : st.rate > 0 ? st.name + ' (flat ' + st.rate + '%)'
+                : st.name;
+              return `<option value="${code}"${p.stateCode===code?' selected':''}>${label}</option>`;
+            }).join('')}
           </select>
-          <div class="field-help">${p.stateCode && p.stateCode !== 'none' ? STATE_TAXES[p.stateCode]?.name + ' -- flat rate ' + STATE_TAXES[p.stateCode]?.rate + '%' : 'Federal taxes only'}</div>
+          <div class="field-help">${(() => {
+            const stEntry = STATE_TAXES[p.stateCode];
+            const stDesc = !stEntry || stEntry.type === 'none' ? 'Federal taxes only'
+              : stEntry.type === 'flat' ? stEntry.name + ' &mdash; flat ' + stEntry.rate + '%'
+              : stEntry.name + ' &mdash; progressive brackets';
+            const exclNote = stEntry && (stEntry.ssExempt || stEntry.retirementExclusion > 0)
+              ? ' &middot; Retirement exemptions apply' : '';
+            return stDesc + exclNote;
+          })()}</div>
         </div>
       </div>
       ${!isEssentials ? `<div style="margin-top:20px;padding:14px;background:var(--bg-base);border-radius:10px;border:1px solid var(--border)">

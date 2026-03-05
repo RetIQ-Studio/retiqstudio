@@ -545,25 +545,26 @@ test('IRMAA', 'Base Part B premium = $185/month ($2,220/year)',
 
 section('12. State Tax Rates (spot checks)');
 
+// Updated for progressive bracket model (v3.3). Context: $100K earned income MFJ, no SS/retirement.
+const stateCheckCtx = {ordinaryInc:100000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:0,earned:100000,other:0,stdDed:31500,isSingle:false,age:55};
 const stateChecks = [
-  { code: 'FL', rate: 0, desc: 'Florida — no income tax' },
-  { code: 'TX', rate: 0, desc: 'Texas — no income tax' },
-  { code: 'CA', rate: 9.3, desc: 'California — top marginal ~9.3%' },
-  { code: 'NY', rate: 6.85, desc: 'New York — ~6.85%' },
-  { code: 'MD', rate: 5.75, desc: 'Maryland — top marginal ~5.75%' },
-  { code: 'IL', rate: 4.95, desc: 'Illinois — flat 4.95%' },
-  { code: 'PA', rate: 3.07, desc: 'Pennsylvania — flat 3.07%' },
-  { code: 'NV', rate: 0, desc: 'Nevada — no income tax' },
-  { code: 'WA', rate: 0, desc: 'Washington — no income tax' },
-  { code: 'none', rate: 0, desc: 'No state selected — zero tax' },
+  { code: 'FL', expected: 0, desc: 'Florida — no income tax' },
+  { code: 'TX', expected: 0, desc: 'Texas — no income tax' },
+  { code: 'CA', expected: 3246, desc: 'California — progressive brackets on $100K' },
+  { code: 'NY', expected: 5420, desc: 'New York — progressive brackets on $100K' },
+  { code: 'MD', expected: 4698, desc: 'Maryland — progressive brackets on $100K' },
+  { code: 'IL', expected: 4950, desc: 'Illinois — flat 4.95% on $100K' },
+  { code: 'PA', expected: 3070, desc: 'Pennsylvania — flat 3.07% on $100K' },
+  { code: 'NV', expected: 0, desc: 'Nevada — no income tax' },
+  { code: 'WA', expected: 0, desc: 'Washington — no income tax' },
+  { code: 'none', expected: 0, desc: 'No state selected — zero tax' },
 ];
 
 for (const s of stateChecks) {
-  const tax = calcStateTax(100000, s.code);
-  const expectedTax = Math.round(100000 * s.rate / 100);
-  test('State Tax', `${s.desc} on $100K`,
-    `State revenue department (effective rate model)`,
-    tax, expectedTax);
+  const tax = calcStateTax(stateCheckCtx, s.code);
+  test('State Tax', `${s.desc}`,
+    `State revenue department / progressive bracket model`,
+    tax, s.expected, 10);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1353,6 +1354,121 @@ const liSpDeath = liProj10.find(y => y.age === 78);
 test('Life Insurance', 'Spouse policy: benefit triggers at spouse death',
   'Engine: insured=spouse, deathAge=spouseDiesAge',
   liSpDeath ? liSpDeath.lifeInsBenefit : 0, 300000, 1);
+
+// ══════════════════════════════════════════════════════════════════
+// CATEGORY 28: Progressive State Income Tax (v3.3)
+// Source: State DOR publications, progressive brackets, SS/retirement exemptions
+// ══════════════════════════════════════════════════════════════════
+
+section('State Income Tax');
+
+// — No-tax states (5 tests) —
+test('State Tax', 'FL: SS+IRA income, no tax',
+  'Florida DOR — no state income tax',
+  calcStateTax({ordinaryInc:70000,capGains:0,ss:30000,ssTaxable:25500,pensionTaxable:0,taxableWd:40000,earned:0,other:0,stdDed:31500,isSingle:false,age:68},'FL'), 0, 1);
+
+test('State Tax', 'TX: $200K income, no tax',
+  'Texas — no state income tax',
+  calcStateTax({ordinaryInc:200000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:200000,earned:0,other:0,stdDed:31500,isSingle:false,age:65},'TX'), 0, 1);
+
+test('State Tax', 'WA: any income, no tax',
+  'Washington — no state income tax on wages/retirement',
+  calcStateTax({ordinaryInc:100000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:0,earned:100000,other:0,stdDed:15750,isSingle:true,age:55},'WA'), 0, 1);
+
+test('State Tax', 'NH: IRA distribution, no tax',
+  'New Hampshire — Hall Tax repealed 2025',
+  calcStateTax({ordinaryInc:60000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:60000,earned:0,other:0,stdDed:31500,isSingle:false,age:65},'NH'), 0, 1);
+
+test('State Tax', 'none: federal only, no state tax',
+  'Baseline: no state selected',
+  calcStateTax({ordinaryInc:100000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:0,earned:100000,other:0,stdDed:31500,isSingle:false,age:60},'none'), 0, 1);
+
+// — IL: fully exempt retirement income (3 tests) —
+test('State Tax', 'IL: SS+IRA both fully exempt',
+  'Illinois IDOR Pub 120 — all retirement income exempt',
+  calcStateTax({ordinaryInc:60000,capGains:0,ss:24000,ssTaxable:20400,pensionTaxable:0,taxableWd:36000,earned:0,other:0,stdDed:31500,isSingle:false,age:65},'IL'), 0, 1);
+
+test('State Tax', 'IL: earned income taxable (4.95%)',
+  'Illinois IDOR — flat rate on non-retirement income',
+  calcStateTax({ordinaryInc:100000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:0,earned:100000,other:0,stdDed:31500,isSingle:false,age:55},'IL'), 4950, 10);
+
+test('State Tax', 'IL: mixed — wages taxable, IRA exempt',
+  'Illinois IDOR — retirement portion excluded',
+  calcStateTax({ordinaryInc:100000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:50000,earned:50000,other:0,stdDed:31500,isSingle:false,age:65},'IL'), 2475, 10);
+
+// — PA: retirement exempt age 60+ (3 tests) —
+test('State Tax', 'PA: IRA exempt age 60+',
+  'Pennsylvania DOR REV-636 — all retirement income exempt at 60+',
+  calcStateTax({ordinaryInc:50000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:50000,earned:0,other:0,stdDed:31500,isSingle:false,age:62},'PA'), 0, 1);
+
+test('State Tax', 'PA: IRA taxable age 58 (3.07%)',
+  'Pennsylvania DOR — under 60 not exempt',
+  calcStateTax({ordinaryInc:50000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:50000,earned:0,other:0,stdDed:31500,isSingle:false,age:58},'PA'), 1535, 10);
+
+test('State Tax', 'PA: SS always exempt (all ages)',
+  'Pennsylvania DOR — SS exempt regardless of age',
+  calcStateTax({ordinaryInc:24000,capGains:0,ss:24000,ssTaxable:20400,pensionTaxable:0,taxableWd:0,earned:0,other:0,stdDed:31500,isSingle:false,age:55},'PA'), 0, 1);
+
+// — CA: progressive brackets (3 tests) —
+// CA MFJ $80K bracket walk: 1%×20824 + 2%×28544 + 4%×28550 + 6%×2082 = 208.24+570.88+1142.00+124.92 = 2046
+test('State Tax', 'CA: MFJ $80K — progressive brackets',
+  'California FTB 2024 brackets',
+  calcStateTax({ordinaryInc:80000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:80000,earned:0,other:0,stdDed:31500,isSingle:false,age:65},'CA'), 2046, 50);
+
+// CA with $30K SS exempt → taxable $50K: 1%×20824 + 2%×28544 + 4%×632 = 208.24+570.88+25.28 = 804
+test('State Tax', 'CA: SS exempt, IRA taxable',
+  'California FTB — SS exempt from state tax',
+  calcStateTax({ordinaryInc:80000,capGains:0,ss:30000,ssTaxable:25500,pensionTaxable:0,taxableWd:50000,earned:0,other:0,stdDed:31500,isSingle:false,age:67},'CA'), 804, 50);
+
+test('State Tax', 'CA: single filer pays more than MFJ same income',
+  'CA single brackets narrower than MFJ',
+  calcStateTax({ordinaryInc:80000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:80000,earned:0,other:0,stdDed:15750,isSingle:true,age:65},'CA') > calcStateTax({ordinaryInc:80000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:80000,earned:0,other:0,stdDed:31500,isSingle:false,age:65},'CA') ? 1 : 0, 1, 1);
+
+// — NY: progressive with pension exclusion (2 tests) —
+// NY MFJ $100K, $20K pension excluded → $80K taxable
+// 4%×17150 + 4.5%×6450 + 5.25%×4300 + 5.85%×52100 = 686+290.25+225.75+3047.85 = 4250
+test('State Tax', 'NY: MFJ $100K with $20K pension exclusion',
+  'New York DTF — private pension $20K exempt age 59+',
+  calcStateTax({ordinaryInc:100000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:20000,taxableWd:80000,earned:0,other:0,stdDed:31500,isSingle:false,age:65},'NY'), 4250, 100);
+
+test('State Tax', 'NY: SS exempt from state tax',
+  'New York DTF — SS not subject to state income tax',
+  calcStateTax({ordinaryInc:100000,capGains:0,ss:30000,ssTaxable:25500,pensionTaxable:0,taxableWd:0,earned:70000,other:0,stdDed:31500,isSingle:false,age:65},'NY') < calcStateTax({ordinaryInc:100000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:0,earned:100000,other:0,stdDed:31500,isSingle:false,age:65},'NY') ? 1 : 0, 1, 1);
+
+// — Income-tested SS exemptions (4 tests) —
+test('State Tax', 'KS: SS exempt under $75K AGI',
+  'Kansas DOR — SS exempt if AGI ≤ $75K',
+  calcStateTax({ordinaryInc:64000,capGains:0,ss:24000,ssTaxable:20400,pensionTaxable:0,taxableWd:40000,earned:0,other:0,stdDed:31500,isSingle:false,age:67},'KS') < calcStateTax({ordinaryInc:64000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:40000,earned:24000,other:0,stdDed:31500,isSingle:false,age:67},'KS') ? 1 : 0, 1, 1);
+
+test('State Tax', 'KS: SS taxable above $75K AGI',
+  'Kansas DOR — SS not exempt if AGI > $75K',
+  calcStateTax({ordinaryInc:84000,capGains:0,ss:24000,ssTaxable:20400,pensionTaxable:0,taxableWd:60000,earned:0,other:0,stdDed:31500,isSingle:false,age:67},'KS') > 0 ? 1 : 0, 1, 1);
+
+test('State Tax', 'CT: SS exempt under $150K MFJ AGI',
+  'Connecticut DRS — SS exempt if AGI ≤ $150K MFJ',
+  calcStateTax({ordinaryInc:110000,capGains:0,ss:30000,ssTaxable:25500,pensionTaxable:0,taxableWd:80000,earned:0,other:0,stdDed:31500,isSingle:false,age:67},'CT') < calcStateTax({ordinaryInc:110000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:80000,earned:30000,other:0,stdDed:31500,isSingle:false,age:67},'CT') ? 1 : 0, 1, 1);
+
+test('State Tax', 'RI: SS exempt under $114,900 AGI',
+  'Rhode Island Division of Taxation — SS exempt threshold 2024',
+  calcStateTax({ordinaryInc:84000,capGains:0,ss:24000,ssTaxable:20400,pensionTaxable:0,taxableWd:60000,earned:0,other:0,stdDed:31500,isSingle:false,age:67},'RI') < calcStateTax({ordinaryInc:84000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:60000,earned:24000,other:0,stdDed:31500,isSingle:false,age:67},'RI') ? 1 : 0, 1, 1);
+
+// — Edge cases (4 tests) —
+test('State Tax', 'Invalid state code returns $0',
+  'Engine safety — unknown state',
+  calcStateTax({ordinaryInc:100000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:0,earned:100000,other:0,stdDed:31500,isSingle:false,age:60},'ZZ'), 0, 1);
+
+test('State Tax', 'Zero income returns $0',
+  'Basic rule',
+  calcStateTax({ordinaryInc:0,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:0,earned:0,other:0,stdDed:31500,isSingle:false,age:65},'CA'), 0, 1);
+
+test('State Tax', 'PA age gate: $40K IRA age 58 taxable',
+  'Pennsylvania DOR — under 60 no exemption',
+  calcStateTax({ordinaryInc:40000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:40000,earned:0,other:0,stdDed:31500,isSingle:false,age:58},'PA'), 1228, 10);
+
+test('State Tax', 'PA age gate: $40K IRA age 60 exempt',
+  'Pennsylvania DOR — 60+ fully exempt',
+  calcStateTax({ordinaryInc:40000,capGains:0,ss:0,ssTaxable:0,pensionTaxable:0,taxableWd:40000,earned:0,other:0,stdDed:31500,isSingle:false,age:60},'PA'), 0, 1);
+
 
 // ══════════════════════════════════════════════════════════════════
 // RESULTS
