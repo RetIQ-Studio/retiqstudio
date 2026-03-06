@@ -391,6 +391,12 @@ button:hover { opacity: 0.88; }
         <button id="installBtn" class="tab" title="Install RetIQ">Install</button>
         <button id="buyBtn" class="tab" title="Pro unlocks: Save HTML snapshots, future Pro features">Upgrade</button>
         <button id="activateBtn" class="tab" title="Enter or manage your license">Activate</button>
+        <div class="save-load" style="position:relative" id="presetMenuWrap">
+          <button onclick="togglePresetMenu()" title="Load a demo household">&#127968; Examples</button>
+          <div id="presetMenu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;min-width:220px;z-index:200;box-shadow:0 4px 20px rgba(0,0,0,0.3);overflow:hidden">
+            <div class="preset-hdr" style="padding:8px 12px 6px;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);border-bottom:1px solid var(--border)">Load Example Household</div>
+          </div>
+        </div>
         <div class="save-load">
           <button onclick="exportHTML()" title="Save as HTML snapshot">&#10515; HTML</button>
           <button onclick="document.getElementById('importFile').click()" title="Load plan from JSON or HTML snapshot">&#10514; Load</button>
@@ -2036,6 +2042,122 @@ let state = {
 // Store demo defaults for reset
 const DEMO_PARAMS = JSON.parse(JSON.stringify(state.params));
 
+// ── Demo Family Presets ──────────────────────────────────────────────────────
+const PRESET_FAMILIES = [
+  {
+    id: 'clarks',
+    label: 'The Clarks',
+    tagline: 'The cost of doing nothing fancy',
+    params: {
+      currentAge: 64, retirementAge: 65, endAge: 95, birthYear: 1961,
+      annualIncome: 110000, annualSavings: 18000, annualExpenses: 80000,
+      inflation: 3, nominalReturn: 7, incomeGrowth: 2,
+      ssClaimAge: 67, ssUseManual: true, ssManualMonthly: 2600, ssCOLA: 2,
+      spouseEnabled: true, spouseAge: 62, spouseBirthYear: 1963,
+      spouseRetirementAge: 65, spouseIncome: 72000, spouseSavings: 10000,
+      spouseIncomeGrowth: 2,
+      spouseSSClaimAge: 67, spouseSSUseManual: true, spouseSSManualMonthly: 1900,
+      stateCode: 'FL',
+      preMedicareHealthcare: { enabled: false },
+      rothConversion: { enabled: false },
+      withdrawalOrder: ['cash', 'taxable', 'pretax', 'roth'],
+      accounts: [
+        { id: 1, name: '401(k)',    type: 'pretax',  balance: 800000, returnRate: 7 },
+        { id: 2, name: 'Roth IRA',  type: 'roth',    balance: 150000, returnRate: 7 },
+        { id: 3, name: 'Brokerage', type: 'taxable', balance: 100000, returnRate: 7 },
+      ],
+      pension: { enabled: false }, spousePension: { enabled: false },
+      ssdiPrimary: { enabled: false }, ssdiSpouse: { enabled: false },
+      longTermCare: { enabled: false },
+      charitableGiving: { enabled: false, amount: 0, startAge: 65, endAge: 85, schedule: [] },
+      debts: [], lifeInsurance: [], cashEvents: [],
+      legacy: { enabled: false, targetAmount: 0 },
+      uiMode: 'essentials',
+    }
+  },
+  {
+    id: 'lees',
+    label: 'The Lees',
+    tagline: 'See what the Roth optimizer actually saves',
+    params: {
+      currentAge: 59, retirementAge: 62, endAge: 95, birthYear: 1966,
+      annualIncome: 175000, annualSavings: 28000, annualExpenses: 88000,
+      inflation: 3, nominalReturn: 7, incomeGrowth: 2,
+      ssClaimAge: 70, ssUseManual: true, ssManualMonthly: 3200, ssCOLA: 2,
+      spouseEnabled: true, spouseAge: 57, spouseBirthYear: 1968,
+      spouseRetirementAge: 62, spouseIncome: 92000, spouseSavings: 15000,
+      spouseIncomeGrowth: 2,
+      spouseSSClaimAge: 67, spouseSSUseManual: true, spouseSSManualMonthly: 2100,
+      stateCode: 'VA',
+      preMedicareHealthcare: {
+        enabled: true, source: 'aca', annualCost: 18000, inflation: 5,
+        acaHouseholdSize: 2, acaSubsidyRules: 'auto',
+        cobraDuration: 18, cobraFollowUpCost: 18000, cobraFollowUpInflation: 5,
+        spousePlanFollowUpCost: 18000, spousePlanFollowUpInflation: 5,
+      },
+      rothConversion: {
+        enabled: false,
+        strategy: 'smartFill', targetBracket: 0.22,
+        startAge: 62, endAge: 72,
+      },
+      withdrawalOrder: ['cash', 'taxable', 'pretax', 'roth'],
+      accounts: [
+        { id: 1, name: '401(k)',        type: 'pretax',  balance: 820000, returnRate: 7 },
+        { id: 2, name: 'Spouse 401(k)', type: 'pretax',  balance: 280000, returnRate: 7 },
+        { id: 3, name: 'Roth IRA',      type: 'roth',    balance: 180000, returnRate: 7 },
+        { id: 4, name: 'Brokerage',     type: 'taxable', balance: 250000, returnRate: 7 },
+        { id: 5, name: 'Cash / HYS',    type: 'cash',    balance: 50000,  returnRate: 4.5 },
+      ],
+      pension: { enabled: false }, spousePension: { enabled: false },
+      ssdiPrimary: { enabled: false }, ssdiSpouse: { enabled: false },
+      longTermCare: { enabled: false },
+      charitableGiving: { enabled: false, amount: 0, startAge: 65, endAge: 85, schedule: [] },
+      debts: [], lifeInsurance: [], cashEvents: [],
+      legacy: { enabled: false, targetAmount: 0 },
+      uiMode: 'full',
+    }
+  },
+  {
+    id: 'washingtons',
+    label: 'The Washingtons',
+    tagline: 'Pension, mortgage, survivor — handled',
+    params: {
+      currentAge: 63, retirementAge: 65, endAge: 95, birthYear: 1962,
+      annualIncome: 130000, annualSavings: 20000, annualExpenses: 82000,
+      inflation: 3, nominalReturn: 7, incomeGrowth: 2,
+      ssClaimAge: 70, ssUseManual: true, ssManualMonthly: 2800, ssCOLA: 2,
+      spouseEnabled: true, spouseAge: 61, spouseBirthYear: 1964,
+      spouseRetirementAge: 65, spouseIncome: 78000, spouseSavings: 12000,
+      spouseIncomeGrowth: 2,
+      spouseSSClaimAge: 67, spouseSSUseManual: true, spouseSSManualMonthly: 1700,
+      stateCode: 'GA',
+      pension: {
+        enabled: true, monthlyAmount: 2500, startAge: 63, cola: 2,
+        survivorBenefit: 'joint50', taxablePercent: 100,
+      },
+      spousePension: { enabled: false },
+      debts: [
+        { id: 1, type: 'mortgage', name: 'Mortgage', monthlyPayment: 1800, endAge: 72 }
+      ],
+      legacy: { enabled: true, targetAmount: 400000 },
+      preMedicareHealthcare: { enabled: false },
+      rothConversion: { enabled: false },
+      withdrawalOrder: ['cash', 'taxable', 'pretax', 'roth'],
+      accounts: [
+        { id: 1, name: '401(k)',     type: 'pretax',  balance: 750000, returnRate: 7 },
+        { id: 2, name: 'Roth IRA',   type: 'roth',    balance: 200000, returnRate: 7 },
+        { id: 3, name: 'Brokerage',  type: 'taxable', balance: 150000, returnRate: 7 },
+        { id: 4, name: 'Cash / HYS', type: 'cash',    balance: 80000,  returnRate: 4.5 },
+      ],
+      ssdiPrimary: { enabled: false }, ssdiSpouse: { enabled: false },
+      longTermCare: { enabled: false },
+      charitableGiving: { enabled: false, amount: 0, startAge: 65, endAge: 85, schedule: [] },
+      lifeInsurance: [], cashEvents: [],
+      uiMode: 'full',
+    }
+  },
+];
+
 function isPro() { return localStorage.getItem('retiq_pro') === 'true' && !!localStorage.getItem('retiq_license'); }
 function proGate(featureName, teaser) {
   return `<div class="pro-gate"><div style="opacity:0.25;pointer-events:none;filter:blur(2px)">${teaser}</div>
@@ -2111,6 +2233,55 @@ function migrateParams() {
 migrateParams();
 function saveState() { if (isPro()) { try { localStorage.setItem('retiq_v1', JSON.stringify(state.params)); } catch(e) {} } }
 function setParam(key, val) { if (!isPro()) return; state.params[key] = val; state.mcResults = null; state.rothOptResults = null; saveState(); render(); }
+
+// ── Demo Family Preset Loading ──────────────────────────────────
+function loadPreset(id) {
+  const preset = PRESET_FAMILIES.find(f => f.id === id);
+  if (!preset) return;
+  const hasSaved = localStorage.getItem('retiq_v1') !== null;
+  if (hasSaved) {
+    const ok = confirm(
+      'Load "' + preset.label + '"?\n\nThis will replace your current plan. ' +
+      'Your saved data will not be deleted \u2014 reload the page to restore it.'
+    );
+    if (!ok) return;
+  }
+  state.params = JSON.parse(JSON.stringify(preset.params));
+  migrateParams();
+  state.mcResults = null;
+  state.rothOptResults = null;
+  state.rothOptAppliedIdx = null;
+  state.tab = 'inputs';
+  state.inputTab = 'personal';
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function togglePresetMenu() {
+  const menu = document.getElementById('presetMenu');
+  if (!menu) return;
+  if (menu.style.display !== 'none') { menu.style.display = 'none'; return; }
+  const hdr = menu.querySelector('.preset-hdr');
+  const items = PRESET_FAMILIES.map(f =>
+    '<button onclick="loadPreset(\'' + f.id + '\');togglePresetMenu()" style="' +
+    'display:block;width:100%;text-align:left;padding:10px 14px;' +
+    'background:none;border:none;border-bottom:1px solid var(--border);' +
+    'cursor:pointer;font-family:inherit" ' +
+    'onmouseover="this.style.background=\'var(--bg-hover)\'" ' +
+    'onmouseout="this.style.background=\'none\'">' +
+    '<div style="font-size:13px;font-weight:500;color:var(--text)">' + f.label + '</div>' +
+    '<div style="font-size:11px;color:var(--text-muted);margin-top:1px">' + f.tagline + '</div>' +
+    '</button>'
+  ).join('');
+  menu.innerHTML = (hdr ? hdr.outerHTML : '') + items;
+  menu.style.display = 'block';
+}
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('presetMenuWrap');
+  if (wrap && !wrap.contains(e.target)) {
+    const menu = document.getElementById('presetMenu');
+    if (menu) menu.style.display = 'none';
+  }
+});
 
 // ── UI Mode: Essentials / Full Control ──────────────────────────
 function getActiveAdvancedFeatures(p) {
