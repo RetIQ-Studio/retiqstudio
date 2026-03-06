@@ -109,24 +109,25 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
   <!-- 2 -->
   <div class="sec" id="navigation">
     <h2>2. Navigation &amp; Layout</h2>
-    <p>The app has two rows of navigation:</p>
-    <p><strong>Top row (main nav):</strong> Switches between major views &mdash; Inputs, Dashboard, Projection, Monte Carlo, and Scenarios.</p>
+    <p>The header has two sections:</p>
+    <p><strong>Top bar:</strong> Contains the logo, plan badge, mode toggle, action buttons (Examples, Save, Load, Theme), an overflow menu (&hellip;) with links and sharing, and the Upgrade button.</p>
+    <p><strong>Underline nav:</strong> Switches between major views &mdash; Dashboard, Inputs, Projection, Monte Carlo, Scenarios, and Validation. The active tab is highlighted with a blue underline.</p>
     <p><strong>Sub-nav (inside Inputs):</strong> Switches between input categories &mdash; Personal, Income, Expenses, Accounts, Pension, Social Security, Disability (SSDI), Liabilities, Healthcare, Medicare, Roth Conversions, Charitable Giving, Legacy, and Assumptions. The sub-nav sticks to the top of the screen when you scroll.</p>
     <p>The <strong>header bar</strong> also contains:</p>
     <ul>
-      <li><strong>Essentials / Full Control</strong> mode toggle &mdash; switches between a simplified 7-tab view and the full 14-tab interface. See below.</li>
-      <li><strong>Today's $ / Future $</strong> toggle &mdash; switches all dollar values between inflation-adjusted and nominal.</li>
-      <li><strong>Light / Dark</strong> theme toggle.</li>
-      <li><strong>Save HTML / Load</strong> buttons for data portability.</li>
-      <li><strong>Features / Manual</strong> links to documentation (opens on website).</li>
+      <li><strong>Simple / Full</strong> mode toggle &mdash; switches between a simplified 7-tab view and the full 14-tab interface. See below.</li>
+      <li><strong>Today's $ / Future $</strong> toggle &mdash; switches all dollar values between inflation-adjusted and nominal (located in the Projection tab).</li>
+      <li>Theme toggle (moon/sun icon).</li>
+      <li>Save/Load icon buttons for data portability.</li>
+      <li>Overflow menu (&hellip;) with links to Features, Manual, Security, and sharing.</li>
     </ul>
 
-    <h3>Essentials vs. Full Control Mode</h3>
+    <h3>Simple vs. Full Mode</h3>
     <p>RetIQ has two UI modes that control which input tabs and fields are visible. The underlying engine always reads all parameters regardless of mode &mdash; switching modes never changes your projection numbers.</p>
-    <p><strong>Essentials</strong> (default for new users): Shows 7 input tabs (Personal, Income, Expenses, Pension, Accounts, Social Security, Assumptions) with simplified fields. Advanced options like birth months, retirement months, COLA overrides, withdrawal order, and individual account management are hidden. The Accounts tab shows three aggregate balance fields (Pre-Tax, Roth, Brokerage) instead of individual accounts. Monte Carlo shows just a Run button without model selection.</p>
-    <p><strong>Full Control</strong> (default for existing users): Shows all 14 input tabs and every advanced feature. This includes Disability (SSDI), Healthcare, Medicare, Roth Conversions, Charitable Giving, Legacy, and Liabilities tabs, plus full account management, withdrawal order configuration, and Monte Carlo model selection.</p>
-    <p>Toggle between modes anytime using the segmented button in the header. If you switch from Full Control to Essentials while advanced features are active, you'll see a confirmation listing what will be hidden. Your settings are never changed &mdash; switch back to Full Control to edit them.</p>
-    <div class="tip"><strong>Tip:</strong> A blue info bar appears in Essentials mode when advanced features are active in the background, showing how many and offering a quick switch to Full Control.</div>
+    <p><strong>Simple</strong> (default for new users): Shows 7 input tabs (Personal, Income, Expenses, Pension, Accounts, Social Security, Assumptions) with simplified fields. Advanced options like birth months, retirement months, COLA overrides, withdrawal order, and individual account management are hidden. The Accounts tab shows three aggregate balance fields (Pre-Tax, Roth, Brokerage) instead of individual accounts. Monte Carlo shows just a Run button without model selection.</p>
+    <p><strong>Full</strong> (default for existing users): Shows all 14 input tabs and every advanced feature. This includes Disability (SSDI), Healthcare, Medicare, Roth Conversions, Charitable Giving, Legacy, and Liabilities tabs, plus full account management, withdrawal order configuration, and Monte Carlo model selection.</p>
+    <p>Toggle between modes anytime using the segmented button in the header. If you switch from Full to Simple while advanced features are active, you'll see a confirmation listing what will be hidden. Your settings are never changed &mdash; switch back to Full to edit them.</p>
+    <div class="tip"><strong>Tip:</strong> A blue info bar appears in Simple mode when advanced features are active in the background, showing how many and offering a quick switch to Full.</div>
   </div>
 
   <!-- 3 -->
@@ -161,7 +162,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     </table>
     <p>The tab shows a preview of projected income at retirement age based on current values and growth rates.</p>
 
-    <h3>One-Time Cash Events (Full Control)</h3>
+    <h3>One-Time Cash Events (Full mode)</h3>
     <p>Model large one-time inflows such as selling a home or rental property. Each event specifies:</p>
     <ul>
       <li><strong>Age at Sale:</strong> When the event occurs in your projection.</li>
@@ -467,7 +468,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
   <!-- 14.5 -->
   <div class="sec" id="lifeinsurance">
     <h2>Life Insurance</h2>
-    <p>Life insurance policies are configured in the Legacy tab (Full Control mode). Click "+ Add Life Insurance Policy" to add a new policy. Each policy has:</p>
+    <p>Life insurance policies are configured in the Legacy tab (Full mode). Click "+ Add Life Insurance Policy" to add a new policy. Each policy has:</p>
     <ul>
       <li><strong>Insured Person:</strong> You or your spouse. Determines when premiums stop and benefits trigger.</li>
       <li><strong>Policy Type:</strong> Term (expires at a set age) or Permanent (whole life/universal &mdash; active until death).</li>
