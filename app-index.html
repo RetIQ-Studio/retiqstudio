@@ -1074,6 +1074,14 @@ function runProjection(p) {
   const cashReturn = weightedReturn('taxable', 'cash');
   const tInvReturn = weightedReturn('taxable', 'investment');
 
+  // Bear market per-year return overrides — replaces type-level returns during crash window
+  const weightedBearReturn = (type, ovr, subtype) => {
+    const accts = p.accounts.filter(a => a.type === type && (subtype === undefined || (subtype === 'cash' ? a.subtype === 'cash' : a.subtype !== 'cash')));
+    const totalBal = accts.reduce((s,a) => s + a.balance, 0);
+    if (totalBal <= 0) return type === 'taxable' && subtype === 'cash' ? 4 : p.nominalReturn;
+    return accts.reduce((s,a) => s + (ovr[a.id] !== undefined ? ovr[a.id] : (a.returnRate !== undefined ? a.returnRate : p.nominalReturn)) * a.balance, 0) / totalBal;
+  };
+
   const birthYear = p.birthYear || (new Date().getFullYear() - p.currentAge);
   const rmdStart = rmdStartAge(birthYear);
   const ssBirthYear = birthYear;
@@ -1855,10 +1863,11 @@ function runProjection(p) {
       }
       return bal * (1 + (1 + nr / 100) / (1 + inf / 100) - 1);
     };
-    preTax = growAcct(preTax, ptReturn);
-    roth = growAcct(roth, rReturn);
+    const bearOvr = p._bearOverrides?.[yr];
+    preTax = growAcct(preTax, bearOvr ? weightedBearReturn('pretax', bearOvr) : ptReturn);
+    roth = growAcct(roth, bearOvr ? weightedBearReturn('roth', bearOvr) : rReturn);
     cash = growAcct(cash, cashReturn);
-    taxableInv = growAcct(taxableInv, tInvReturn);
+    taxableInv = growAcct(taxableInv, bearOvr ? weightedBearReturn('taxable', bearOvr, 'investment') : tInvReturn);
     taxable = cash + taxableInv; // combined for output
 
     const _cash = Math.round(cash), _inv = Math.round(taxableInv), _tax = _cash + _inv;
@@ -1978,7 +1987,7 @@ const fmtK = (n, yr) => {
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
 
 let state = {
-  tab: 'dashboard', inputTab: 'personal', projChartKeys: ['netWorth'], projShowTable: false, mcResults: null, scenario: null, rothOptResults: null, scenarioChartKeys: ['netWorth'], thisYearCollapsed: false, bearMarket: { equityPct: 70, crashPct: 30, active: false },
+  tab: 'dashboard', inputTab: 'personal', projChartKeys: ['netWorth'], projShowTable: false, mcResults: null, scenario: null, rothOptResults: null, scenarioChartKeys: ['netWorth'], thisYearCollapsed: false, bearMarket: { equityPct: 70, crashPct: 30, onsetYr: 1, durationYrs: 3, active: false },
   optScoreMode: 'balanced',
   reportGoal: 'netWorth',
   mcConfig: { numSims: 500, returnStdDev: 6, inflationStdDev: 1.5, model: 'normal' },
@@ -6448,21 +6457,24 @@ function renderMonteCarlo(proj) {
   </div>` + results;
 }
 
-function applyBearMarketShock(p, equityPct, crashPct) {
+function buildBearMarketParams(p, bm) {
   const shocked = JSON.parse(JSON.stringify(p));
   const investmentTypes = ['pretax', 'roth', 'taxable'];
-  const investmentAccounts = shocked.accounts.filter(a => investmentTypes.includes(a.type));
-  const totalInvested = investmentAccounts.reduce((sum, a) => sum + a.balance, 0);
-  if (totalInvested <= 0) return shocked;
-  const totalImpact = totalInvested * (equityPct / 100) * (crashPct / 100);
-  investmentAccounts.forEach(a => {
-    const share = a.balance / totalInvested;
-    a.balance = Math.max(0, a.balance - (totalImpact * share));
-  });
-  shocked.accounts = shocked.accounts.map(a => {
-    const updated = investmentAccounts.find(ia => ia.id === a.id);
-    return updated || a;
-  });
+  const retirementYear = p.retirementAge - p.currentAge; // yr index when retirement starts
+  const crashStart = retirementYear + bm.onsetYr;
+  const crashEnd = crashStart + bm.durationYrs;
+  const overrides = {};
+  for (let yr = crashStart; yr < crashEnd; yr++) {
+    overrides[yr] = {};
+    shocked.accounts
+      .filter(a => investmentTypes.includes(a.type))
+      .forEach(a => {
+        const baseReturn = a.returnRate !== undefined ? a.returnRate : p.nominalReturn;
+        const reduction = (bm.equityPct / 100) * (bm.crashPct / 100) * baseReturn;
+        overrides[yr][a.id] = Math.max(-50, baseReturn - reduction);
+      });
+  }
+  shocked._bearOverrides = overrides;
   return shocked;
 }
 
@@ -6556,42 +6568,52 @@ function renderScenarios(proj) {
   }
 
   // -- Bear Market Stress Test --
-  const bm = state.bearMarket || { equityPct: 70, crashPct: 30, active: false };
+  const bm = state.bearMarket || { equityPct: 70, crashPct: 30, onsetYr: 1, durationYrs: 3, active: false };
   const presets = [{label:'Mild \u2212 20%',val:20},{label:'Moderate \u2212 30%',val:30},{label:'Severe \u2212 50%',val:50}];
   let bearSection = `
   <div class="card" data-accent="red"><div class="card-title">Bear Market Stress Test</div>
     <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
-      Models a market crash against your investment accounts only (pre-tax, Roth, brokerage). Cash, pension, Social Security, and other income are unaffected.
+      Models a market crash against your investment accounts only (pre-tax, Roth, brokerage). Cash, pension, Social Security, and other income are unaffected. Returns normalize after the recovery period.
     </div>
     <div class="grid-2" style="margin-bottom:14px">
       <div class="field"><label class="field-label">% of investment accounts in equities</label>
         <div class="field-wrap"><input type="number" class="field-input has-suffix" value="${bm.equityPct}" min="0" max="100"
-          onchange="state.bearMarket.equityPct=Math.max(0,Math.min(100,Number(this.value)));if(state.bearMarket.active)render();">
+          onchange="state.bearMarket.equityPct=Math.max(0,Math.min(100,Number(this.value)));state.bearMarket.active=true;state.scenario='bear';render();">
           <span class="field-suffix">%</span></div></div>
       <div class="field"><label class="field-label">Market decline</label>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           ${presets.map(pr => `<button class="scenario-btn${bm.crashPct===pr.val?' active':''}" style="font-size:11px;padding:5px 10px"
-            onclick="state.bearMarket.crashPct=${pr.val};if(state.bearMarket.active)render();else{state.bearMarket.active=true;state.scenario='bear';render()}">${pr.label}</button>`).join('')}
+            onclick="state.bearMarket.crashPct=${pr.val};state.bearMarket.active=true;state.scenario='bear';render()">${pr.label}</button>`).join('')}
           <div class="field-wrap" style="width:70px"><input type="number" class="field-input has-suffix" value="${bm.crashPct}" min="0" max="100" style="font-size:12px;padding:5px 24px 5px 8px"
-            onchange="state.bearMarket.crashPct=Math.max(0,Math.min(100,Number(this.value)));if(state.bearMarket.active)render();">
+            onchange="state.bearMarket.crashPct=Math.max(0,Math.min(100,Number(this.value)));state.bearMarket.active=true;state.scenario='bear';render();">
             <span class="field-suffix">%</span></div>
         </div></div>
     </div>
+    <div class="grid-2" style="margin-bottom:14px">
+      <div class="field"><label class="field-label">Years into retirement when crash hits</label>
+        <div class="field-wrap"><input type="number" class="field-input has-suffix" value="${bm.onsetYr}" min="0" max="20"
+          onchange="state.bearMarket.onsetYr=Math.max(0,Math.min(20,Number(this.value)));state.bearMarket.active=true;state.scenario='bear';render();">
+          <span class="field-suffix">yr</span></div></div>
+      <div class="field"><label class="field-label">Years until recovery</label>
+        <div class="field-wrap"><input type="number" class="field-input has-suffix" value="${bm.durationYrs}" min="1" max="10"
+          onchange="state.bearMarket.durationYrs=Math.max(1,Math.min(10,Number(this.value)));state.bearMarket.active=true;state.scenario='bear';render();">
+          <span class="field-suffix">yr</span></div></div>
+    </div>
     <button class="scenario-btn${bm.active?' active':''}" style="padding:10px 20px;font-size:13px"
       onclick="state.bearMarket.active=${bm.active?'false':'true'};state.scenario=${bm.active?'null':"'bear'"};render()">
-      ${bm.active ? '&#10003; Showing Bear Market Scenario' : 'Run Bear Market Stress Test'}
+      ${bm.active ? '\u2713 Showing Bear Market Scenario' : 'Run Bear Market Stress Test'}
     </button>
   </div>`;
 
   if (bm.active) {
-    const shockedParams = applyBearMarketShock(p, bm.equityPct, bm.crashPct);
-    const bearProj = runProjection(shockedParams);
+    const bearParams = buildBearMarketParams(p, bm);
+    const bearProj = runProjection(bearParams);
     const bearFinal = bearProj[bearProj.length-1].netWorth;
     const bearDiff = bearFinal - final;
     const bearBust = bearProj.find(y => y.netWorth <= 0)?.age;
     const bearIRMAA = bearProj.reduce((s,y) => s+y.irmaa, 0);
     const baseIRMAA = proj.reduce((s,y) => s+y.irmaa, 0);
-    const bearLabel = 'Bear Market (\u2212' + bm.crashPct + '% on ' + bm.equityPct + '% equity)';
+    const bearLabel = 'Bear Market (\u2212' + bm.crashPct + '% equity, year ' + bm.onsetYr + ', ' + bm.durationYrs + 'yr recovery)';
 
     bearSection += `<div class="stats-row">
       <div class="stat"><div class="stat-label">Base Final</div><div class="stat-value" style="color:var(--blue)">${fmtK(final)}</div></div>

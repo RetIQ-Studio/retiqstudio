@@ -633,12 +633,14 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Click any scenario button to see a side-by-side comparison table and chart against your baseline plan. Results are shown as a multi-category chart where you can toggle metrics (SS Income, Net Worth, Tax, etc.) to compare across all scenarios simultaneously.</p>
 
     <h3>Bear Market Stress Test</h3>
-    <p>Below the named scenarios, a dedicated Bear Market section lets you simulate a sudden market crash at the start of your plan:</p>
+    <p>Below the named scenarios, a dedicated Bear Market section lets you simulate a market crash during retirement with four inputs:</p>
     <ul>
       <li><strong>Equity Allocation (%):</strong> The percentage of your investment portfolio allocated to equities (default 70%). This determines how much of each account is exposed to the crash.</li>
       <li><strong>Market Decline (%):</strong> Choose a preset severity &mdash; Mild (&minus;20%), Moderate (&minus;30%), or Severe (&minus;50%) &mdash; or enter a custom percentage.</li>
+      <li><strong>Onset (years):</strong> How many years into retirement the crash begins (default 1, range 0&ndash;20). Year 0 means the crash starts immediately at retirement.</li>
+      <li><strong>Duration (years):</strong> How many years the depressed returns last before recovering (default 3, range 1&ndash;10).</li>
     </ul>
-    <p>The shock is applied only to investment accounts (pre-tax, Roth, taxable) &mdash; cash/HYS accounts are excluded. Each investment account loses value proportionally based on the equity allocation and decline percentage. The result shows a stats row comparing baseline vs. shocked outcomes and a comparison chart (in red) so you can see the long-term impact of a market downturn on your retirement plan.</p>
+    <p>The crash is applied only to investment accounts (pre-tax, Roth, taxable) &mdash; cash/HYS accounts are excluded. During the crash window, each investment account&rsquo;s return is reduced proportionally by the equity allocation and decline percentage. After the recovery period, normal returns resume. The result shows a stats row comparing baseline vs. shocked outcomes and a comparison chart (in red) so you can see the long-term impact of a market downturn on your retirement plan.</p>
     <div class="tip"><strong>Pro tip:</strong> Combine the bear market stress test with conservative assumptions (e.g., run a named scenario like Stagflation first, then apply a bear market shock) to see how your plan handles multiple headwinds simultaneously.</div>
   </div>
 
