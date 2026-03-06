@@ -72,32 +72,72 @@ button { cursor: pointer; font-family: inherit; }
 button:hover { opacity: 0.88; }
 
 .header {
-  border-bottom: 1px solid var(--border); padding: 12px 24px;
-  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
   background: var(--header-bg); backdrop-filter: blur(12px);
-  position: sticky; top: 0; z-index: 100; flex-wrap: wrap; gap: 8px;
-
-  max-width:1280px;
-  margin:0 auto;
-  padding-left:12px;
-  padding-right:12px;
-  box-sizing: border-box;}
+  max-width: 1280px; margin: 0 auto; box-sizing: border-box;
+}
+.header-top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; gap: 8px;
+}
+.header-left { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.header-right { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
 .logo-text { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
 .logo-badge { font-size: 10px; color: var(--blue); background: var(--blue-bg); padding: 2px 7px; border-radius: 4px; font-weight: 500; }
-.nav { display: flex; gap: 4px; flex-wrap: wrap; }
 
+.header-icon-btn {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+  width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 16px; color: var(--text-dim); cursor: pointer; transition: all 0.2s; line-height: 1;
+}
+.header-icon-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+.header-examples-btn {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+  padding: 5px 12px; font-size: 12px; color: var(--text-dim); cursor: pointer;
+  font-family: inherit; transition: all 0.2s;
+}
+.header-examples-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+.header-overflow-panel {
+  position: absolute; top: calc(100% + 4px); right: 0;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+  min-width: 160px; z-index: 200; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+.header-overflow-item {
+  display: block; width: 100%; padding: 8px 14px; font-size: 12px;
+  color: var(--text-dim); text-decoration: none; border: none; background: none;
+  text-align: left; font-family: inherit; cursor: pointer; transition: background 0.15s;
+}
+.header-overflow-item:hover { background: var(--bg-hover); color: var(--text); }
+
+.header-upgrade-btn {
+  background: linear-gradient(135deg, var(--green), var(--cyan));
+  border: none; border-radius: 6px; color: #fff; padding: 5px 14px;
+  font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+
+.header-nav {
+  display: flex; gap: 0; border-top: 1px solid var(--border); padding: 0 12px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.header-nav::-webkit-scrollbar { display: none; }
+.nav-tab {
+  background: transparent; border: none; border-bottom: 2px solid transparent;
+  color: var(--text-muted); padding: 8px 16px; font-size: 13px; font-weight: 500;
+  cursor: pointer; white-space: nowrap; transition: all 0.2s; font-family: inherit;
+}
+.nav-tab:hover { color: var(--text-dim); }
+.nav-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+/* Sub-nav .tab class still used for input sub-tabs */
 .tab {
   background: transparent; border: 1px solid transparent; border-radius: 6px;
   color: var(--text-muted); padding: 7px 15px; font-size: 13px; font-weight: 500;
   transition: all 0.2s;
 }
 .tab.active { background: var(--bg-hover); border-color: var(--border-active); color: var(--text); }
-
-.theme-toggle {
-  background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
-  padding: 6px 10px; font-size: 16px; line-height: 1; color: var(--text);
-  transition: all 0.2s;
-}
 
 .main { max-width: 1280px; margin: 0 auto; padding: 20px 24px; }
 
@@ -252,8 +292,7 @@ button:hover { opacity: 0.88; }
 .chart-tooltip-title { font-weight: 600; margin-bottom: 2px; }
 .chart-tooltip-row { display: flex; justify-content: space-between; gap: 12px; }
 
-.save-load { display: flex; gap: 6px; }
-.save-load button { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; color: var(--text-dim); padding: 6px 12px; font-size: 12px; }
+/* (save-load buttons moved into header icon buttons) */
 .pro-gate{position:relative;min-height:300px}
 .pro-gate-overlay{position:absolute;inset:0;z-index:10;background:linear-gradient(180deg,transparent 0%,var(--bg-base) 35%);display:flex;align-items:center;justify-content:center;border-radius:12px}
 .pro-gate-box{text-align:center;padding:32px;max-width:420px}
@@ -288,27 +327,18 @@ button:hover { opacity: 0.88; }
   letter-spacing:.2px;
 }
 
-/* Mobile hamburger - hidden on desktop */
-.mobile-menu-btn { display: none; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 18px; line-height: 1; color: var(--text); }
-.header-secondary { display: contents; }
+/* (mobile hamburger removed — overflow menu replaces it) */
 
 /* ─── MOBILE RESPONSIVE ─── */
 @media (max-width: 640px) {
   /* Header compact */
-  .header { padding: 8px 10px; gap: 4px; }
+  .header-top { padding: 6px 8px; gap: 4px; }
   .logo-text { font-size: 15px; }
-
-  /* Hamburger visible, secondary items hidden */
-  .mobile-menu-btn { display: block; }
-  .header-secondary { display: none; flex-direction: column; align-items: stretch; gap: 8px; width: 100%; padding-top: 8px; border-top: 1px solid var(--border); margin-top: 4px; }
-  .header-secondary.open { display: flex; }
-  .header-secondary .save-load { justify-content: center; }
-  .header-links { justify-content: center; }
-
-  /* Main nav - horizontal scroll */
-  .nav { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px; justify-content: flex-start !important; }
-  .nav::-webkit-scrollbar { display: none; }
-  .nav .tab { flex-shrink: 0; padding: 6px 12px; font-size: 12px; white-space: nowrap; }
+  .header-icon-btn { width: 28px; height: 28px; font-size: 14px; }
+  .header-examples-btn { padding: 4px 8px; font-size: 11px; }
+  .header-upgrade-btn { padding: 4px 10px; font-size: 11px; }
+  .header-nav { padding: 0 8px; }
+  .nav-tab { padding: 6px 12px; font-size: 12px; }
 
   /* Sub-nav (input tabs) - horizontal scroll */
   .sub-nav { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 2px; padding: 6px 0; }
@@ -380,41 +410,40 @@ button:hover { opacity: 0.88; }
 </div>
 
 
-<div class="header" style="flex-direction:column;align-items:stretch;">
-  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;">
-    <a href="https://retirementiq.app/?landing" class="logo-text" style="text-decoration:none;color:inherit">RetIQ</a>
-    <span class="logo-badge">v3.3</span>
-    <span id="planBadge" class="plan-badge" title="Current plan">FREE</span>
-    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" id="mobileMenuBtn" aria-label="Menu">&#9776;</button>
-    <div class="header-secondary" id="headerSecondary">
-      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center">
-        <button id="installBtn" class="tab" title="Install RetIQ">Install</button>
-        <button id="buyBtn" class="tab" title="Pro unlocks: Save HTML snapshots, future Pro features">Upgrade</button>
-        <button id="activateBtn" class="tab" title="Enter or manage your license">Activate</button>
-        <div class="save-load" style="position:relative" id="presetMenuWrap">
-          <button onclick="togglePresetMenu()" title="Load a demo household">&#127968; Examples</button>
-          <div id="presetMenu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;min-width:220px;z-index:200;box-shadow:0 4px 20px rgba(0,0,0,0.3);overflow:hidden">
-            <div class="preset-hdr" style="padding:8px 12px 6px;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);border-bottom:1px solid var(--border)">Load Example Household</div>
-          </div>
+<div class="header">
+  <div class="header-top">
+    <div class="header-left">
+      <a href="https://retirementiq.app/?landing" class="logo-text" style="text-decoration:none;color:inherit">RetIQ</a>
+      <span class="logo-badge">v3.3</span>
+      <span id="planBadge" class="plan-badge" title="Current plan">FREE</span>
+      <div class="mode-toggle" id="modeToggle"></div>
+    </div>
+    <div class="header-right">
+      <div style="position:relative" id="presetMenuWrap">
+        <button class="header-examples-btn" onclick="togglePresetMenu()" title="Load a demo household">Examples</button>
+        <div id="presetMenu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;min-width:220px;z-index:200;box-shadow:0 4px 20px rgba(0,0,0,0.3);overflow:hidden">
+          <div class="preset-hdr" style="padding:8px 12px 6px;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);border-bottom:1px solid var(--border)">Load Example Household</div>
         </div>
-        <div class="save-load">
-          <button onclick="exportHTML()" title="Save as HTML snapshot">&#10515; HTML</button>
-          <button onclick="document.getElementById('importFile').click()" title="Load plan from JSON or HTML snapshot">&#10514; Load</button>
-          <input type="file" id="importFile" accept=".json,.html,.htm" onchange="importData(event)">
+      </div>
+      <button class="header-icon-btn" onclick="exportHTML()" title="Save as HTML snapshot">&#10515;</button>
+      <button class="header-icon-btn" onclick="document.getElementById('importFile').click()" title="Load plan from JSON or HTML snapshot">&#10514;</button>
+      <input type="file" id="importFile" accept=".json,.html,.htm" onchange="importData(event)" style="display:none">
+      <button class="header-icon-btn" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">&#9790;</button>
+      <div style="position:relative">
+        <button class="header-icon-btn" onclick="toggleOverflowMenu()" title="More" id="overflowBtn">&#8943;</button>
+        <div id="overflowMenu" class="header-overflow-panel" style="display:none">
+          <a href="https://retirementiq.app/features.html" target="_blank" class="header-overflow-item">Features</a>
+          <a href="https://retirementiq.app/manual.html" target="_blank" class="header-overflow-item">Manual</a>
+          <a href="https://retirementiq.app/security.html" target="_blank" class="header-overflow-item">&#128737; Security</a>
+          <a class="header-overflow-item" onclick="shareRetIQ()" style="cursor:pointer">Share RetIQ</a>
+          <button id="installBtn" class="header-overflow-item" style="display:none">Install App</button>
+          <button id="activateBtn" class="header-overflow-item" title="Enter or manage your license">Activate</button>
         </div>
-        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">Dark</button>
-        <div class="mode-toggle" id="modeToggle"></div>
-        <div class="dollar-toggle" id="dollarToggle"></div>
       </div>
-      <div class="header-links" style="display:flex;gap:8px;align-items:center;justify-content:center;font-size:11px">
-        <a href="https://retirementiq.app/features.html" target="_blank" style="color:var(--blue);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px" title="Feature list">Features</a>
-        <a href="https://retirementiq.app/manual.html" target="_blank" style="color:var(--blue);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px" title="User manual">Manual</a>
-        <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px" title="Privacy &amp; security transparency">&#128737; Security</a>
-        <a class="share-chip" onclick="shareRetIQ()" title="Help others retire well">Share RetIQ</a>
-      </div>
+      <button id="buyBtn" class="header-upgrade-btn" title="Pro unlocks: Save HTML snapshots, future Pro features">Upgrade</button>
     </div>
   </div>
-  <div class="nav" id="mainNav" style="justify-content:center;margin-top:4px;"></div>
+  <nav class="header-nav" id="mainNav"></nav>
 </div>
 
 <div class="main" id="app"></div>
@@ -431,7 +460,7 @@ function toggleTheme() {
   const current = html.getAttribute('data-theme');
   const next = current === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
-  document.getElementById('themeBtn').textContent = next === 'dark' ? 'Dark' : 'Light';
+  document.getElementById('themeBtn').textContent = next === 'dark' ? '\u263E' : '\u2600';
   try { localStorage.setItem('retiq_theme', next); } catch(e) {}
 }
 try {
@@ -439,17 +468,25 @@ try {
   if (savedTheme) {
     document.documentElement.setAttribute('data-theme', savedTheme);
     document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('themeBtn').textContent = savedTheme === 'dark' ? 'Dark' : 'Light';
+      document.getElementById('themeBtn').textContent = savedTheme === 'dark' ? '\u263E' : '\u2600';
     });
   }
 } catch(e) {}
 
-function toggleMobileMenu() {
-  const panel = document.getElementById('headerSecondary');
-  const btn = document.getElementById('mobileMenuBtn');
-  panel.classList.toggle('open');
-  btn.textContent = panel.classList.contains('open') ? '\u2715' : '\u2630';
-  setTimeout(updateHeaderHeight, 10);
+function toggleOverflowMenu() {
+  const menu = document.getElementById('overflowMenu');
+  if (!menu) return;
+  const open = menu.style.display !== 'none';
+  menu.style.display = open ? 'none' : 'block';
+  if (!open) {
+    const close = (e) => {
+      if (!menu.contains(e.target) && e.target.id !== 'overflowBtn') {
+        menu.style.display = 'none';
+        document.removeEventListener('click', close);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', close), 0);
+  }
 }
 
 function shareRetIQ() {
@@ -2283,7 +2320,7 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// ── UI Mode: Essentials / Full Control ──────────────────────────
+// ── UI Mode: Simple / Full ──────────────────────────
 function getActiveAdvancedFeatures(p) {
   const active = [];
   if (p.rothConversion && p.rothConversion.enabled) active.push('Roth Conversions');
@@ -2318,7 +2355,7 @@ function setUIMode(mode) {
     if (active.length > 0) {
       const msg = 'These advanced features are currently active and will be hidden (but preserved):\n\n'
         + active.map(f => '\u2022 ' + f).join('\n')
-        + '\n\nYour settings are not changed \u2014 switch back to Full Control anytime to edit them.\n\nSwitch to Essentials?';
+        + '\n\nYour settings are not changed \u2014 switch back to Full anytime to edit them.\n\nSwitch to Simple?';
       if (!confirm(msg)) return;
     }
   }
@@ -2355,16 +2392,16 @@ function showModePrompt() {
   overlay.id = 'modePromptOverlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
   const suggestion = simple
-    ? '<p style="margin:12px 0;font-size:13px;color:var(--text-dim)">Your plan is simple enough for <strong>Essentials</strong> mode \u2014 a cleaner view with fewer options. Would you like to try it?</p>'
+    ? '<p style="margin:12px 0;font-size:13px;color:var(--text-dim)">Your plan is simple enough for <strong>Simple</strong> mode \u2014 a cleaner view with fewer options. Would you like to try it?</p>'
       + '<div style="display:flex;gap:8px;justify-content:center;margin-top:16px">'
-      + '<button onclick="setUIMode(\'essentials\');document.getElementById(\'modePromptOverlay\').remove()" style="background:var(--blue);color:#fff;border:none;border-radius:6px;padding:8px 20px;font-size:13px;cursor:pointer">Try Essentials</button>'
-      + '<button onclick="document.getElementById(\'modePromptOverlay\').remove()" style="background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px 20px;font-size:13px;cursor:pointer">Keep Full Control</button></div>'
-    : '<p style="margin:12px 0;font-size:13px;color:var(--text-dim)">Your plan uses advanced features, so you\'re in <strong>Full Control</strong> mode. You can switch to <strong>Essentials</strong> for a simpler view anytime using the toggle in the header.</p>'
+      + '<button onclick="setUIMode(\'essentials\');document.getElementById(\'modePromptOverlay\').remove()" style="background:var(--blue);color:#fff;border:none;border-radius:6px;padding:8px 20px;font-size:13px;cursor:pointer">Try Simple</button>'
+      + '<button onclick="document.getElementById(\'modePromptOverlay\').remove()" style="background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px 20px;font-size:13px;cursor:pointer">Keep Full</button></div>'
+    : '<p style="margin:12px 0;font-size:13px;color:var(--text-dim)">Your plan uses advanced features, so you\'re in <strong>Full</strong> mode. You can switch to <strong>Simple</strong> for a simpler view anytime using the toggle in the header.</p>'
       + '<div style="display:flex;gap:8px;justify-content:center;margin-top:16px">'
       + '<button onclick="document.getElementById(\'modePromptOverlay\').remove()" style="background:var(--blue);color:#fff;border:none;border-radius:6px;padding:8px 20px;font-size:13px;cursor:pointer">Got it</button></div>';
   overlay.innerHTML = '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:440px;width:100%;text-align:center">'
     + '<div style="font-size:18px;font-weight:700;color:var(--text)">New: Two Ways to Plan</div>'
-    + '<div style="margin:12px 0;font-size:13px;color:var(--text-dim)"><strong>Essentials</strong> \u2014 streamlined view, fewer options, perfect for straightforward plans.<br><strong>Full Control</strong> \u2014 every feature visible, for complex retirement scenarios.</div>'
+    + '<div style="margin:12px 0;font-size:13px;color:var(--text-dim)"><strong>Simple</strong> \u2014 streamlined view, fewer options, perfect for straightforward plans.<br><strong>Full</strong> \u2014 every feature visible, for complex retirement scenarios.</div>'
     + suggestion + '</div>';
   document.body.appendChild(overlay);
 }
@@ -3131,9 +3168,9 @@ function renderNav() {
   const allTabs = [['dashboard','Dashboard'],['inputs','Inputs'],['projection','Projection'],['montecarlo','Monte Carlo'],['scenarios','Scenarios'],['validation','Validation']];
   const tabs = isEssentials ? allTabs.filter(([k]) => !['scenarios','validation'].includes(k)) : allTabs;
   document.getElementById('mainNav').innerHTML = tabs.map(([k,v]) =>
-    `<button class="tab${state.tab===k?' active':''}" onclick="state.tab='${k}';closeMobileMenu();render()">${v}</button>`).join('');
+    `<button class="nav-tab${state.tab===k?' active':''}" onclick="state.tab='${k}';render()">${v}</button>`).join('');
   // Scroll active main nav tab into view on mobile
-  const activeNav = document.querySelector('#mainNav .tab.active');
+  const activeNav = document.querySelector('#mainNav .nav-tab.active');
   if (activeNav) activeNav.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
 }
 function renderModeToggle() {
@@ -3141,19 +3178,9 @@ function renderModeToggle() {
   const el = document.getElementById('modeToggle');
   if (!el) return;
   el.innerHTML = '<div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;font-size:11px">'
-    + '<button onclick="setUIMode(\'essentials\')" style="padding:4px 10px;background:' + (m==='essentials'?'var(--blue)':'transparent') + ';color:' + (m==='essentials'?'#fff':'var(--text-dim)') + ';border:none;cursor:pointer;font-size:11px;font-family:inherit">Essentials</button>'
-    + '<button onclick="setUIMode(\'full\')" style="padding:4px 10px;background:' + (m==='full'?'var(--blue)':'transparent') + ';color:' + (m==='full'?'#fff':'var(--text-dim)') + ';border:none;cursor:pointer;font-size:11px;font-family:inherit">Full Control</button>'
+    + '<button onclick="setUIMode(\'essentials\')" style="padding:4px 10px;background:' + (m==='essentials'?'var(--blue)':'transparent') + ';color:' + (m==='essentials'?'#fff':'var(--text-dim)') + ';border:none;cursor:pointer;font-size:11px;font-family:inherit">Simple</button>'
+    + '<button onclick="setUIMode(\'full\')" style="padding:4px 10px;background:' + (m==='full'?'var(--blue)':'transparent') + ';color:' + (m==='full'?'#fff':'var(--text-dim)') + ';border:none;cursor:pointer;font-size:11px;font-family:inherit">Full</button>'
     + '</div>';
-}
-
-function closeMobileMenu() {
-  const panel = document.getElementById('headerSecondary');
-  const btn = document.getElementById('mobileMenuBtn');
-  if (panel && panel.classList.contains('open')) {
-    panel.classList.remove('open');
-    if (btn) btn.textContent = '\u2630';
-    setTimeout(updateHeaderHeight, 10);
-  }
 }
 
 // Tooltip helper — renders ⓘ icon with hover (desktop) / tap (mobile) popover
@@ -4430,13 +4457,13 @@ function renderInputs() {
 
   let content = '';
 
-  // Hidden-features indicator in Essentials mode
+  // Hidden-features indicator in Simple mode
   if (isEssentials) {
     const active = getActiveAdvancedFeatures(p);
     if (active.length > 0) {
       content += `<div style="padding:8px 14px;margin-bottom:12px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px;font-size:12px;color:var(--text-dim);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
         <span>${active.length} advanced feature${active.length > 1 ? 's' : ''} active in background: ${active.slice(0, 3).join(', ')}${active.length > 3 ? ', +' + (active.length - 3) + ' more' : ''}</span>
-        <button onclick="setUIMode('full')" style="background:var(--blue);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit">Switch to Full Control</button>
+        <button onclick="setUIMode('full')" style="background:var(--blue);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit">Switch to Full</button>
       </div>`;
     }
   }
@@ -4686,7 +4713,7 @@ function renderInputs() {
     // Simplified 3-field accounts UI
     content += `<div class="card"><div class="card-title">Investment Accounts</div>
       <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
-        Enter your total balances by account type. Switch to Full Control for individual account management.
+        Enter your total balances by account type. Switch to Full mode for individual account management.
       </div>
       <div class="field"><label class="field-label">Pre-Tax (401k, IRA, 403b)</label><div class="field-wrap"><span class="field-prefix">$</span>
         <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(preTaxTotal)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="setEssentialsBalance('pretax',parseC(this.value))">
@@ -6233,6 +6260,7 @@ function renderProjectionTable(proj) {
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
       <div style="font-size:12px;font-weight:600;color:var(--text)">Select up to 3 categories:</div>
       <div style="display:flex;align-items:center;gap:8px">
+        <div class="dollar-toggle" id="dollarToggle"></div>
         <label style="font-size:12px;color:var(--text-dim);display:flex;align-items:center;gap:6px;cursor:pointer">
           <input type="checkbox" ${showTable?'checked':''} onchange="state.projShowTable=this.checked;render()" style="accent-color:var(--blue)"> Show data table
         </label>
@@ -6373,7 +6401,7 @@ function renderMonteCarlo(proj) {
     return `<div class="card" data-accent="purple"><div class="card-title">Monte Carlo Simulation</div>
     <div style="font-size:13px;color:var(--text-dim);margin-bottom:16px;line-height:1.6">
       Runs ${cfg.numSims} randomized simulations to estimate the probability your money lasts through age ${p.endAge}.
-      Switch to Full Control for model selection and advanced settings.
+      Switch to Full mode for model selection and advanced settings.
     </div>
     <button class="mc-btn" onclick="runMC()">Run ${cfg.numSims} Simulations</button>
   </div>` + results;
@@ -6681,7 +6709,6 @@ function renderValidation() {
 
 function render() {
   renderNav();
-  renderDollarToggle();
   renderModeToggle();
   const proj = runProjection(state.params);
   let html = '';
@@ -6693,8 +6720,9 @@ function render() {
     case 'scenarios': html = renderScenarios(proj); break;
     case 'validation': html = renderValidation(); break;
   }
-  html += '<div class="footer">RetIQ v3.0 &#183; Build 2026-03-04 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a></div>';
+  html += '<div class="footer">RetIQ v3.3 &#183; Build 2026-03-06 ET &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a></div>';
   document.getElementById('app').innerHTML = html;
+  renderDollarToggle();
   updateHeaderHeight();
   // Scroll active sub-nav tab into view on mobile
   const activeSub = document.querySelector('.sub-nav .tab.active');
