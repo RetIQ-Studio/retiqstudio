@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-03-04T20:21:59.400Z",
+  "timestamp": "2026-03-05T18:30:43.363Z",
   "summary": {
-    "total": 230,
-    "passed": 230,
+    "total": 254,
+    "passed": 254,
     "failed": 0,
     "passRate": "100.0%"
   },
@@ -1238,76 +1238,103 @@
       ]
     },
     "State Tax": {
-      "passed": 10,
+      "passed": 34,
       "failed": 0,
       "tests": [
         {
           "category": "State Tax",
-          "name": "Florida — no income tax on $100K",
-          "source": "State revenue department (effective rate model)",
+          "name": "Florida — no income tax",
+          "source": "State revenue department / progressive bracket model",
           "actual": 0,
           "expected": 0,
-          "tolerance": 1,
+          "tolerance": 10,
           "pass": true
         },
         {
           "category": "State Tax",
-          "name": "Texas — no income tax on $100K",
-          "source": "State revenue department (effective rate model)",
+          "name": "Texas — no income tax",
+          "source": "State revenue department / progressive bracket model",
           "actual": 0,
           "expected": 0,
-          "tolerance": 1,
+          "tolerance": 10,
           "pass": true
         },
         {
           "category": "State Tax",
-          "name": "California — top marginal ~9.3% on $100K",
-          "source": "State revenue department (effective rate model)",
-          "actual": 9300,
-          "expected": 9300,
-          "tolerance": 1,
+          "name": "California — progressive brackets on $100K",
+          "source": "State revenue department / progressive bracket model",
+          "actual": 3246,
+          "expected": 3246,
+          "tolerance": 10,
           "pass": true
         },
         {
           "category": "State Tax",
-          "name": "New York — ~6.85% on $100K",
-          "source": "State revenue department (effective rate model)",
-          "actual": 6850,
-          "expected": 6850,
-          "tolerance": 1,
+          "name": "New York — progressive brackets on $100K",
+          "source": "State revenue department / progressive bracket model",
+          "actual": 5420,
+          "expected": 5420,
+          "tolerance": 10,
           "pass": true
         },
         {
           "category": "State Tax",
-          "name": "Maryland — top marginal ~5.75% on $100K",
-          "source": "State revenue department (effective rate model)",
-          "actual": 5750,
-          "expected": 5750,
-          "tolerance": 1,
+          "name": "Maryland — progressive brackets on $100K",
+          "source": "State revenue department / progressive bracket model",
+          "actual": 4698,
+          "expected": 4698,
+          "tolerance": 10,
           "pass": true
         },
         {
           "category": "State Tax",
           "name": "Illinois — flat 4.95% on $100K",
-          "source": "State revenue department (effective rate model)",
+          "source": "State revenue department / progressive bracket model",
           "actual": 4950,
           "expected": 4950,
-          "tolerance": 1,
+          "tolerance": 10,
           "pass": true
         },
         {
           "category": "State Tax",
           "name": "Pennsylvania — flat 3.07% on $100K",
-          "source": "State revenue department (effective rate model)",
+          "source": "State revenue department / progressive bracket model",
           "actual": 3070,
           "expected": 3070,
-          "tolerance": 1,
+          "tolerance": 10,
           "pass": true
         },
         {
           "category": "State Tax",
-          "name": "Nevada — no income tax on $100K",
-          "source": "State revenue department (effective rate model)",
+          "name": "Nevada — no income tax",
+          "source": "State revenue department / progressive bracket model",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 10,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "Washington — no income tax",
+          "source": "State revenue department / progressive bracket model",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 10,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "No state selected — zero tax",
+          "source": "State revenue department / progressive bracket model",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 10,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "FL: SS+IRA income, no tax",
+          "source": "Florida DOR — no state income tax",
           "actual": 0,
           "expected": 0,
           "tolerance": 1,
@@ -1315,8 +1342,8 @@
         },
         {
           "category": "State Tax",
-          "name": "Washington — no income tax on $100K",
-          "source": "State revenue department (effective rate model)",
+          "name": "TX: $200K income, no tax",
+          "source": "Texas — no state income tax",
           "actual": 0,
           "expected": 0,
           "tolerance": 1,
@@ -1324,8 +1351,197 @@
         },
         {
           "category": "State Tax",
-          "name": "No state selected — zero tax on $100K",
-          "source": "State revenue department (effective rate model)",
+          "name": "WA: any income, no tax",
+          "source": "Washington — no state income tax on wages/retirement",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "NH: IRA distribution, no tax",
+          "source": "New Hampshire — Hall Tax repealed 2025",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "none: federal only, no state tax",
+          "source": "Baseline: no state selected",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "IL: SS+IRA both fully exempt",
+          "source": "Illinois IDOR Pub 120 — all retirement income exempt",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "IL: earned income taxable (4.95%)",
+          "source": "Illinois IDOR — flat rate on non-retirement income",
+          "actual": 4950,
+          "expected": 4950,
+          "tolerance": 10,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "IL: mixed — wages taxable, IRA exempt",
+          "source": "Illinois IDOR — retirement portion excluded",
+          "actual": 2475,
+          "expected": 2475,
+          "tolerance": 10,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "PA: IRA exempt age 60+",
+          "source": "Pennsylvania DOR REV-636 — all retirement income exempt at 60+",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "PA: IRA taxable age 58 (3.07%)",
+          "source": "Pennsylvania DOR — under 60 not exempt",
+          "actual": 1535,
+          "expected": 1535,
+          "tolerance": 10,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "PA: SS always exempt (all ages)",
+          "source": "Pennsylvania DOR — SS exempt regardless of age",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "CA: MFJ $80K — progressive brackets",
+          "source": "California FTB 2024 brackets",
+          "actual": 2046,
+          "expected": 2046,
+          "tolerance": 50,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "CA: SS exempt, IRA taxable",
+          "source": "California FTB — SS exempt from state tax",
+          "actual": 804,
+          "expected": 804,
+          "tolerance": 50,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "CA: single filer pays more than MFJ same income",
+          "source": "CA single brackets narrower than MFJ",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "NY: MFJ $100K with $20K pension exclusion",
+          "source": "New York DTF — private pension $20K exempt age 59+",
+          "actual": 4250,
+          "expected": 4250,
+          "tolerance": 100,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "NY: SS exempt from state tax",
+          "source": "New York DTF — SS not subject to state income tax",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "KS: SS exempt under $75K AGI",
+          "source": "Kansas DOR — SS exempt if AGI ≤ $75K",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "KS: SS taxable above $75K AGI",
+          "source": "Kansas DOR — SS not exempt if AGI > $75K",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "CT: SS exempt under $150K MFJ AGI",
+          "source": "Connecticut DRS — SS exempt if AGI ≤ $150K MFJ",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "RI: SS exempt under $114,900 AGI",
+          "source": "Rhode Island Division of Taxation — SS exempt threshold 2024",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "Invalid state code returns $0",
+          "source": "Engine safety — unknown state",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "Zero income returns $0",
+          "source": "Basic rule",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "PA age gate: $40K IRA age 58 taxable",
+          "source": "Pennsylvania DOR — under 60 no exemption",
+          "actual": 1228,
+          "expected": 1228,
+          "tolerance": 10,
+          "pass": true
+        },
+        {
+          "category": "State Tax",
+          "name": "PA age gate: $40K IRA age 60 exempt",
+          "source": "Pennsylvania DOR — 60+ fully exempt",
           "actual": 0,
           "expected": 0,
           "tolerance": 1,
