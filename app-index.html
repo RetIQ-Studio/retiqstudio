@@ -2561,7 +2561,9 @@ function setLifeIns(id, key, val) {
 function setLTC(key, val) {
   if (proGuard()) return;
   if (!state.params.longTermCare) state.params.longTermCare = { enabled: false, annualCost: 100000, startAge: 82, duration: 4, inflation: 5, hasInsurance: false, insuranceCoverage: 0 };
-  state.params.longTermCare[key] = val; state.mcResults = null; saveState(); render();
+  state.params.longTermCare[key] = val;
+  if (key === 'hasInsurance' && val && !state.params.longTermCare.insuranceCoverage) state.params.longTermCare.insuranceCoverage = 60000;
+  state.mcResults = null; saveState(); render();
 }
 function addCharitySchedule() {
   if (proGuard()) return;
@@ -4898,12 +4900,6 @@ function renderInputs() {
         const totalLTC = Array.from({length: ltcDur}, (_,i) => Math.round((ltc.annualCost||100000) * Math.pow(1+(ltc.inflation||5)/100, ltcStartAge-p.currentAge+i))).reduce((s,v) => s+v, 0);
         const insInfRate = (ltc.insuranceInflation || 0) / 100;
         const insPurchaseAge = ltc.insurancePurchaseAge || p.currentAge;
-        const netLTC = ltc.hasInsurance ? Array.from({length: ltcDur}, (_,i) => {
-          const yrAge = ltcStartAge + i;
-          const careCost = Math.round((ltc.annualCost||100000) * Math.pow(1+(ltc.inflation||5)/100, yrAge - p.currentAge));
-          const inflatedCov = Math.round((ltc.insuranceCoverage||0) * Math.pow(1 + insInfRate, Math.max(0, yrAge - insPurchaseAge)));
-          return Math.max(0, careCost - inflatedCov);
-        }).reduce((s,v) => s+v, 0) : totalLTC;
         const costAtStart = Math.round((ltc.annualCost||100000) * Math.pow(1+(ltc.inflation||5)/100, ltcStartAge - p.currentAge));
         const covAtStart = ltc.hasInsurance ? Math.round((ltc.insuranceCoverage||0) * Math.pow(1 + insInfRate, Math.max(0, ltcStartAge - insPurchaseAge))) : 0;
         const gapAtStart = ltc.hasInsurance ? Math.max(0, costAtStart - covAtStart) : costAtStart;
@@ -4952,10 +4948,7 @@ function renderInputs() {
           <div class="info-box"><div class="info-box-label">Insurance at Age ${ltcStartAge}</div><div class="info-box-value" style="color:var(--green);font-size:14px">${fmtK(covAtStart)}</div><div style="font-size:10px;color:var(--text-faint);margin-top:2px">${insInfRate > 0 ? (ltc.insuranceInflation)+'% compound' : 'no inflation'}</div></div>
           <div class="info-box"><div class="info-box-label">Annual Gap at Age ${ltcStartAge}</div><div class="info-box-value" style="color:var(--amber);font-size:14px">${fmtK(gapAtStart)}</div></div>
         </div>` : ''}
-        <div class="grid-2">
-          <div class="info-box"><div class="info-box-label">Projected Total LTC Cost</div><div class="info-box-value" style="color:var(--pink)">${fmtK(totalLTC)}</div><div style="font-size:11px;color:var(--text-faint);margin-top:4px">Ages ${ltcStartAge}-${ltcStartAge+ltcDur-1} in future $</div></div>
-          <div class="info-box"><div class="info-box-label">Net After Insurance</div><div class="info-box-value" style="color:${ltc.hasInsurance?'var(--amber)':'var(--pink)'}">${fmtK(netLTC)}</div></div>
-        </div>`;
+        <div class="info-box"><div class="info-box-label">Total Gross LTC Cost</div><div class="info-box-value" style="color:var(--pink)">${fmtK(totalLTC)}</div><div style="font-size:11px;color:var(--text-faint);margin-top:4px">Ages ${ltcStartAge}-${ltcStartAge+ltcDur-1} in future $</div></div>`;
       })() : ''}
     </div>
 
