@@ -1308,6 +1308,13 @@ function runProjection(p) {
       }
     }
 
+    // SS Trust Fund Reduction: apply after all SS computation, before other income
+    const sstf = p.ssTrustFundReduction;
+    if (sstf && sstf.enabled && projYear >= (sstf.startYear || 2034) && ss > 0) {
+      const reductionFactor = 1 - (sstf.reductionPct || 20) / 100;
+      ss = Math.round(ss * reductionFactor);
+    }
+
     const otherStartAge = p.additionalIncomeStartAge || p.retirementAge;
     const otherEndAge = p.additionalIncomeEndAge || p.endAge;
     const other = (age >= otherStartAge && age <= otherEndAge && !primaryDead) ? (p.additionalIncome || 0) : 0;
@@ -1851,10 +1858,14 @@ function runProjection(p) {
       return bal * (1 + (1 + nr / 100) / (1 + inf / 100) - 1);
     };
     const bearOvr = p._bearOverrides?.[yr];
-    preTax = growAcct(preTax, bearOvr ? weightedBearReturn('pretax', bearOvr) : ptReturn);
-    roth = growAcct(roth, bearOvr ? weightedBearReturn('roth', bearOvr) : rReturn);
+    const usePostRetRet = retired && p.postRetirementReturn != null;
+    const effPtReturn = usePostRetRet ? p.postRetirementReturn : ptReturn;
+    const effRReturn = usePostRetRet ? p.postRetirementReturn : rReturn;
+    const effTInvReturn = usePostRetRet ? p.postRetirementReturn : tInvReturn;
+    preTax = growAcct(preTax, bearOvr ? weightedBearReturn('pretax', bearOvr) : effPtReturn);
+    roth = growAcct(roth, bearOvr ? weightedBearReturn('roth', bearOvr) : effRReturn);
     cash = growAcct(cash, cashReturn);
-    taxableInv = growAcct(taxableInv, bearOvr ? weightedBearReturn('taxable', bearOvr, 'investment') : tInvReturn);
+    taxableInv = growAcct(taxableInv, bearOvr ? weightedBearReturn('taxable', bearOvr, 'investment') : effTInvReturn);
     taxable = cash + taxableInv; // combined for output
 
     const _cash = Math.round(cash), _inv = Math.round(taxableInv), _tax = _cash + _inv;
@@ -2068,7 +2079,11 @@ let state = {
       { id: 3, name: 'Spouse 401(k)', type: 'pretax', balance: 340000, returnRate: 7 },
       { id: 4, name: 'Brokerage', type: 'taxable', balance: 210000, returnRate: 7 },
       { id: 5, name: 'Cash / HYS', type: 'cash', balance: 65000, returnRate: 4.5 },
-    ]
+    ],
+
+    postRetirementReturn: null,
+
+    ssTrustFundReduction: { enabled: false, reductionPct: 20, startYear: 2034 },
 
   }
 };
@@ -2146,6 +2161,10 @@ function migrateParams() {
     // Remove legacy fields
     delete hcm.startAge; delete hcm.endAge;
   }
+  // v3.3 Migration: post-retirement return rate
+  if (state.params.postRetirementReturn === undefined) state.params.postRetirementReturn = null;
+  // v3.3 Migration: SS trust fund reduction
+  if (state.params.ssTrustFundReduction === undefined) state.params.ssTrustFundReduction = { enabled: false, reductionPct: 20, startYear: 2034 };
 }
 migrateParams();
 function saveState() { if (isPro()) { try { localStorage.setItem('retiq_v1', JSON.stringify(state.params)); } catch(e) {} } }
@@ -2174,6 +2193,8 @@ function getActiveAdvancedFeatures(p) {
   if (p.lifeInsurance && p.lifeInsurance.length > 0) active.push('Life Insurance (' + p.lifeInsurance.length + ')');
   if ((p.additionalIncome || 0) > 0) active.push('Additional Retirement Income');
   if (p.preRetirementExpenses > 0) active.push('Pre-Retirement Expenses');
+  if (p.postRetirementReturn !== null && p.postRetirementReturn !== undefined) active.push('Post-Retirement Return Rate');
+  if (p.ssTrustFundReduction && p.ssTrustFundReduction.enabled) active.push('SS Trust Fund Reduction');
   return active;
 }
 function isSimplePlan(p) { return getActiveAdvancedFeatures(p).length === 0; }
@@ -4615,6 +4636,15 @@ function renderInputs() {
         </label>
         <div class="field-help" style="margin-left:24px">When enabled, savings respect annual 401(k) and IRA limits with age 50+ catch-up and SECURE 2.0 age 60-63 super catch-up. Overflow goes to taxable accounts.</div>
       </div>
+      <div style="margin-top:14px;padding:12px 14px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border)">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);margin-bottom:4px">
+          <input type="checkbox" ${p.postRetirementReturn != null ? 'checked' : ''} onchange="if(this.checked){setParam('postRetirementReturn',5)}else{setParam('postRetirementReturn',null)}" style="width:16px;height:16px;accent-color:var(--blue)">
+          Different return rate in retirement
+        </label>
+        ${p.postRetirementReturn != null ? `<div style="margin-left:24px;margin-top:8px">
+          ${field('Post-Retirement Return Rate ' + tip('Override the growth rate for all investment accounts (pre-tax, Roth, brokerage) once you retire. Cash/HYS accounts keep their own rate. Useful for modeling a shift to more conservative investments in retirement.'),'postRetirementReturn',{suffix:'%',help:'Applied to pre-tax, Roth, and brokerage accounts after retirement. Cash/HYS accounts are not affected.'})}
+        </div>` : ''}
+      </div>
     </div>`;
     } // end Full Control accounts
   }
@@ -5628,6 +5658,34 @@ function renderInputs() {
     ${!isEssentials ? `<div class="card"><div class="card-title">Cost-of-Living Adjustment (Both Spouses)</div>
       ${field('Social Security COLA ' + tip('Cost-of-living adjustment &mdash; how much Social Security increases each year to keep up with inflation. The historical average is about 2-3%.'),'ssCOLA',{suffix:'%',help:'Historical avg ~2%. Applied after claiming to both you and spouse.'})}
     </div>` : ''}
+
+    ${!isEssentials ? (() => {
+      const sstf = p.ssTrustFundReduction || {};
+      return `<div class="card"><div class="card-title">SS Trust Fund Reduction</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px;line-height:1.6">
+          Model a potential reduction in Social Security benefits if the trust fund is depleted.
+          The Social Security trustees project the fund could be exhausted around 2033-2035, which may trigger an automatic ~20% benefit cut.
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);margin-bottom:12px">
+          <input type="checkbox" ${sstf.enabled ? 'checked' : ''} onchange="setParam('ssTrustFundReduction',{...state.params.ssTrustFundReduction,enabled:this.checked})" style="width:16px;height:16px;accent-color:var(--blue)">
+          Enable SS Trust Fund Reduction
+        </label>
+        ${sstf.enabled ? `
+          <div class="field-row">
+            <div class="field-wrap">
+              <label class="field-label">Reduction Percentage ${tip('The percentage by which SS benefits would be reduced after trust fund depletion. The trustees estimate ~20-23% based on incoming payroll taxes.')}</label>
+              <div class="input-wrap"><input type="number" class="field-input" value="${sstf.reductionPct||20}" min="1" max="50" step="1" onchange="setParam('ssTrustFundReduction',{...state.params.ssTrustFundReduction,reductionPct:+this.value})"><span class="input-suffix">%</span></div>
+              <div class="field-help">Typical estimate: 20-23%. Applied to all SS retirement and survivor benefits (not SSDI).</div>
+            </div>
+            <div class="field-wrap">
+              <label class="field-label">Start Year ${tip('The year when the reduction begins. The latest trustees report projects trust fund exhaustion around 2033-2035.')}</label>
+              <div class="input-wrap"><input type="number" class="field-input" value="${sstf.startYear||2034}" min="2025" max="2060" step="1" onchange="setParam('ssTrustFundReduction',{...state.params.ssTrustFundReduction,startYear:+this.value})"></div>
+              <div class="field-help">Benefits are reduced starting this calendar year.</div>
+            </div>
+          </div>
+        ` : ''}
+      </div>`;
+    })() : ''}
 
     ${!isEssentials ? (() => {
       // Build YOUR claim comparison table
