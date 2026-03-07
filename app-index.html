@@ -408,6 +408,7 @@ button:hover { opacity: 0.88; }
     <div class="header-left">
       <a href="https://retirementiq.app/?landing" class="logo-text" style="text-decoration:none;color:inherit">RetIQ</a>
       <span class="logo-badge">v3.4</span>
+      <span id="regsBadge" class="logo-badge" style="opacity:0.7" title="Regulatory data year">2025</span>
       <span id="planBadge" class="plan-badge" title="Current plan">FREE</span>
       <div class="mode-toggle" id="modeToggle"></div>
     </div>
@@ -663,41 +664,160 @@ function renderDollarToggle() {
     ${showRealDollars ? '<input type=number value="'+realDollarRate+'" step=0.5 min=0 max=10 style="width:50px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:2px 4px;font-size:11px;text-align:center" onchange="realDollarRate=Number(this.value);render()"><span style="font-size:10px">% infl.</span>' : ''}`;
 }
 
-const QCD_ANNUAL_LIMIT = 108000; // IRS Notice 2024-80 (2025 inflation-adjusted)
-
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
-// FINANCIAL ENGINE
+// FINANCIAL ENGINE — Regulatory Constants (v4.0)
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
 
-const TAX_BRACKETS_MFJ = [
-  { min: 0, max: 23850, rate: 0.10 }, { min: 23850, max: 96950, rate: 0.12 },
-  { min: 96950, max: 206700, rate: 0.22 }, { min: 206700, max: 394600, rate: 0.24 },
-  { min: 394600, max: 501050, rate: 0.32 }, { min: 501050, max: 751600, rate: 0.35 },
-  { min: 751600, max: Infinity, rate: 0.37 },
-];
-const TAX_BRACKETS_SINGLE = [
-  { min: 0, max: 11925, rate: 0.10 }, { min: 11925, max: 48475, rate: 0.12 },
-  { min: 48475, max: 103350, rate: 0.22 }, { min: 103350, max: 197300, rate: 0.24 },
-  { min: 197300, max: 250525, rate: 0.32 }, { min: 250525, max: 626350, rate: 0.35 },
-  { min: 626350, max: Infinity, rate: 0.37 },
-];
-const STD_DEDUCTION = 31500;
-const STD_DEDUCTION_SINGLE = 15750;
-// Senior additional standard deduction (existing law, IRS 2025)
-const SENIOR_STD_DEDUCTION_MFJ = 1600;   // per qualifying person, $3,200 for couple both 65+
-const SENIOR_STD_DEDUCTION_SINGLE = 2000; // single filer 65+
-// OBBB Senior Deduction (2025-2028): additional $6,000/person, phases out above $150k MFJ / $75k single
-const OBBB_SENIOR_DEDUCTION = 6000;       // per qualifying person
-const OBBB_SENIOR_PHASEOUT_MFJ = 150000;
-const OBBB_SENIOR_PHASEOUT_SINGLE = 75000;
-const OBBB_SENIOR_PHASEOUT_RATE = 0.06;   // 6% phase-out rate
-// SS Retirement Earnings Test (2025 limits — SSA Publication 05-10069)
-const SS_RET_UNDER_FRA_LIMIT = 23400;   // annual exempt amount, under FRA all year
-const SS_RET_FRA_YEAR_LIMIT  = 62160;   // annual exempt amount, year reaching FRA
-const SS_RET_UNDER_FRA_RATE  = 0.50;    // $1 withheld per $2 over limit
-const SS_RET_FRA_YEAR_RATE   = 1/3;     // $1 withheld per $3 over limit
-const SS_RET_BASE_YEAR       = 2025;    // base year for inflation indexing
-const SS_RET_GROWTH          = 0.03;    // Average Wage Index growth (~3%/yr)
+// Centralized regulatory constants — embedded defaults, overridable via Cloudflare KV fetch.
+// These values change annually (IRS Rev. Proc., SSA COLA, CMS IRMAA, HHS FPL).
+// v4.0: app fetches updated REGS from KV on load; falls back to these if offline/unavailable.
+const REGS = {
+  version: "2025",
+  effectiveDate: "2025-01-01",
+  publishedDate: "2025-03-06",
+  sources: {
+    federal_tax: "IRS Rev. Proc. 2024-40, OBBB Act 2025",
+    irmaa: "CMS 2025 Medicare Premium announcement",
+    ss: "SSA News Release Oct 2024, SSA OACT 2025",
+    aca_fpl: "HHS 2025 Poverty Guidelines",
+    contribution_limits: "IRS Notice 2024-80, SECURE 2.0 Act",
+  },
+  federal: {
+    brackets_mfj: [
+      { min: 0, max: 23850, rate: 0.10 }, { min: 23850, max: 96950, rate: 0.12 },
+      { min: 96950, max: 206700, rate: 0.22 }, { min: 206700, max: 394600, rate: 0.24 },
+      { min: 394600, max: 501050, rate: 0.32 }, { min: 501050, max: 751600, rate: 0.35 },
+      { min: 751600, max: Infinity, rate: 0.37 },
+    ],
+    brackets_single: [
+      { min: 0, max: 11925, rate: 0.10 }, { min: 11925, max: 48475, rate: 0.12 },
+      { min: 48475, max: 103350, rate: 0.22 }, { min: 103350, max: 197300, rate: 0.24 },
+      { min: 197300, max: 250525, rate: 0.32 }, { min: 250525, max: 626350, rate: 0.35 },
+      { min: 626350, max: Infinity, rate: 0.37 },
+    ],
+    std_deduction_mfj: 31500,
+    std_deduction_single: 15750,
+    senior_std_deduction_mfj: 1600,    // per qualifying person, $3,200 for couple both 65+
+    senior_std_deduction_single: 2000, // single filer 65+
+    obbb_senior_deduction: 6000,       // per qualifying person (2025-2028)
+    obbb_phaseout_mfj: 150000,
+    obbb_phaseout_single: 75000,
+    obbb_phaseout_rate: 0.06,          // 6% phase-out rate
+    cg_0_threshold_single: 48350,      // IRS Rev. Proc. 2024-40 §2.14
+    cg_0_threshold_mfj: 96700,
+    cg_15_threshold_single: 533400,
+    cg_15_threshold_mfj: 583750,
+    niit_threshold_single: 200000,     // IRC §1411
+    niit_threshold_mfj: 250000,
+    niit_rate: 0.038,
+  },
+  ss: {
+    bend_point_1: 1226,                // SSA OACT 2025 PIA formula
+    bend_point_2: 7391,
+    wage_base: 176100,                 // 2025 contribution & benefit base
+    earnings_test_under_fra: 23400,    // SSA Pub 05-10069 — annual exempt, under FRA all year
+    earnings_test_fra_year: 62160,     // annual exempt, year reaching FRA
+    earnings_test_under_fra_rate: 0.50, // $1 withheld per $2 over limit
+    earnings_test_fra_year_rate: 1/3,  // $1 withheld per $3 over limit
+    base_year: 2025,                   // base year for inflation indexing
+    growth_rate: 0.03,                 // Average Wage Index growth (~3%/yr)
+  },
+  irmaa: {
+    // 2025 Medicare Part B & D premiums — CMS announcement
+    // Monthly: $185.00 base | $259.00 | $370.00 | $480.90 | $591.90 | $628.90
+    brackets_mfj: [
+      { magi: 0,       partB: 2220.00, partD: 0 },
+      { magi: 212000,  partB: 3108.00, partD: 164.40 },
+      { magi: 265000,  partB: 4440.00, partD: 423.60 },
+      { magi: 332000,  partB: 5770.80, partD: 684.00 },
+      { magi: 398000,  partB: 7102.80, partD: 943.20 },
+      { magi: 750000,  partB: 7546.80, partD: 1029.60 },
+    ],
+    brackets_single: [
+      { magi: 0,       partB: 2220.00, partD: 0 },
+      { magi: 106000,  partB: 3108.00, partD: 164.40 },
+      { magi: 133000,  partB: 4440.00, partD: 423.60 },
+      { magi: 167000,  partB: 5770.80, partD: 684.00 },
+      { magi: 200000,  partB: 7102.80, partD: 943.20 },
+      { magi: 500000,  partB: 7546.80, partD: 1029.60 },
+    ],
+  },
+  aca: {
+    // 2025 enhanced rates (ARPA/IRA) — no income cap, subsidies at any income level
+    // Source: IRS Rev. Proc. 2024-35
+    pct_enhanced: [
+      { minFPL: 0,   maxFPL: 150, minPct: 0,    maxPct: 0    },
+      { minFPL: 150, maxFPL: 200, minPct: 0,    maxPct: 2.0  },
+      { minFPL: 200, maxFPL: 250, minPct: 2.0,  maxPct: 4.0  },
+      { minFPL: 250, maxFPL: 300, minPct: 4.0,  maxPct: 6.0  },
+      { minFPL: 300, maxFPL: 400, minPct: 6.0,  maxPct: 8.5  },
+      { minFPL: 400, maxFPL: 9999,minPct: 8.5,  maxPct: 8.5  },
+    ],
+    // 2026+ original ACA rates — hard cliff at 400% FPL (no subsidy above)
+    // Source: IRS Rev. Proc. 2025-25
+    pct_original: [
+      { minFPL: 0,   maxFPL: 133, minPct: 2.0,  maxPct: 2.0  },
+      { minFPL: 133, maxFPL: 150, minPct: 3.0,  maxPct: 4.0  },
+      { minFPL: 150, maxFPL: 200, minPct: 4.0,  maxPct: 6.52 },
+      { minFPL: 200, maxFPL: 250, minPct: 6.52, maxPct: 8.33 },
+      { minFPL: 250, maxFPL: 300, minPct: 8.33, maxPct: 9.83 },
+      { minFPL: 300, maxFPL: 400, minPct: 9.83, maxPct: 9.83 },
+    ],
+    // 2025 Federal Poverty Level — 48 contiguous states + DC (HHS poverty guidelines)
+    fpl_base: { 1: 15650, 2: 21150, 3: 26650, 4: 32150 },
+    fpl_additional: 5500,  // per person beyond 4
+    fpl_inflate: 0.02,     // ~2% annual FPL growth
+  },
+  retirement_accounts: {
+    contribution_401k: 23500,        // IRS Notice 2024-80
+    contribution_ira: 7000,
+    catchup_401k_standard: 7500,     // age 50-59, 64+
+    catchup_401k_secure2: 11250,     // SECURE 2.0 §109, age 60-63
+    catchup_ira: 1000,               // age 50+
+    qcd_limit: 108000,              // IRS Notice 2024-80 (2025 inflation-adjusted)
+  },
+};
+
+// — Aliases: engine code below uses these names unchanged —
+const TAX_BRACKETS_MFJ = REGS.federal.brackets_mfj;
+const TAX_BRACKETS_SINGLE = REGS.federal.brackets_single;
+const STD_DEDUCTION = REGS.federal.std_deduction_mfj;
+const STD_DEDUCTION_SINGLE = REGS.federal.std_deduction_single;
+const SENIOR_STD_DEDUCTION_MFJ = REGS.federal.senior_std_deduction_mfj;
+const SENIOR_STD_DEDUCTION_SINGLE = REGS.federal.senior_std_deduction_single;
+const OBBB_SENIOR_DEDUCTION = REGS.federal.obbb_senior_deduction;
+const OBBB_SENIOR_PHASEOUT_MFJ = REGS.federal.obbb_phaseout_mfj;
+const OBBB_SENIOR_PHASEOUT_SINGLE = REGS.federal.obbb_phaseout_single;
+const OBBB_SENIOR_PHASEOUT_RATE = REGS.federal.obbb_phaseout_rate;
+const SS_RET_UNDER_FRA_LIMIT = REGS.ss.earnings_test_under_fra;
+const SS_RET_FRA_YEAR_LIMIT  = REGS.ss.earnings_test_fra_year;
+const SS_RET_UNDER_FRA_RATE  = REGS.ss.earnings_test_under_fra_rate;
+const SS_RET_FRA_YEAR_RATE   = REGS.ss.earnings_test_fra_year_rate;
+const SS_RET_BASE_YEAR       = REGS.ss.base_year;
+const SS_RET_GROWTH          = REGS.ss.growth_rate;
+const QCD_ANNUAL_LIMIT = REGS.retirement_accounts.qcd_limit;
+const SS_WAGE_BASE = REGS.ss.wage_base;
+const SS_BEND_POINT_1 = REGS.ss.bend_point_1;
+const SS_BEND_POINT_2 = REGS.ss.bend_point_2;
+const CG_0_THRESH_SINGLE = REGS.federal.cg_0_threshold_single;
+const CG_0_THRESH_MFJ = REGS.federal.cg_0_threshold_mfj;
+const CG_15_THRESH_SINGLE = REGS.federal.cg_15_threshold_single;
+const CG_15_THRESH_MFJ = REGS.federal.cg_15_threshold_mfj;
+const NIIT_THRESH_SINGLE = REGS.federal.niit_threshold_single;
+const NIIT_THRESH_MFJ = REGS.federal.niit_threshold_mfj;
+const NIIT_RATE = REGS.federal.niit_rate;
+const CONTRIB_401K = REGS.retirement_accounts.contribution_401k;
+const CONTRIB_IRA = REGS.retirement_accounts.contribution_ira;
+const CATCHUP_401K = REGS.retirement_accounts.catchup_401k_standard;
+const CATCHUP_401K_SECURE2 = REGS.retirement_accounts.catchup_401k_secure2;
+const CATCHUP_IRA = REGS.retirement_accounts.catchup_ira;
+const ACA_PCT_ENHANCED = REGS.aca.pct_enhanced;
+const ACA_PCT_ORIGINAL = REGS.aca.pct_original;
+const ACA_FPL_BASE = REGS.aca.fpl_base;
+const ACA_FPL_ADDITIONAL = REGS.aca.fpl_additional;
+const ACA_FPL_INFLATE = REGS.aca.fpl_inflate;
+const IRMAA_BRACKETS_MFJ = REGS.irmaa.brackets_mfj;
+const IRMAA_BRACKETS_SINGLE = REGS.irmaa.brackets_single;
 
 // Pre-Medicare Healthcare Sources (v1.8)
 const HC_SOURCES = {
@@ -708,31 +828,6 @@ const HC_SOURCES = {
   va:           { label: 'VA Healthcare',            single: 0,     couple: 0,     inf: 0, help: 'Veterans with qualifying service may have zero or very low healthcare costs.' },
   other:        { label: 'Other / Self-Pay',         single: 12000, couple: 18000, inf: 5, help: 'Health sharing ministries, short-term plans, direct primary care, or self-pay.' },
 };
-
-// ACA Premium Tax Credit — applicable percentage tables (v1.9)
-// Source: IRS Rev. Proc. 2024-35 (2025 enhanced), Rev. Proc. 2025-25 (2026+ original)
-// 2025 enhanced rates (ARPA/IRA) — no income cap, subsidies at any income level
-const ACA_PCT_ENHANCED = [
-  { minFPL: 0,   maxFPL: 150, minPct: 0,    maxPct: 0    },
-  { minFPL: 150, maxFPL: 200, minPct: 0,    maxPct: 2.0  },
-  { minFPL: 200, maxFPL: 250, minPct: 2.0,  maxPct: 4.0  },
-  { minFPL: 250, maxFPL: 300, minPct: 4.0,  maxPct: 6.0  },
-  { minFPL: 300, maxFPL: 400, minPct: 6.0,  maxPct: 8.5  },
-  { minFPL: 400, maxFPL: 9999,minPct: 8.5,  maxPct: 8.5  },
-];
-// 2026+ original ACA rates — hard cliff at 400% FPL (no subsidy above)
-const ACA_PCT_ORIGINAL = [
-  { minFPL: 0,   maxFPL: 133, minPct: 2.0,  maxPct: 2.0  },
-  { minFPL: 133, maxFPL: 150, minPct: 3.0,  maxPct: 4.0  },
-  { minFPL: 150, maxFPL: 200, minPct: 4.0,  maxPct: 6.52 },
-  { minFPL: 200, maxFPL: 250, minPct: 6.52, maxPct: 8.33 },
-  { minFPL: 250, maxFPL: 300, minPct: 8.33, maxPct: 9.83 },
-  { minFPL: 300, maxFPL: 400, minPct: 9.83, maxPct: 9.83 },
-];
-// 2025 Federal Poverty Level — 48 contiguous states + DC (HHS poverty guidelines)
-const ACA_FPL_BASE = { 1: 15650, 2: 21150, 3: 26650, 4: 32150 };
-const ACA_FPL_ADDITIONAL = 5500;  // per person beyond 4
-const ACA_FPL_INFLATE = 0.02;     // ~2% annual FPL growth
 
 // ACA calculation functions
 function getFPL(householdSize, inflationYr) {
@@ -858,20 +953,20 @@ function estimateSS(params) {
   let aime;
   if (useDetailed && earningsHistory && earningsHistory.length > 0) {
     const indexed = earningsHistory
-      .map(e => Math.min(e, 176100))
+      .map(e => Math.min(e, SS_WAGE_BASE))
       .sort((a, b) => b - a)
       .slice(0, 35);
     while (indexed.length < 35) indexed.push(0);
     aime = indexed.reduce((s, v) => s + v, 0) / (35 * 12);
   } else {
-    aime = Math.min(avgIncome, 176100) / 12;
+    aime = Math.min(avgIncome, SS_WAGE_BASE) / 12;
   }
 
   // PIA bend points (2025 — SSA OACT), truncated to dime
   let pia = 0;
-  if (aime <= 1226) pia = aime * 0.9;
-  else if (aime <= 7391) pia = 1226 * 0.9 + (aime - 1226) * 0.32;
-  else pia = 1226 * 0.9 + (7391 - 1226) * 0.32 + (aime - 7391) * 0.15;
+  if (aime <= SS_BEND_POINT_1) pia = aime * 0.9;
+  else if (aime <= SS_BEND_POINT_2) pia = SS_BEND_POINT_1 * 0.9 + (aime - SS_BEND_POINT_1) * 0.32;
+  else pia = SS_BEND_POINT_1 * 0.9 + (SS_BEND_POINT_2 - SS_BEND_POINT_1) * 0.32 + (aime - SS_BEND_POINT_2) * 0.15;
   const piaMonthly = Math.floor(pia * 10) / 10; // truncate to dime
 
   // FRA
@@ -950,24 +1045,6 @@ function calcRMD(preTaxBalance, age) {
 }
 
 // -- Medicare IRMAA ----------------------------------------
-
-// 2025 IRMAA brackets for MFJ
-const IRMAA_BRACKETS_MFJ = [
-  { magi: 0,       partB: 185.00 * 12, partD: 0 },
-  { magi: 212000,  partB: 259.00 * 12, partD: 13.70 * 12 },
-  { magi: 265000,  partB: 370.00 * 12, partD: 35.30 * 12 },
-  { magi: 332000,  partB: 480.90 * 12, partD: 57.00 * 12 },
-  { magi: 398000,  partB: 591.90 * 12, partD: 78.60 * 12 },
-  { magi: 750000,  partB: 628.90 * 12, partD: 85.80 * 12 },
-];
-const IRMAA_BRACKETS_SINGLE = [
-  { magi: 0,       partB: 185.00 * 12, partD: 0 },
-  { magi: 106000,  partB: 259.00 * 12, partD: 13.70 * 12 },
-  { magi: 133000,  partB: 370.00 * 12, partD: 35.30 * 12 },
-  { magi: 167000,  partB: 480.90 * 12, partD: 57.00 * 12 },
-  { magi: 200000,  partB: 591.90 * 12, partD: 78.60 * 12 },
-  { magi: 500000,  partB: 628.90 * 12, partD: 85.80 * 12 },
-];
 
 function calcIRMAA(magi, single = false) {
   const brackets = single ? IRMAA_BRACKETS_SINGLE : IRMAA_BRACKETS_MFJ;
@@ -1515,10 +1592,10 @@ function runProjection(p) {
       if (p.enforceContribLimits !== false) {
         // 2025 limits (indexed roughly to inflation)
         const limInf = Math.pow(1 + p.inflation / 100, yr);
-        const limit401k = Math.round(23500 * limInf);
-        const limitIRA = Math.round(7000 * limInf);
-        const catchUp = age >= 50 ? (age >= 60 && age <= 63 ? Math.round(11250 * limInf) : Math.round(7500 * limInf)) : 0;
-        const catchUpIRA = age >= 50 ? Math.round(1000 * limInf) : 0;
+        const limit401k = Math.round(CONTRIB_401K * limInf);
+        const limitIRA = Math.round(CONTRIB_IRA * limInf);
+        const catchUp = age >= 50 ? (age >= 60 && age <= 63 ? Math.round(CATCHUP_401K_SECURE2 * limInf) : Math.round(CATCHUP_401K * limInf)) : 0;
+        const catchUpIRA = age >= 50 ? Math.round(CATCHUP_IRA * limInf) : 0;
 
         // Primary savings (use actualSavings ratio to scale)
         const savRatio = targetSavings > 0 ? actualSavings / targetSavings : 0;
@@ -1534,8 +1611,8 @@ function runProjection(p) {
         if (p.spouseAge && !spRetired && !spouseDead) {
           const spSavBase = spPartialRetire ? spSavingsAtYear * (spouseRetireMonth / 12) : spSavingsAtYear;
           const spSavAmt = spSavBase * savRatio;
-          const spCatchUp = spAge >= 50 ? (spAge >= 60 && spAge <= 63 ? Math.round(11250 * limInf) : Math.round(7500 * limInf)) : 0;
-          const spCatchUpIRA = spAge >= 50 ? Math.round(1000 * limInf) : 0;
+          const spCatchUp = spAge >= 50 ? (spAge >= 60 && spAge <= 63 ? Math.round(CATCHUP_401K_SECURE2 * limInf) : Math.round(CATCHUP_401K * limInf)) : 0;
+          const spCatchUpIRA = spAge >= 50 ? Math.round(CATCHUP_IRA * limInf) : 0;
           let spPT = Math.min(spSavAmt * 0.6, hasPreTax ? limit401k + spCatchUp : 0);
           let spR = Math.min(spSavAmt * 0.25, hasRoth ? limitIRA + spCatchUpIRA : 0);
           let spT = hasTaxable ? Math.max(0, spSavAmt - spPT - spR) : 0;
@@ -1804,8 +1881,8 @@ function runProjection(p) {
     // IRS Rev. Proc. 2024-40: MFJ 0%≤$96,700 / 15%≤$583,750 / 20%; Single 0%≤$48,350 / 15%≤$533,400 / 20%
     let cgTax = 0;
     if (capGains > 0) {
-      const cg0Thresh = isSingle ? 48350 : 96700;
-      const cg15Thresh = isSingle ? 533400 : 583750;
+      const cg0Thresh = isSingle ? CG_0_THRESH_SINGLE : CG_0_THRESH_MFJ;
+      const cg15Thresh = isSingle ? CG_15_THRESH_SINGLE : CG_15_THRESH_MFJ;
       // CG stacks on top of ordinary taxable income for rate determination
       const cgStart = ordinaryTaxable; // bottom of CG stack
       const cgEnd = ordinaryTaxable + capGains; // top of CG stack
@@ -1822,10 +1899,10 @@ function runProjection(p) {
     // NIIT: 3.8% Net Investment Income Tax on lesser of (NII, MAGI exceeding threshold)
     // IRC §1411: applies to cap gains, interest, dividends for MAGI > $200K single / $250K MFJ
     const magi = otherIncForSS + ssTaxable;
-    const niitThresh = isSingle ? 200000 : 250000;
+    const niitThresh = isSingle ? NIIT_THRESH_SINGLE : NIIT_THRESH_MFJ;
     const nii = capGains + cashInterest; // net investment income includes interest
     const niitTax = (magi > niitThresh && nii > 0)
-      ? Math.round(Math.min(nii, magi - niitThresh) * 0.038) : 0;
+      ? Math.round(Math.min(nii, magi - niitThresh) * NIIT_RATE) : 0;
 
     const fedTax = fedTaxOrdinary + cgTax + niitTax;
     const stateTax = calcStateTax({
@@ -6728,8 +6805,60 @@ window.addEventListener('orientationchange', () => {
 render();
 updateHeaderHeight();
 
-// ---------------- RetIQ Install + Pro Licensing ----------------
+// ---------------- Regulatory Data Fetch (v4.0) ----------------
 const RETIQ_API = "https://retiq-worker.bortvin.workers.dev";
+
+// Fetch updated regulatory constants from KV. Falls back to embedded defaults on failure.
+(async function loadRegs() {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 3000);
+    const resp = await fetch(RETIQ_API + '/regs-current', { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (!data || !data.version || data.version === REGS.version) return;
+    // Deep-mutate REGS arrays in place (keeps const aliases valid)
+    const arrayFields = {
+      federal: ['brackets_mfj', 'brackets_single'],
+      irmaa: ['brackets_mfj', 'brackets_single'],
+      aca: ['pct_enhanced', 'pct_original'],
+    };
+    for (const [section, keys] of Object.entries(arrayFields)) {
+      if (!data[section]) continue;
+      for (const key of keys) {
+        if (!data[section][key]) continue;
+        REGS[section][key].length = 0;
+        data[section][key].forEach(item => {
+          // Convert null → Infinity for bracket max fields (JSON can't encode Infinity)
+          if (item.max === null) item.max = Infinity;
+          REGS[section][key].push(item);
+        });
+      }
+    }
+    // Merge scalar properties
+    for (const section of ['federal', 'ss', 'aca', 'retirement_accounts']) {
+      if (!data[section]) continue;
+      for (const [k, v] of Object.entries(data[section])) {
+        if (Array.isArray(v) || typeof v === 'object') continue; // arrays handled above
+        REGS[section][k] = v;
+      }
+    }
+    // ACA fpl_base is an object, not an array
+    if (data.aca?.fpl_base) REGS.aca.fpl_base = data.aca.fpl_base;
+    // Metadata
+    REGS.version = data.version;
+    REGS.effectiveDate = data.effectiveDate || REGS.effectiveDate;
+    REGS.publishedDate = data.publishedDate || REGS.publishedDate;
+    if (data.sources) REGS.sources = data.sources;
+    // Update version badge
+    const badge = document.getElementById('regsBadge');
+    if (badge) { badge.textContent = data.version; badge.title = 'Tax data: IRS ' + data.version + ' · Updated ' + (data.publishedDate || ''); }
+    render();
+  } catch (e) { /* silent — use embedded defaults */ }
+})();
+
+// ---------------- RetIQ Install + Pro Licensing ----------------
 
 function setPlanBadge(isPro){
   const badge = document.getElementById("planBadge");

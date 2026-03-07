@@ -1471,6 +1471,35 @@ test('State Tax', 'PA age gate: $40K IRA age 60 exempt',
 
 
 // ══════════════════════════════════════════════════════════════════
+// REGS Object Structure (v4.0)
+// ══════════════════════════════════════════════════════════════════
+section('REGS Object Structure (v4.0)');
+
+// Use numeric encoding: 1=true, 0=false (test framework is numeric-only)
+test('REGS', 'REGS object exists', 'v4.0 regulatory constants', typeof REGS === 'object' ? 1 : 0, 1, 0);
+test('REGS', 'REGS.version is 2025', 'Regulatory year', REGS.version === '2025' ? 1 : 0, 1, 0);
+test('REGS', 'REGS has 5 data sections', 'Schema completeness',
+  ['federal','ss','irmaa','aca','retirement_accounts'].filter(k => typeof REGS[k] === 'object').length, 5, 0);
+test('REGS', 'federal.brackets_mfj has 7 brackets', 'IRS bracket count', REGS.federal.brackets_mfj.length, 7, 0);
+test('REGS', 'federal.brackets_single has 7 brackets', 'IRS bracket count', REGS.federal.brackets_single.length, 7, 0);
+test('REGS', 'irmaa.brackets_mfj has 6 tiers', 'CMS tier count', REGS.irmaa.brackets_mfj.length, 6, 0);
+test('REGS', 'aca.pct_enhanced has 6 tiers', 'ACA tier count', REGS.aca.pct_enhanced.length, 6, 0);
+
+// Verify aliases reference the same objects as REGS
+test('REGS', 'TAX_BRACKETS_MFJ === REGS.federal.brackets_mfj',
+  'Alias integrity', (TAX_BRACKETS_MFJ === REGS.federal.brackets_mfj) ? 1 : 0, 1, 0);
+test('REGS', 'IRMAA_BRACKETS_MFJ === REGS.irmaa.brackets_mfj',
+  'Alias integrity', (IRMAA_BRACKETS_MFJ === REGS.irmaa.brackets_mfj) ? 1 : 0, 1, 0);
+test('REGS', 'ACA_PCT_ENHANCED === REGS.aca.pct_enhanced',
+  'Alias integrity', (ACA_PCT_ENHANCED === REGS.aca.pct_enhanced) ? 1 : 0, 1, 0);
+test('REGS', 'SS_WAGE_BASE matches REGS',
+  'Alias integrity', SS_WAGE_BASE, REGS.ss.wage_base, 0);
+test('REGS', 'CONTRIB_401K matches REGS',
+  'Alias integrity', CONTRIB_401K, REGS.retirement_accounts.contribution_401k, 0);
+test('REGS', 'STD_DEDUCTION matches REGS',
+  'Alias integrity', STD_DEDUCTION, REGS.federal.std_deduction_mfj, 0);
+
+// ══════════════════════════════════════════════════════════════════
 // RESULTS
 // ══════════════════════════════════════════════════════════════════
 
