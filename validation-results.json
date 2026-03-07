@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-03-07T00:46:07.488Z",
+  "timestamp": "2026-03-07T02:53:43.223Z",
   "summary": {
-    "total": 254,
-    "passed": 254,
+    "total": 261,
+    "passed": 261,
     "failed": 0,
     "passRate": "100.0%"
   },
@@ -1000,70 +1000,10 @@
         }
       ]
     },
-    "CG Brackets": {
-      "passed": 4,
-      "failed": 0,
-      "tests": [
-        {
-          "category": "CG Brackets",
-          "name": "0% threshold — Single: $48,350",
-          "source": "IRS Rev. Proc. 2024-40 §2.14",
-          "actual": 48350,
-          "expected": 48350,
-          "tolerance": 1,
-          "pass": true
-        },
-        {
-          "category": "CG Brackets",
-          "name": "0% threshold — MFJ: $96,700",
-          "source": "IRS Rev. Proc. 2024-40 §2.14",
-          "actual": 96700,
-          "expected": 96700,
-          "tolerance": 1,
-          "pass": true
-        },
-        {
-          "category": "CG Brackets",
-          "name": "15% threshold — Single: $533,400",
-          "source": "IRS Rev. Proc. 2024-40 §2.14",
-          "actual": 533400,
-          "expected": 533400,
-          "tolerance": 1,
-          "pass": true
-        },
-        {
-          "category": "CG Brackets",
-          "name": "15% threshold — MFJ: $583,750",
-          "source": "IRS Rev. Proc. 2024-40 §2.14",
-          "actual": 583750,
-          "expected": 583750,
-          "tolerance": 1,
-          "pass": true
-        }
-      ]
-    },
     "NIIT": {
-      "passed": 3,
+      "passed": 1,
       "failed": 0,
       "tests": [
-        {
-          "category": "NIIT",
-          "name": "Threshold — Single: $200,000",
-          "source": "IRC §1411(b)",
-          "actual": 200000,
-          "expected": 200000,
-          "tolerance": 1,
-          "pass": true
-        },
-        {
-          "category": "NIIT",
-          "name": "Threshold — MFJ: $250,000",
-          "source": "IRC §1411(b)",
-          "actual": 250000,
-          "expected": 250000,
-          "tolerance": 1,
-          "pass": true
-        },
         {
           "category": "NIIT",
           "name": "Tax rate = 3.8%",
@@ -2457,6 +2397,129 @@
           "actual": 300000,
           "expected": 300000,
           "tolerance": 1,
+          "pass": true
+        }
+      ]
+    },
+    "REGS": {
+      "passed": 13,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "REGS",
+          "name": "REGS object exists",
+          "source": "v4.0 regulatory constants",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 0,
+          "pass": true
+        },
+        {
+          "category": "REGS",
+          "name": "REGS.version is 2025",
+          "source": "Regulatory year",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 0,
+          "pass": true
+        },
+        {
+          "category": "REGS",
+          "name": "REGS has 5 data sections",
+          "source": "Schema completeness",
+          "actual": 5,
+          "expected": 5,
+          "tolerance": 0,
+          "pass": true
+        },
+        {
+          "category": "REGS",
+          "name": "federal.brackets_mfj has 7 brackets",
+          "source": "IRS bracket count",
+          "actual": 7,
+          "expected": 7,
+          "tolerance": 0,
+          "pass": true
+        },
+        {
+          "category": "REGS",
+          "name": "federal.brackets_single has 7 brackets",
+          "source": "IRS bracket count",
+          "actual": 7,
+          "expected": 7,
+          "tolerance": 0,
+          "pass": true
+        },
+        {
+          "category": "REGS",
+          "name": "irmaa.brackets_mfj has 6 tiers",
+          "source": "CMS tier count",
+          "actual": 6,
+          "expected": 6,
+          "tolerance": 0,
+          "pass": true
+        },
+        {
+          "category": "REGS",
+          "name": "aca.pct_enhanced has 6 tiers",
+          "source": "ACA tier count",
+          "actual": 6,
+          "expected": 6,
+          "tolerance": 0,
+          "pass": true
+        },
+        {
+          "category": "REGS",
+          "name": "TAX_BRACKETS_MFJ === REGS.federal.brackets_mfj",
+          "source": "Alias integrity",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 0,
+          "pass": true
+        },
+        {
+          "category": "REGS",
+          "name": "IRMAA_BRACKETS_MFJ === REGS.irmaa.brackets_mfj",
+          "source": "Alias integrity",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 0,
+          "pass": true
+        },
+        {
+          "category": "REGS",
+          "name": "ACA_PCT_ENHANCED === REGS.aca.pct_enhanced",
+          "source": "Alias integrity",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 0,
+          "pass": true
+        },
+        {
+          "category": "REGS",
+          "name": "SS_WAGE_BASE matches REGS",
+          "source": "Alias integrity",
+          "actual": 176100,
+          "expected": 176100,
+          "tolerance": 0,
+          "pass": true
+        },
+        {
+          "category": "REGS",
+          "name": "CONTRIB_401K matches REGS",
+          "source": "Alias integrity",
+          "actual": 23500,
+          "expected": 23500,
+          "tolerance": 0,
+          "pass": true
+        },
+        {
+          "category": "REGS",
+          "name": "STD_DEDUCTION matches REGS",
+          "source": "Alias integrity",
+          "actual": 31500,
+          "expected": 31500,
+          "tolerance": 0,
           "pass": true
         }
       ]
