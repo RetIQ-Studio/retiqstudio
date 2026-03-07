@@ -1,0 +1,30 @@
+name = "retiq-worker"
+main = "src/index.js"
+compatibility_date = "2026-02-19"
+compatibility_flags = ["nodejs_compat"]
+
+# Monday 10am ET (14:00 UTC)
+[triggers]
+crons = ["0 14 * * 1"]
+
+# KV Namespaces
+[[kv_namespaces]]
+binding = "LICENSES"
+id = "8c602415e1b44f4db6fcf6ab45e4f171"
+
+[[kv_namespaces]]
+binding = "REGS"
+id = "6f83660bccb14b27b1da61bc0d9af6b0"
+
+# Secrets (set via `wrangler secret put <NAME>`):
+#   ADMIN_SECRET
+#   ANTHROPIC_API_KEY
+#   RESEND_API_KEY
+#   STRIPE_SECRET_KEY
+#   STRIPE_WEBHOOK_SECRET
+
+# Variables (set via `wrangler secret put <NAME>` or dashboard):
+#   ADMIN_EMAIL
+#   TRIAL_SECRET
+#   STRIPE_PRICE_ID
+#   STRIPE_PRICE_ID_EARLY

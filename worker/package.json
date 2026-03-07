@@ -1,0 +1,13 @@
+{
+  "name": "retiq-worker",
+  "version": "4.0.0-beta",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
