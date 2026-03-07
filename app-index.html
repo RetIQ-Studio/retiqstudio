@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>RetIQ — Retirement Planner</title>
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
@@ -60,6 +60,9 @@ body {
   min-height: 100vh; background: var(--bg-base); color: var(--text);
   font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif; line-height: 1.5;
   transition: background 0.3s, color 0.3s;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
@@ -75,10 +78,11 @@ button:hover { opacity: 0.88; }
   position: sticky; top: 0; z-index: 100;
   background: var(--header-bg); backdrop-filter: blur(12px);
   max-width: 1280px; margin: 0 auto; box-sizing: border-box;
+  padding-top: env(safe-area-inset-top);
 }
 .header-top {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 12px; gap: 8px;
+  padding: 8px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); gap: 8px;
 }
 .header-left { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .header-right { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
@@ -326,9 +330,12 @@ button:hover { opacity: 0.88; }
 /* ─── MOBILE RESPONSIVE ─── */
 @media (max-width: 640px) {
   /* Header compact */
-  .header-top { padding: 6px 8px; gap: 4px; }
+  .header-top { padding: 6px max(8px, env(safe-area-inset-right)) 6px max(8px, env(safe-area-inset-left)); gap: 4px; }
+  .header-right { flex-wrap: nowrap; }
   .logo-text { font-size: 15px; }
-  .header-icon-btn { width: 28px; height: 28px; font-size: 14px; }
+  .header-icon-btn { width: 28px; height: 28px; font-size: 14px; display: none; }
+  #overflowBtn { display: inline-flex !important; }
+  #buyBtn { display: none !important; }
   .header-upgrade-btn { padding: 4px 10px; font-size: 11px; }
   .header-nav { padding: 0 8px; }
   .nav-tab { padding: 6px 12px; font-size: 12px; }
@@ -362,7 +369,7 @@ button:hover { opacity: 0.88; }
   .pro-gate-btn { padding: 10px 20px; font-size: 13px; }
 
   /* Trust line */
-  #trustLine { font-size: 10px; margin: 4px 0 6px; }
+  #trustLine { display: none; }
 
   /* Strategy Report Card */
   .card[data-accent="green"] { max-width: 100% !important; }
@@ -413,12 +420,12 @@ button:hover { opacity: 0.88; }
       <div class="mode-toggle" id="modeToggle"></div>
     </div>
     <div class="header-right">
-      <button class="header-icon-btn" onclick="exportHTML()" title="Save as HTML snapshot">&#10515;</button>
-      <button class="header-icon-btn" onclick="document.getElementById('importFile').click()" title="Load plan from JSON or HTML snapshot">&#10514;</button>
+      <button class="header-icon-btn hide-mobile" onclick="exportHTML()" title="Save as HTML snapshot">&#10515;</button>
+      <button class="header-icon-btn hide-mobile" onclick="document.getElementById('importFile').click()" title="Load plan from JSON or HTML snapshot">&#10514;</button>
       <input type="file" id="importFile" accept=".json,.html,.htm" onchange="importData(event)" style="display:none">
-      <button class="header-icon-btn" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">&#9790;</button>
-      <div style="position:relative">
-        <button class="header-icon-btn" onclick="toggleOverflowMenu()" title="More" id="overflowBtn">&#8943;</button>
+      <button class="header-icon-btn hide-mobile" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">&#9790;</button>
+      <div style="position:relative;display:inline-flex">
+        <button class="header-icon-btn" onclick="toggleOverflowMenu()" title="More" id="overflowBtn">•••</button>
         <div id="overflowMenu" class="header-overflow-panel" style="display:none">
           <a href="https://retirementiq.app/features.html" target="_blank" class="header-overflow-item">Features</a>
           <a href="https://retirementiq.app/manual.html" target="_blank" class="header-overflow-item">Manual</a>
@@ -428,7 +435,7 @@ button:hover { opacity: 0.88; }
           <button id="activateBtn" class="header-overflow-item" title="Enter or manage your license">Activate</button>
         </div>
       </div>
-      <button id="buyBtn" class="header-upgrade-btn" title="Pro unlocks: Save HTML snapshots, future Pro features">Upgrade</button>
+      <button id="buyBtn" class="header-upgrade-btn" style="white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis" title="Pro unlocks: Save HTML snapshots, future Pro features">Upgrade</button>
     </div>
   </div>
   <nav class="header-nav" id="mainNav"></nav>
