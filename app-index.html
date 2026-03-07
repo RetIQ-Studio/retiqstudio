@@ -4523,7 +4523,7 @@ function renderInputs() {
       </div>
       <div class="card" data-accent="amber"><div class="card-title">Post-Retirement Expenses</div>
         <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;line-height:1.6">
-          Your annual spending in retirement. This is the base amount before expense phases, healthcare, or long-term care adjustments.
+          Your annual spending in retirement. Pre-Medicare healthcare gap costs and long-term care are modeled separately and added on top — configure them in the Healthcare tab. Include routine post-Medicare costs (premiums, copays) in the amount above.
         </div>
         <div style="display:flex;gap:6px;margin-bottom:8px">
           <button class="tab${(p.expenseMode||'fixed')==='fixed'?' active':''}" onclick="setParam('expenseMode','fixed')" style="font-size:11px;padding:4px 10px">Fixed Amount</button>
@@ -4532,7 +4532,7 @@ function renderInputs() {
         ${p.expenseMode === 'percent' ?
           field('Withdrawal Rate','withdrawalRate',{suffix:'%',help:'Classic 4% rule. Applied to portfolio balance each year in retirement.'})
         :
-          field('Annual Expenses (today\'s $)','annualExpenses',{prefix:'$',help:'Housing, food, healthcare, travel in retirement. Grows with general inflation rate.'})
+          field('Annual Expenses (today\'s $)','annualExpenses',{prefix:'$',help:'Housing, food, travel, and general living costs. Grows with inflation. Include routine Medicare-era health costs here.'})
         }
         <div style="font-size:12px;color:var(--text-dim);margin-top:8px;line-height:1.6">
           At retirement (age ${p.retirementAge}): <strong style="color:var(--text)">${retExpAtRetire}</strong>.
@@ -4545,7 +4545,7 @@ function renderInputs() {
         <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;line-height:1.6">
           Your annual spending in retirement (today's dollars). This grows with inflation each year.
         </div>
-        ${field('Annual Expenses (today\'s $)','annualExpenses',{prefix:'$',help:'Housing, food, healthcare, travel in retirement. Grows with general inflation rate.'})}
+        ${field('Annual Expenses (today\'s $)','annualExpenses',{prefix:'$',help:'Housing, food, travel, and general living costs. Grows with inflation. Include routine Medicare-era health costs here.'})}
         <div style="font-size:12px;color:var(--text-dim);margin-top:8px;line-height:1.6">
           At retirement (age ${p.retirementAge}): <strong style="color:var(--text)">${retExpAtRetire}</strong>
         </div>
