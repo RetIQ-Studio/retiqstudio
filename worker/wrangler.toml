@@ -16,15 +16,16 @@ id = "8c602415e1b44f4db6fcf6ab45e4f171"
 binding = "REGS"
 id = "6f83660bccb14b27b1da61bc0d9af6b0"
 
+# Variables
+[vars]
+STRIPE_PRICE_ID = "price_1T3ghBB0m4uuHqxSGYDoQlMi"
+STRIPE_PRICE_ID_EARLY = "price_1T3giEB0m4uuHqxSa6isas1N"
+
 # Secrets (set via `wrangler secret put <NAME>`):
 #   ADMIN_SECRET
+#   ADMIN_EMAIL
 #   ANTHROPIC_API_KEY
 #   RESEND_API_KEY
 #   STRIPE_SECRET_KEY
 #   STRIPE_WEBHOOK_SECRET
-
-# Variables (set via `wrangler secret put <NAME>` or dashboard):
-#   ADMIN_EMAIL
 #   TRIAL_SECRET
-#   STRIPE_PRICE_ID
-#   STRIPE_PRICE_ID_EARLY
