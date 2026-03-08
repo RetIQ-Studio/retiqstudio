@@ -110,12 +110,6 @@ button:hover { opacity: 0.88; }
 }
 .header-overflow-item:hover { background: var(--bg-hover); color: var(--text); }
 
-.header-upgrade-btn {
-  background: linear-gradient(135deg, var(--green), var(--cyan));
-  border: none; border-radius: 6px; color: #fff; padding: 5px 14px;
-  font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;
-}
-
 .header-nav {
   display: flex; gap: 0; border-top: 1px solid var(--border); padding: 0 12px;
   overflow-x: auto; scrollbar-width: none;
@@ -291,14 +285,6 @@ button:hover { opacity: 0.88; }
 .chart-tooltip-row { display: flex; justify-content: space-between; gap: 12px; }
 
 /* (save-load buttons moved into header icon buttons) */
-.pro-gate{position:relative;min-height:300px}
-.pro-gate-overlay{position:absolute;inset:0;z-index:10;background:linear-gradient(180deg,transparent 0%,var(--bg-base) 35%);display:flex;align-items:center;justify-content:center;border-radius:12px}
-.pro-gate-box{text-align:center;padding:32px;max-width:420px}
-.pro-gate-box h3{font-size:18px;font-weight:700;margin-bottom:8px}
-.pro-gate-box p{font-size:13px;color:var(--text-dim);margin-bottom:16px;line-height:1.6}
-.pro-gate-btn{background:linear-gradient(135deg,var(--green),var(--cyan));color:#fff;border:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.02em}
-.pro-gate-btn:hover{opacity:0.9}
-.pro-badge{font-size:8px;background:linear-gradient(135deg,var(--green),var(--cyan));color:#fff;padding:1px 5px;border-radius:4px;font-weight:700;vertical-align:super;margin-left:2px}
 .footer { text-align: center; padding: 24px 0 12px; font-size: 11px; color: var(--text-ghost); }
 .sub-nav { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; position: sticky; top: var(--header-h, 80px); z-index: 50; background: var(--bg-base); padding: 8px 0; border-bottom: 1px solid var(--border); }
 #importFile { display: none; }
@@ -314,17 +300,6 @@ button:hover { opacity: 0.88; }
 .irmaa-bracket { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--bg-base); font-size: 11px; }
 .irmaa-bracket.active { color: var(--pink); font-weight: 600; }
 
-.plan-badge{
-  font-size:11px;
-  font-weight:700;
-  padding:3px 8px;
-  border-radius:999px;
-  display:inline-block;
-  background:#111827;
-  color:#e5e7eb;
-  letter-spacing:.2px;
-}
-
 /* (mobile hamburger removed — overflow menu replaces it) */
 
 /* ─── MOBILE RESPONSIVE ─── */
@@ -335,8 +310,6 @@ button:hover { opacity: 0.88; }
   .logo-text { font-size: 15px; }
   .header-icon-btn { width: 28px; height: 28px; font-size: 14px; display: none; }
   #overflowBtn { display: inline-flex !important; }
-  #buyBtn { display: none !important; }
-  .header-upgrade-btn { padding: 4px 10px; font-size: 11px; }
   .header-nav { padding: 0 8px; }
   .nav-tab { padding: 6px 12px; font-size: 12px; }
 
@@ -365,11 +338,6 @@ button:hover { opacity: 0.88; }
   /* Fields */
   .field-input, select { font-size: 16px !important; } /* prevents iOS zoom; !important overrides inline styles */
 
-  /* Smaller buttons */
-  .pro-gate-btn { padding: 10px 20px; font-size: 13px; }
-
-  /* Trust line */
-  #trustLine { display: none; }
 
   /* Strategy Report Card */
   .card[data-accent="green"] { max-width: 100% !important; }
@@ -431,11 +399,8 @@ button:hover { opacity: 0.88; }
           <a href="https://retirementiq.app/manual.html" target="_blank" class="header-overflow-item">Manual</a>
           <a href="https://retirementiq.app/security.html" target="_blank" class="header-overflow-item">&#128737; Security</a>
           <a class="header-overflow-item" onclick="shareRetIQ()" style="cursor:pointer">Share RetIQ</a>
-          <button id="installBtn" class="header-overflow-item" style="display:none">Install App</button>
-          <button id="activateBtn" class="header-overflow-item" title="Enter or manage your license">Activate</button>
         </div>
       </div>
-      <button id="buyBtn" class="header-upgrade-btn" style="white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis" title="Pro unlocks: Save HTML snapshots, future Pro features">Upgrade</button>
     </div>
   </div>
   <nav class="header-nav" id="mainNav"></nav>
