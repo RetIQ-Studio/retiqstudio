@@ -388,6 +388,9 @@ button:hover { opacity: 0.88; }
           <a href="https://retirementiq.app/features.html" target="_blank" class="header-overflow-item">Features</a>
           <a href="https://retirementiq.app/manual.html" target="_blank" class="header-overflow-item">Manual</a>
           <a href="https://retirementiq.app/security.html" target="_blank" class="header-overflow-item">&#128737; Security</a>
+          <a class="header-overflow-item" onclick="state.tab='validation';render();document.getElementById('overflowMenu').style.display='none'" style="cursor:pointer">Validation</a>
+          <button class="header-overflow-item" onclick="exportHTML()" style="cursor:pointer">Save Plan</button>
+          <button class="header-overflow-item" onclick="document.getElementById('importFile').click()" style="cursor:pointer">Load Plan</button>
           <a class="header-overflow-item" onclick="shareRetIQ()" style="cursor:pointer">Share RetIQ</a>
         </div>
       </div>
@@ -3009,8 +3012,8 @@ function cLeave(id) { document.getElementById(id+'_h').setAttribute('visibility'
 
 function renderNav() {
   const isEssentials = state.params.uiMode === 'essentials';
-  const allTabs = [['dashboard','Dashboard'],['inputs','Inputs'],['projection','Projection'],['montecarlo','Monte Carlo'],['scenarios','Scenarios'],['validation','Validation']];
-  const tabs = isEssentials ? allTabs.filter(([k]) => !['scenarios','validation'].includes(k)) : allTabs;
+  const allTabs = [['dashboard','Dashboard'],['inputs','Inputs'],['projection','Projection'],['montecarlo','Monte Carlo'],['scenarios','Scenarios']];
+  const tabs = isEssentials ? allTabs.filter(([k]) => !['scenarios'].includes(k)) : allTabs;
   document.getElementById('mainNav').innerHTML = tabs.map(([k,v]) =>
     `<button class="nav-tab${state.tab===k?' active':''}" onclick="state.tab='${k}';render()">${v}</button>`).join('');
   // Scroll active main nav tab into view on mobile
@@ -6658,7 +6661,7 @@ function renderValidation() {
     </div>
     <div style="font-size:12px;color:var(--text-faint);margin-bottom:18px;line-height:1.6">
       Every calculation in RetIQ's engine is tested against authoritative government sources. This report runs automatically before each release.
-      For methodology details, see the <a href="https://retirementiq.app/manual.html#validation" target="_blank" style="color:var(--blue);text-decoration:none">User Manual &sect;23</a>.
+      For methodology details, see the <a href="https://retirementiq.app/manual.html#validation" target="_blank" style="color:var(--blue);text-decoration:none">User Manual &sect;24</a>.
     </div>`;
 
   // Category summary bar

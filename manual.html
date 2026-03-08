@@ -63,6 +63,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
   <div class="toc">
     <div class="toc-title">Contents</div>
     <ol>
+      <li><a href="#examples">Example Plans</a></li>
       <li><a href="#quickstart">Quick Start</a></li>
       <li><a href="#navigation">Navigation &amp; Layout</a></li>
       <li><a href="#personal">Personal Tab</a></li>
@@ -85,15 +86,32 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <li><a href="#montecarlo">Monte Carlo Simulation</a></li>
       <li><a href="#scenarios">Scenario Comparison</a></li>
       <li><a href="#saveload">Save &amp; Load</a></li>
-      <li><a href="#install">Install &amp; Licensing</a></li>
+      <li><a href="#iosdata">Your Data on iOS</a></li>
       <li><a href="#validation">Validation Report</a></li>
       <li><a href="#faq">FAQ</a></li>
     </ol>
   </div>
 
-  <!-- 1 -->
+  <!-- Example Plans -->
+  <div class="sec" id="examples">
+    <h2>1. Example Plans</h2>
+    <p>RetIQ ships with three pre-built example families designed to showcase different retirement planning scenarios. Load them from the <strong>Example Plans</strong> card on the Dashboard tab.</p>
+
+    <h3>The Clarks &mdash; The Cost of Simplicity</h3>
+    <p>Jim (64) and Carol (62) &middot; Florida &middot; $1.05M across a 401(k), Roth IRA, and brokerage account. A straightforward pre-tax-heavy plan with no Roth conversions and no pension. Illustrates how a simple approach can lead to an RMD tax spike in later years.</p>
+
+    <h3>The Lees &mdash; The Optimization Gap</h3>
+    <p>Michael (59) and Linda (57) &middot; Virginia &middot; $1.58M across five accounts. They plan to retire at 62 with an ACA healthcare bridge and a Roth conversion window before Medicare. Illustrates the gap between a default withdrawal strategy and an optimized one.</p>
+
+    <h3>The Washingtons &mdash; The Complexity You Didn&rsquo;t Know You Had</h3>
+    <p>Robert (63) and Patricia (61) &middot; Georgia &middot; $1.18M across four accounts, plus a pension, a mortgage, and a legacy goal. Illustrates the real-world complexity that arises when multiple income streams, debt obligations, and estate wishes interact.</p>
+
+    <p>To load an example, tap any family card on the Dashboard. A blue banner confirms which example is active. Tap <strong>Start Fresh</strong> in the banner to clear the example and reset to a blank plan.</p>
+  </div>
+
+  <!-- 2 -->
   <div class="sec" id="quickstart">
-    <h2>1. Quick Start</h2>
+    <h2>2. Quick Start</h2>
     <p>RetIQ runs entirely in your browser. There is no account to create and no data is sent to any server. To get started:</p>
     <ol>
       <li>Open <strong>retirementiq.app/app</strong> in any modern browser (Chrome, Safari, Edge, Firefox).</li>
@@ -108,18 +126,18 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 2 -->
   <div class="sec" id="navigation">
-    <h2>2. Navigation &amp; Layout</h2>
+    <h2>3. Navigation &amp; Layout</h2>
     <p>The header has two sections:</p>
-    <p><strong>Top bar:</strong> Contains the logo, plan badge, mode toggle, action buttons (Save, Load, Theme), an overflow menu (&hellip;) with links and sharing, and the Upgrade button.</p>
-    <p><strong>Underline nav:</strong> Switches between major views &mdash; Dashboard, Inputs, Projection, Monte Carlo, Scenarios, and Validation. The active tab is highlighted with a blue underline.</p>
+    <p><strong>Top bar:</strong> Contains the logo, mode toggle, action buttons (Save, Load, Theme), and an overflow menu (&hellip;) with links, Validation, Save/Load Plan, and sharing.</p>
+    <p><strong>Underline nav:</strong> Switches between major views &mdash; Dashboard, Inputs, Projection, Monte Carlo, and Scenarios. The active tab is highlighted with a blue underline.</p>
     <p><strong>Sub-nav (inside Inputs):</strong> Switches between input categories &mdash; Personal, Income, Expenses, Accounts, Pension, Social Security, Disability (SSDI), Liabilities, Healthcare, Medicare, Roth Conversions, Charitable Giving, Legacy, and Assumptions. The sub-nav sticks to the top of the screen when you scroll.</p>
     <p>The <strong>header bar</strong> also contains:</p>
     <ul>
       <li><strong>Simple / Full</strong> mode toggle &mdash; switches between a simplified 7-tab view and the full 14-tab interface. See below.</li>
       <li><strong>Today's $ / Future $</strong> toggle &mdash; switches all dollar values between inflation-adjusted and nominal (located in the Projection tab).</li>
       <li>Theme toggle (moon/sun icon).</li>
-      <li>Save/Load icon buttons for data portability.</li>
-      <li>Overflow menu (&hellip;) with links to Features, Manual, Security, and sharing.</li>
+      <li>Save/Load icon buttons for data portability (also available via &hellip; menu on mobile).</li>
+      <li>Overflow menu (&hellip;) with links to Features, Manual, Security, Validation, Save/Load Plan, and Share.</li>
     </ul>
 
     <h3>Simple vs. Full Mode</h3>
@@ -132,7 +150,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 3 -->
   <div class="sec" id="personal">
-    <h2>3. Personal Tab</h2>
+    <h2>4. Personal Tab</h2>
     <p>Core demographic inputs that drive the entire projection.</p>
     <table>
       <tr><th>Field</th><th>Description</th></tr>
@@ -150,7 +168,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 4 -->
   <div class="sec" id="income">
-    <h2>4. Income Tab</h2>
+    <h2>5. Income Tab</h2>
     <table>
       <tr><th>Field</th><th>Description</th></tr>
       <tr><td>Annual Gross Income</td><td>Your current pre-tax annual income. Grows by the income growth rate until retirement.</td></tr>
@@ -179,7 +197,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 5 -->
   <div class="sec" id="expenses">
-    <h2>5. Expenses Tab</h2>
+    <h2>6. Expenses Tab</h2>
     <p>RetIQ models expenses in two distinct phases: working years and retirement.</p>
 
     <p><strong>Pre-Retirement Expenses:</strong> Your annual living costs during working years &mdash; housing, food, transportation, childcare, insurance, and discretionary spending. These are deducted from your after-tax income alongside savings contributions and taxes. If your income can't cover expenses + savings + taxes, the shortfall is drawn from cash and brokerage accounts. A real-time cash flow breakdown shows your surplus or shortfall.</p>
@@ -197,7 +215,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 6 -->
   <div class="sec" id="accounts">
-    <h2>6. Accounts Tab</h2>
+    <h2>7. Accounts Tab</h2>
     <p>Add each investment account with:</p>
     <ul>
       <li><strong>Name:</strong> Label for identification (e.g., "Vanguard 401k", "Fidelity Roth").</li>
@@ -214,7 +232,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 7 -->
   <div class="sec" id="pension">
-    <h2>7. Pension Tab</h2>
+    <h2>8. Pension Tab</h2>
     <p>Model guaranteed income streams for either or both spouses:</p>
     <ul>
       <li><strong>Enable:</strong> Check to activate.</li>
@@ -243,7 +261,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 8 -->
   <div class="sec" id="ss">
-    <h2>8. Social Security Tab</h2>
+    <h2>9. Social Security Tab</h2>
     <h3>Claim Age</h3>
     <p>Set the age you plan to start collecting SS (62-70). Earlier means smaller monthly checks; later means larger. The comparison table below shows monthly and annual amounts at each claiming age, the percentage of FRA benefit, and the breakeven age vs. claiming at 62.</p>
     <h3>Benefit Estimation</h3>
@@ -269,7 +287,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 9 -->
   <div class="sec" id="ssdi">
-    <h2>9. Disability (SSDI) Tab</h2>
+    <h2>10. Disability (SSDI) Tab</h2>
     <p>Social Security Disability Insurance replaces a portion of your income if you become unable to work due to a qualifying disability. RetIQ models SSDI for either or both spouses, including its downstream effects on Medicare eligibility, Social Security transitions, taxes, and survivor benefits.</p>
 
     <h3>Setting Up SSDI</h3>
@@ -317,7 +335,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 10 -->
   <div class="sec" id="healthcare">
-    <h2>10. Healthcare Tab</h2>
+    <h2>11. Healthcare Tab</h2>
     <p>If you retire before Medicare eligibility, you need to bridge the healthcare gap. RetIQ lets you choose from six coverage sources, each with its own cost defaults and engine behavior:</p>
 
     <h3>Coverage Sources</h3>
@@ -382,7 +400,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 11 -->
   <div class="sec" id="medicare">
-    <h2>11. Medicare Tab</h2>
+    <h2>12. Medicare Tab</h2>
     <p>Medicare modeling begins at age 65 for most people, or earlier if SSDI triggers the 24-month early eligibility rule (see <a href="#ssdi">Disability (SSDI) Tab</a>). Key components:</p>
     <ul>
       <li><strong>Base Part B premium:</strong> $185/month (2025).</li>
@@ -395,7 +413,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 12 -->
   <div class="sec" id="rothconv">
-    <h2>12. Roth Conversion Tab</h2>
+    <h2>13. Roth Conversion Tab</h2>
     <p>This tab has two sections that work together: the <strong>Strategy</strong> (your active plan) and the <strong>Optimizer</strong> (a research tool). Understanding the relationship between them is key.</p>
 
     <h3>Roth Conversion Strategy (your active plan)</h3>
@@ -432,7 +450,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 13 -->
   <div class="sec" id="charity">
-    <h2>13. Charity / QCD Tab</h2>
+    <h2>14. Charity / QCD Tab</h2>
     <ul>
       <li><strong>Annual Charitable Giving:</strong> Total planned charitable donations per year.</li>
       <li><strong>Use QCD:</strong> Enable Qualified Charitable Distributions from IRAs. QCDs satisfy RMDs without being included in taxable income. 2025 limit: $108,000/year.</li>
@@ -442,7 +460,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 14 -->
   <div class="sec" id="legacy">
-    <h2>14. Legacy Tab</h2>
+    <h2>15. Legacy Tab</h2>
     <p>Set a target inheritance amount (today's dollars). The dashboard and projection track whether your plan achieves this goal at end-of-plan. The legacy target is inflation-adjusted in projections.</p>
 
     <h3>Legacy Composition Breakdown</h3>
@@ -494,7 +512,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 15 -->
   <div class="sec" id="liabilities">
-    <h2>15. Liabilities Tab</h2>
+    <h2>16. Liabilities Tab</h2>
     <p>Track debts that affect your annual expenses:</p>
     <ul>
       <li><strong>Name:</strong> Label (e.g., "Mortgage", "Car Loan").</li>
@@ -507,7 +525,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 16 -->
   <div class="sec" id="assumptions">
-    <h2>16. Assumptions Tab</h2>
+    <h2>17. Assumptions Tab</h2>
     <table>
       <tr><th>Field</th><th>Description</th><th>Typical</th></tr>
       <tr><td>Nominal Return</td><td>Expected average annual investment return before inflation</td><td>6-8%</td></tr>
@@ -531,7 +549,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 17 -->
   <div class="sec" id="dashboard">
-    <h2>17. Dashboard</h2>
+    <h2>18. Dashboard</h2>
     <p>The dashboard provides a high-level summary of your plan:</p>
     <ul>
       <li><strong>Key metrics:</strong> Final net worth, peak net worth, retire age, years funded, RMD start age, IRMAA surcharges, and legacy goal tracking (with dominant account type hint).</li>
@@ -589,7 +607,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 18 -->
   <div class="sec" id="projection">
-    <h2>18. Projection Table</h2>
+    <h2>19. Projection Table</h2>
     <p>The year-by-year projection table is the core output. Each row is one year of your plan. Columns include:</p>
     <p>Age, Year, Earned Income, Social Security, SS W/H (earnings test withholding), SSDI, Pension, Healthcare, Expenses, Federal Tax, State Tax, Withdrawals, RMD, QCD, Charity, Roth Conversion, IRMAA, Medicare, Pre-Tax Balance, Roth Balance, Cash/HYS Balance, Brokerage Balance, and Net Worth. Columns with all-zero values are hidden automatically.</p>
     <p>The header row is sticky so column labels remain visible while scrolling. A totals row at the bottom sums lifetime values. The table scrolls both horizontally and vertically.</p>
@@ -599,7 +617,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 19 -->
   <div class="sec" id="montecarlo">
-    <h2>19. Monte Carlo Simulation</h2>
+    <h2>20. Monte Carlo Simulation</h2>
     <p>The Monte Carlo engine runs randomized projections to estimate the probability your money lasts through your plan. Choose from three simulation models, each offering a different perspective on your plan&rsquo;s resilience.</p>
     <h3>Simulation Models</h3>
     <ul>
@@ -625,7 +643,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 20 -->
   <div class="sec" id="scenarios">
-    <h2>20. Scenario Comparison</h2>
+    <h2>21. Scenario Comparison</h2>
     <p>Test how changes to key assumptions affect your plan. RetIQ includes 10 named scenarios:</p>
     <p><strong>Retirement age:</strong> Retire at 60, Retire at 62, Retire at 67, Retire at 70.</p>
     <p><strong>Expenses &amp; returns:</strong> Higher ret. expenses (+20%), High inflation (5%), Stagflation (5% return, 5% inflation), +20% Exp + High Inflation.</p>
@@ -646,7 +664,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
 
   <!-- 21 -->
   <div class="sec" id="saveload">
-    <h2>21. Save &amp; Load</h2>
+    <h2>22. Save &amp; Load</h2>
     <h3>Auto-Save</h3>
     <p>RetIQ automatically saves your plan to the browser's local storage after every change. If you close and reopen the app, your data is still there.</p>
     <h3>HTML Snapshot</h3>
@@ -658,25 +676,25 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <div class="warn"><strong>Important:</strong> Browser local storage is per-device. To transfer your plan to another device, export an HTML or JSON file and import it on the other device.</div>
   </div>
 
-  <!-- 22 -->
-  <div class="sec" id="install">
-    <h2>22. Install &amp; Licensing</h2>
-    <h3>Installing the PWA</h3>
-    <p>Click the "Install" button in the header (when available) to add RetIQ to your home screen or desktop. The installed app works offline and launches like a native application.</p>
-    <h3>Free vs. Pro</h3>
-    <p>The free demo lets you explore every feature with sample data. Pro ($29 launch price, $49 after launch) unlocks full customization, data saving, and exports. Your license key can be activated on multiple devices.</p>
-    <h3>Activating a License</h3>
-    <p>After purchase, Stripe sends a receipt and license key to the email you provide at checkout. Click &ldquo;Activate&rdquo; in the RetIQ header and enter the license key. The app verifies the key with a single API call and unlocks Pro features. License verification requires an internet connection the first time; after that, the status is cached locally.</p>
-    <h3>Managing Your License</h3>
-    <p>Once activated, clicking &ldquo;Activate&rdquo; (which now reads &ldquo;Manage&rdquo;) opens a dialog where you can copy your license key to the clipboard or remove it from the current device.</p>
-    <h3>Recovering a Lost License</h3>
-    <p>If you lose your license key, click &ldquo;Activate&rdquo; and then &ldquo;Lost your license key? Recover via email.&rdquo; Enter the email address you used at Stripe checkout and click &ldquo;Send Recovery Email.&rdquo; If a license exists for that address, RetIQ will email your key to you. For security, the same confirmation message is shown whether or not the email is on file. Recovery is rate-limited to three requests per email per hour. Your email is stored by RetIQ solely for license recovery &mdash; it is never used for marketing or shared with third parties.</p>
+  <!-- 23 -->
+  <div class="sec" id="iosdata">
+    <h2>23. Your Data on iOS</h2>
+    <h3>Automatic Saving</h3>
+    <p>RetIQ saves your plan automatically to the device after every change. Your data persists between app launches &mdash; no action needed.</p>
+    <h3>Backing Up Your Plan</h3>
+    <p>Tap <strong>&hellip;</strong> &rarr; <strong>Save Plan</strong> to export your plan as a JSON file. You can save it to Files, iCloud Drive, or any share destination available on your device.</p>
+    <h3>Restoring a Plan</h3>
+    <p>Tap <strong>&hellip;</strong> &rarr; <strong>Load Plan</strong> and pick your previously saved JSON file. This replaces your current plan data.</p>
+    <h3>Before You Uninstall</h3>
+    <p>Uninstalling the app will erase all locally stored data. Use <strong>Save Plan</strong> to back up first.</p>
+    <h3>Transferring to a New Device</h3>
+    <p>Save your plan on the old device using <strong>&hellip;</strong> &rarr; <strong>Save Plan</strong>, then load it on the new device using <strong>&hellip;</strong> &rarr; <strong>Load Plan</strong>.</p>
   </div>
 
-  <!-- 23 -->
+  <!-- 24 -->
   <div class="sec" id="validation">
-    <h2>23. Validation Report</h2>
-    <p>RetIQ includes a built-in Validation tab that runs 261 automated tests against every calculation in the engine. Each test compares the engine's output to values derived from authoritative sources:</p>
+    <h2>24. Validation Report</h2>
+    <p>RetIQ includes a built-in Validation view (accessible from the <strong>&hellip;</strong> menu) that runs 261 automated tests against every calculation in the engine. Each test compares the engine's output to values derived from authoritative sources:</p>
     <ul>
       <li><strong>IRS:</strong> Rev. Proc. 2024-40 (2025 tax brackets, standard deduction, capital gains thresholds), Pub 590-B (RMD Uniform Lifetime Table), Pub 915 (SS taxation worksheets), Notice 2024-80 (QCD limits, contribution limits), IRC &sect;1411 (NIIT).</li>
       <li><strong>SSA:</strong> 2025 bend points and wage base, FRA schedules (POMS RS 00615.003), early reduction rates (RS 00615.301), delayed retirement credits (RS 00615.304), retirement earnings test limits (Pub 05-10069).</li>
@@ -686,17 +704,17 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <li><strong>HHS/ACA:</strong> 2025 Federal Poverty Level guidelines, ACA Premium Tax Credit applicable percentage tables (enhanced 2021&ndash;2025 and original 2026+), ARPA/IRA subsidy extensions.</li>
     </ul>
     <p>Tests cover 28 categories: federal tax (MFJ and single), standard deduction, SS taxation, SS PIA and FRA, SS claiming adjustments, SS retirement earnings test, RMD table and calculations, capital gains brackets, NIIT, IRMAA (MFJ and single), state tax (progressive brackets, SS exemptions, retirement exclusions), contribution limits, QCD, ACA FPL, ACA subsidy calculations, ACA SLCSP estimates, pension enhancements (survivor benefits, tax treatment, COLA), additional income, life insurance, integration tests, and edge cases.</p>
-    <p>The full report &mdash; with every test name, expected value, actual value, tolerance, source citation, and pass/fail status &mdash; is viewable inside the app under the <strong>Validation</strong> tab in the main navigation.</p>
+    <p>The full report &mdash; with every test name, expected value, actual value, tolerance, source citation, and pass/fail status &mdash; is viewable inside the app via <strong>&hellip;</strong> &rarr; <strong>Validation</strong>.</p>
     <p>As of v4.0, all regulatory constants (tax brackets, SS parameters, IRMAA brackets, contribution limits, and poverty guidelines) are centralized in a single data structure that can be updated without a code release. The app fetches the latest values on each load; embedded defaults serve as a fallback when offline.</p>
     <div class="tip"><strong>Transparency:</strong> The validation suite runs automatically before each release to ensure every calculation matches its authoritative source. You can run these same tests yourself in the <strong>Validation</strong> tab or inspect the full report at <a href="https://retirementiq.app/validation.html" style="color:var(--accent)">retirementiq.app/validation.html</a>. If you find a discrepancy, please report it — accuracy is our highest priority.</div>
   </div>
 
   <!-- 24 -->
   <div class="sec" id="faq">
-    <h2>24. FAQ</h2>
+    <h2>25. FAQ</h2>
 
     <h3>Is my data secure?</h3>
-    <p>Yes. RetIQ runs entirely in your browser. No financial data is ever sent to any server. The only network calls are for license verification (license key only) and optional PWA updates. You can verify this yourself using View Page Source or browser DevTools. For a complete audit of every network request, storage key, and privacy measure, see the <a href="https://retirementiq.app/security.html" style="color:var(--accent)">Privacy &amp; Security Transparency</a> page.</p>
+    <p>Yes. RetIQ runs entirely in your browser. No financial data is ever sent to any server. The only network calls are for optional app updates and regulatory data. You can verify this yourself using View Page Source or browser DevTools. For a complete audit of every network request, storage key, and privacy measure, see the <a href="https://retirementiq.app/security.html" style="color:var(--accent)">Privacy &amp; Security Transparency</a> page.</p>
 
     <h3>How does RetIQ stay current with tax law changes?</h3>
     <p>Regulatory data &mdash; federal tax brackets, Social Security parameters, Medicare premiums, retirement contribution limits, and federal poverty guidelines &mdash; is monitored weekly from official IRS, SSA, CMS, and HHS sources. When new figures are published, they are verified and delivered automatically on your next visit. No app reinstall is needed. If you are offline, the app uses its embedded defaults.</p>
@@ -732,7 +750,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Use the <strong>Strategy Report Card</strong> on the Dashboard. It automatically tests alternative SS timing, Roth conversion, and retirement age strategies against your current plan. Choose your goal (max net worth, min taxes, etc.) and the table ranks every alternative. Click Apply on any row to adopt it instantly. For deeper Roth analysis, use the <a href="#rothconv">Roth Optimizer</a>. For stress-testing, use <a href="#scenarios">Scenario Comparison</a> and <a href="#montecarlo">Monte Carlo</a>.</p>
 
     <h3>How can I verify the calculations are correct?</h3>
-    <p>Open the <strong>Validation</strong> tab in the app's main navigation. It displays 261 automated tests grouped by category, each showing the expected value (from IRS/SSA/CMS sources), the engine's actual result, and a pass/fail status. You can also right-click the app and select View Page Source to inspect the calculation code directly. See the <a href="#validation">Validation Report</a> section for details on sources and methodology.</p>
+    <p>Open <strong>Validation</strong> from the <strong>&hellip;</strong> menu. It displays 261 automated tests grouped by category, each showing the expected value (from IRS/SSA/CMS sources), the engine's actual result, and a pass/fail status. You can also right-click the app and select View Page Source to inspect the calculation code directly. See the <a href="#validation">Validation Report</a> section for details on sources and methodology.</p>
 
     <h3>What happens to my spouse's benefits if I'm on SSDI and die?</h3>
     <p>Your SSDI payments stop, but your surviving spouse can claim a survivor benefit based on your Social Security work record. RetIQ calculates this from your PIA (or your SSDI amount if no separate SS income was entered). The survivor receives the higher of their own SS benefit or the survivor benefit &mdash; not both.</p>
