@@ -7,7 +7,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Set the root view background to dark navy to prevent white flash between splash and web content
+        DispatchQueue.main.async {
+            self.window?.backgroundColor = UIColor(red: 0.039, green: 0.071, blue: 0.149, alpha: 1.0)
+        }
         return true
     }
 
