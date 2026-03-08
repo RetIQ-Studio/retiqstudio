@@ -3013,7 +3013,7 @@ function cLeave(id) { document.getElementById(id+'_h').setAttribute('visibility'
 function renderNav() {
   const isEssentials = state.params.uiMode === 'essentials';
   const allTabs = [['dashboard','Dashboard'],['inputs','Inputs'],['projection','Projection'],['montecarlo','Monte Carlo'],['scenarios','Scenarios']];
-  const tabs = isEssentials ? allTabs.filter(([k]) => !['scenarios'].includes(k)) : allTabs;
+  const tabs = allTabs;
   document.getElementById('mainNav').innerHTML = tabs.map(([k,v]) =>
     `<button class="nav-tab${state.tab===k?' active':''}" onclick="state.tab='${k}';render()">${v}</button>`).join('');
   // Scroll active main nav tab into view on mobile
