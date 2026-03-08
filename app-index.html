@@ -388,13 +388,8 @@ button:hover { opacity: 0.88; }
 
 </style>
 
-  <link rel="manifest" href="manifest.webmanifest">
+  <!-- PWA tags removed for native iOS app (manifest, touch-icon, web-app-capable) -->
   <meta name="theme-color" content="#0B1220">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="icons/icon-180.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
 
 </head>
 <body>
@@ -483,6 +478,18 @@ function showInfoPage(file, title) {
     + '<span style="font-weight:600;color:var(--text);font-size:15px">' + title + '</span></div>'
     + '<iframe src="' + file + '" style="flex:1;border:none;width:100%;-webkit-overflow-scrolling:touch;background:var(--bg)"></iframe>';
   document.body.appendChild(overlay);
+}
+
+function showExportOverlay(html) {
+  const overlay = document.createElement('div');
+  overlay.id = 'exportOverlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:#fff;display:flex;flex-direction:column';
+  overlay.innerHTML = '<div style="display:flex;align-items:center;padding:env(safe-area-inset-top,8px) 12px 8px;gap:12px;border-bottom:1px solid #ddd;flex-shrink:0;background:#f8f8f8">'
+    + '<button onclick="document.getElementById(\'exportOverlay\').remove()" style="background:none;border:none;color:#3b82f6;font-size:15px;cursor:pointer;padding:4px 8px">\u2190 Close</button></div>'
+    + '<iframe style="flex:1;border:none;width:100%;background:#fff"></iframe>';
+  document.body.appendChild(overlay);
+  const iframe = overlay.querySelector('iframe');
+  iframe.srcdoc = html;
 }
 
 function shareRetIQ() {
@@ -3841,9 +3848,8 @@ function exportDashboardSummary() {
 </div>
 </body></html>`;
 
-  const w = window.open('', '_blank');
-  if (w) { w.document.write(html); w.document.close(); }
-  else { alert('Pop-up blocked. Please allow pop-ups for this site and try again.'); }
+  if (window.Capacitor && window.Capacitor.isNativePlatform()) { showExportOverlay(html); }
+  else { const w = window.open('', '_blank'); if (w) { w.document.write(html); w.document.close(); } else { alert('Pop-up blocked. Please allow pop-ups for this site and try again.'); } }
 }
 
 function renderThisYear(proj, p, bust) {
@@ -4062,9 +4068,8 @@ function printThisYear() {
 ${printScript}
 </body></html>`;
 
-  const w = window.open('', '_blank');
-  if (w) { w.document.write(html); w.document.close(); }
-  else { alert('Pop-up blocked. Please allow pop-ups for this site and try again.'); }
+  if (window.Capacitor && window.Capacitor.isNativePlatform()) { showExportOverlay(html); }
+  else { const w = window.open('', '_blank'); if (w) { w.document.write(html); w.document.close(); } else { alert('Pop-up blocked. Please allow pop-ups for this site and try again.'); } }
 }
 
 function renderDashboard(proj) {
@@ -6892,7 +6897,7 @@ function clearExample() {
 </script>
 
 <script>
-  if ('serviceWorker' in navigator) {
+  if ('serviceWorker' in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform())) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./service-worker.js').then((reg) => {
         // Check for waiting worker on page load (update installed while away)
