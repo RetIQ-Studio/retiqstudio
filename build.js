@@ -194,6 +194,16 @@ for (const file of SITE_FILES) {
   console.log(`  ${file}: ${(Buffer.byteLength(src) / 1024).toFixed(0)} KB → ${(Buffer.byteLength(dist) / 1024).toFixed(0)} KB (${pct}% smaller)`);
 }
 
+// 3b. Copy select site files to app/ for Capacitor in-app viewing (iOS)
+const APP_INFO_FILES = ['features.html', 'manual.html', 'security.html'];
+for (const file of APP_INFO_FILES) {
+  const src = path.join(DEPLOY, file);
+  if (fs.existsSync(src)) {
+    fs.copyFileSync(src, path.join(APP_DIR, file));
+    console.log(`  → also copied ${file} to app/ (Capacitor)`);
+  }
+}
+
 // 4. Service worker → retiq-deploy/app/
 console.log('\n⚙️  service-worker.js (→ app/):');
 const swPath = path.join(__dirname, 'service-worker.js');
