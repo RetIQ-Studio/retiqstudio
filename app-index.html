@@ -472,11 +472,11 @@ function showInfoPage(file, title) {
   document.getElementById('overflowMenu').style.display = 'none';
   const overlay = document.createElement('div');
   overlay.id = 'infoPageOverlay';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:var(--bg);display:flex;flex-direction:column';
-  overlay.innerHTML = '<div style="display:flex;align-items:center;padding:env(safe-area-inset-top,12px) 16px 12px;gap:12px;border-bottom:1px solid var(--border);flex-shrink:0">'
-    + '<button onclick="document.getElementById(\'infoPageOverlay\').remove()" style="background:none;border:none;color:var(--accent);font-size:15px;cursor:pointer;padding:4px 8px">\u2190 Back</button>'
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:var(--bg-base);display:flex;flex-direction:column';
+  overlay.innerHTML = '<div style="display:flex;align-items:center;padding:env(safe-area-inset-top,12px) 16px 12px;gap:12px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg-card)">'
+    + '<button onclick="document.getElementById(\'infoPageOverlay\').remove()" style="background:none;border:none;color:var(--blue);font-size:15px;cursor:pointer;padding:4px 8px">\u2190 Back</button>'
     + '<span style="font-weight:600;color:var(--text);font-size:15px">' + title + '</span></div>'
-    + '<iframe src="' + file + '" style="flex:1;border:none;width:100%;-webkit-overflow-scrolling:touch;background:var(--bg)"></iframe>';
+    + '<iframe src="' + file + '" style="flex:1;border:none;width:100%;-webkit-overflow-scrolling:touch;background:var(--bg-base)"></iframe>';
   document.body.appendChild(overlay);
 }
 
@@ -2400,7 +2400,14 @@ function exportHTML() {
   );
   const b = new Blob([html], { type: 'text/html' });
   const d = new Date().toISOString().slice(0,10);
-  const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `retiq-${d}.html`; a.click();
+  const fname = `retiq-${d}.html`;
+  // On native iOS, use share sheet (download attribute doesn't work in WKWebView)
+  if (window.Capacitor && window.Capacitor.isNativePlatform() && navigator.share) {
+    const file = new File([b], fname, { type: 'text/html' });
+    navigator.share({ files: [file] }).catch(() => {});
+  } else {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = fname; a.click();
+  }
 }
 function exportProjectionCSV() {
   const p = state.params;
