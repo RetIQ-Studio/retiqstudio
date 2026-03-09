@@ -2265,6 +2265,12 @@ function migrateParams() {
 migrateParams();
 function saveState() { if (isPro()) { try { localStorage.setItem('retiq_v1', JSON.stringify(state.params)); } catch(e) {} } }
 function setParam(key, val) { if (!isPro()) return; state.params[key] = val; state.mcResults = null; state.rothOptResults = null; saveState(); render(); }
+function toggleSpouse(on) {
+  if (!isPro()) return;
+  state.params.spouseEnabled = on;
+  if (!on) state.params.spouseAge = 0;
+  state.mcResults = null; state.rothOptResults = null; saveState(); render();
+}
 
 // ── UI Mode: Simple / Full ──────────────────────────
 function getActiveAdvancedFeatures(p) {
@@ -4472,7 +4478,7 @@ function renderInputs() {
       <div class="card"><div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
         <span>Spouse</span>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-dim);font-weight:400">
-          <input type="checkbox" ${p.spouseEnabled||p.spouseAge>0?'checked':''} onchange="setParam('spouseEnabled',this.checked)" style="width:15px;height:15px;accent-color:var(--blue)">
+          <input type="checkbox" ${p.spouseEnabled||p.spouseAge>0?'checked':''} onchange="toggleSpouse(this.checked)" style="width:15px;height:15px;accent-color:var(--blue)">
           Include
         </label>
       </div>
