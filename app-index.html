@@ -1950,6 +1950,16 @@ function runProjection(p) {
     roth = growAcct(roth, bearOvr ? weightedBearReturn('roth', bearOvr) : effRReturn);
     cash = growAcct(cash, cashReturn);
     taxableInv = growAcct(taxableInv, bearOvr ? weightedBearReturn('taxable', bearOvr, 'investment') : effTInvReturn);
+
+    // One-time expenses: silent balance deductions
+    const oneTimeExps = (p.oneTimeExpenses || []).filter(e => e.age === age);
+    for (const exp of oneTimeExps) {
+      const amt = exp.amount || 0;
+      if (exp.source === 'pretax') preTax = Math.max(0, preTax - amt);
+      else if (exp.source === 'roth') roth = Math.max(0, roth - amt);
+      else taxableInv = Math.max(0, taxableInv - amt);
+    }
+
     taxable = cash + taxableInv; // combined for output
 
     const _cash = Math.round(cash), _inv = Math.round(taxableInv), _tax = _cash + _inv;
@@ -2225,6 +2235,8 @@ function migrateParams() {
   }
   // v3.0 Migration: cash events
   if (state.params.cashEvents === undefined) state.params.cashEvents = [];
+  // v4.0 Migration: one-time expenses
+  if (state.params.oneTimeExpenses === undefined) state.params.oneTimeExpenses = [];
   // v3.2 Migration: life insurance
   if (state.params.lifeInsurance === undefined) state.params.lifeInsurance = [];
   // v3.0 Migration: LTC insurance inflation fields
@@ -2274,6 +2286,7 @@ function getActiveAdvancedFeatures(p) {
   if (p.spousePension && p.spousePension.enabled && (p.spousePension.survivorBenefit !== 'none' || p.spousePension.taxablePercent !== 100 || (p.spousePension.cola && p.spousePension.cola !== 0)))
     active.push('Spouse Pension Advanced Settings');
   if (p.cashEvents && p.cashEvents.length > 0) active.push('Cash Events (' + p.cashEvents.length + ')');
+  if (p.oneTimeExpenses && p.oneTimeExpenses.length > 0) active.push('One-Time Expenses (' + p.oneTimeExpenses.length + ')');
   if (p.lifeInsurance && p.lifeInsurance.length > 0) active.push('Life Insurance (' + p.lifeInsurance.length + ')');
   if ((p.additionalIncome || 0) > 0) active.push('Additional Retirement Income');
   if (p.preRetirementExpenses > 0) active.push('Pre-Retirement Expenses');
@@ -2637,6 +2650,23 @@ function updateCashEvent(id, key, val) {
 function removeCashEvent(id) {
   if (proGuard()) return;
   state.params.cashEvents = (state.params.cashEvents || []).filter(e => e.id !== id);
+  state.mcResults = null; saveState(); render();
+}
+// One-Time Expenses (home repairs, medical, travel, etc.)
+function addOneTimeExpense() {
+  if (proGuard()) return;
+  if (!state.params.oneTimeExpenses) state.params.oneTimeExpenses = [];
+  state.params.oneTimeExpenses.push({ id: Date.now(), name: 'Home Renovation', age: 70, amount: 50000, category: 'home', source: 'taxable' });
+  state.mcResults = null; saveState(); render();
+}
+function updateOneTimeExpense(id, key, val) {
+  if (proGuard()) return;
+  const exp = (state.params.oneTimeExpenses || []).find(e => e.id === id);
+  if (exp) { exp[key] = val; state.mcResults = null; state.rothOptResults = null; saveState(); render(); }
+}
+function removeOneTimeExpense(id) {
+  if (proGuard()) return;
+  state.params.oneTimeExpenses = (state.params.oneTimeExpenses || []).filter(e => e.id !== id);
   state.mcResults = null; saveState(); render();
 }
 function addLifeIns() {
@@ -4623,6 +4653,44 @@ function renderInputs() {
           Expense phases, healthcare gap costs, and LTC are configured in the Healthcare tab.
         </div>
       </div></div>`;
+    // One-Time Expenses card (Full mode only)
+    content += (() => {
+      const exps = p.oneTimeExpenses || [];
+      const catLabels = { home: 'Home Repair / Renovation', medical: 'Medical / Healthcare', travel: 'Travel / Bucket List', gift: 'Gifting / Family Support', tax: 'Tax Payment', other: 'Other' };
+      const srcLabels = { taxable: 'Brokerage (Taxable)', pretax: 'Pre-Tax (IRA / 401k)', roth: 'Roth IRA' };
+      return `<div class="card" data-accent="red"><div class="card-title">One-Time Expenses</div>
+        <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
+          Model large one-time costs like home repairs, medical expenses, travel, or gifts. The amount is withdrawn from the selected account in that year.
+        </div>
+        ${exps.map(ex => `<div style="padding:14px;margin-bottom:10px;background:var(--bg-base);border:1px solid var(--border);border-radius:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <input type="text" value="${ex.name||''}" onchange="updateOneTimeExpense(${ex.id},'name',this.value)" style="background:transparent;border:none;color:var(--text);font-size:14px;font-weight:600;flex:1">
+              <button onclick="removeOneTimeExpense(${ex.id})" style="background:none;border:none;color:var(--red);font-size:16px;cursor:pointer;padding:4px 8px" title="Remove">x</button>
+            </div>
+            <div class="grid-2">
+              <div class="field"><label class="field-label">Age</label>
+                <input type="number" class="field-input" value="${ex.age||70}" onchange="updateOneTimeExpense(${ex.id},'age',Number(this.value))"></div>
+              <div class="field"><label class="field-label">Amount</label><div class="field-wrap"><span class="field-prefix">$</span>
+                <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(ex.amount||0)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="updateOneTimeExpense(${ex.id},'amount',parseC(this.value))">
+              </div></div>
+            </div>
+            <div class="grid-2">
+              <div class="field"><label class="field-label">Category</label>
+                <select class="field-input" onchange="updateOneTimeExpense(${ex.id},'category',this.value)" style="cursor:pointer">
+                  ${Object.entries(catLabels).map(([k,v]) => '<option value="'+k+'"'+(ex.category===k?' selected':'')+'>'+v+'</option>').join('')}
+                </select></div>
+              <div class="field"><label class="field-label">Withdraw From</label>
+                <select class="field-input" onchange="updateOneTimeExpense(${ex.id},'source',this.value)" style="cursor:pointer">
+                  ${Object.entries(srcLabels).map(([k,v]) => '<option value="'+k+'"'+((ex.source||'taxable')===k?' selected':'')+'>'+v+'</option>').join('')}
+                </select></div>
+            </div>
+            <div style="margin-top:8px">
+              <div class="info-box"><div class="info-box-label">Amount</div><div class="info-box-value" style="color:var(--red)">${fmt(ex.amount||0)}</div></div>
+            </div>
+          </div>`).join('')}
+        <button onclick="addOneTimeExpense()" style="background:var(--bg-base);border:1px dashed var(--border);border-radius:8px;color:var(--text-dim);padding:10px 16px;font-size:13px;width:100%;cursor:pointer">+ Add Expense</button>
+      </div>`;
+    })();
     } else {
     // Essentials: just post-retirement fixed amount
     content += `<div class="card" data-accent="amber"><div class="card-title">Retirement Expenses</div>
