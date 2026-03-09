@@ -1743,7 +1743,8 @@ function runProjection(p) {
     }
 
     if (effectivelyRetired || primaryDead) {
-      const gap = Math.max(0, expenses - ss - ssdiIncome - other - pensionIncome);
+      // totalInc includes earned income (covers partial retirement year & working spouse)
+      const gap = Math.max(0, expenses - totalInc);
       let remaining = gap;
       // Step 2: Fill spending gap in user-configured order
       const wdOrder = p.withdrawalOrder || ['cash', 'taxable', 'pretax', 'roth'];
@@ -1773,6 +1774,11 @@ function runProjection(p) {
       }
       // Step 3: Any RMD cash not used for spending gets reinvested into taxable investment
       if (rmdCash > 0) { taxableInv += rmdCash; withdrawal += rmdCash; rmdCash = 0; }
+      // Step 4: Save surplus earned income (partial retirement year / working spouse)
+      if (earned > 0) {
+        const surplus = Math.max(0, totalInc - expenses);
+        if (surplus > 0) { taxableInv += surplus; saved += surplus; }
+      }
     } else if (rmdCash > 0) {
       // Not retired but RMD required — reinvest into taxable investment
       taxableInv += rmdCash; withdrawal += rmdCash; rmdCash = 0;
