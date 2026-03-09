@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>RetIQ — Retirement Planner</title>
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
@@ -167,7 +167,7 @@ button:hover { opacity: 0.88; }
 .field-suffix { right: 10px; font-size: 13px; }
 .field-input {
   background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px;
-  color: var(--text); padding: 8px 12px; font-size: 14px; width: 100%;
+  color: var(--text); padding: 8px 12px; font-size: 16px; width: 100%;
   outline: none; transition: border-color 0.2s; font-family: inherit;
 }
 .field-input:focus { border-color: var(--border-focus); }
@@ -214,7 +214,7 @@ button:hover { opacity: 0.88; }
 
 .acct-header { display: flex; gap: 8px; margin-bottom: 8px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
 .acct-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
-.acct-row input, .acct-row select { font-size: 13px; }
+.acct-row input, .acct-row select { font-size: 16px; }
 .acct-remove { background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); padding: 8px 10px; font-size: 14px; line-height: 1; }
 .add-acct-btn { background: transparent; border: 1px dashed var(--border-active); border-radius: 6px; color: var(--blue); padding: 8px 16px; font-size: 13px; width: 100%; }
 .share-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; font-size: 10px; border-radius: 12px; border: 1px solid rgba(34,197,94,0.3); background: rgba(34,197,94,0.08); color: var(--green); cursor: pointer; text-decoration: none; transition: all 0.15s; }
@@ -367,7 +367,7 @@ button:hover { opacity: 0.88; }
   .grid-2, .grid-3 { gap: 10px; }
 
   /* Fields */
-  .field-input, select { font-size: 16px !important; } /* prevents iOS zoom; !important overrides inline styles */
+  input, select, textarea, .field-input { font-size: 16px !important; } /* prevents iOS zoom; !important overrides inline styles */
 
   /* Trust line — hide on mobile to avoid Dynamic Island overlap */
   #trustLine { display: none; }
@@ -498,7 +498,7 @@ function showExportOverlay(html) {
   overlay.innerHTML = '<div style="display:flex;align-items:center;padding:env(safe-area-inset-top,8px) 12px 8px;gap:12px;border-bottom:1px solid #ddd;flex-shrink:0;background:#f8f8f8">'
     + '<button onclick="document.getElementById(\'exportOverlay\').remove()" style="background:none;border:none;color:#3b82f6;font-size:15px;cursor:pointer;padding:4px 8px">\u2190 Close</button>'
     + '<button id="exportShareBtn" style="background:#3b82f6;border:none;color:#fff;font-size:13px;cursor:pointer;padding:6px 14px;border-radius:6px;font-weight:600;margin-left:auto">Share</button></div>'
-    + '<div id="exportContent" style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch"></div>';
+    + '<div id="exportContent" style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;background:#fff"></div>';
   document.body.appendChild(overlay);
   var cleanHtml = html.replace(/<div class="no-print">[\s\S]*?<\/div>/, '');
   // Extract body content and styles, render inline instead of iframe to avoid WKWebView resize issues
@@ -506,11 +506,17 @@ function showExportOverlay(html) {
   var styleMatch = cleanHtml.match(/<style>([\s\S]*?)<\/style>/i);
   var container = document.getElementById('exportContent');
   if (bodyMatch && styleMatch) {
+    // Strip print media query and body rules, then scope all selectors under #exportContent
+    var css = styleMatch[1].replace(/@media print[\s\S]*?\}[\s]*\}/, '').replace(/body\s*\{[^}]*\}/g, '');
+    css = css.replace(/(@media[^{]*\{)|([^{}@][^{]*)\{/g, function(m, media, sel) {
+      if (media) return media;
+      return '#exportContent ' + sel.trim() + ' {';
+    });
     var style = document.createElement('style');
-    style.textContent = styleMatch[1].replace(/@media print[\s\S]*?\}[\s]*\}/, '').replace(/body\s*\{[^}]*\}/, '');
+    style.textContent = '#exportContent, #exportContent * { box-sizing: border-box; } ' + css;
     container.appendChild(style);
     var wrapper = document.createElement('div');
-    wrapper.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:16px;font-family:-apple-system,BlinkMacSystemFont,sans-serif';
+    wrapper.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:16px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#fff;min-height:100%';
     wrapper.innerHTML = bodyMatch[1];
     container.appendChild(wrapper);
   } else {
@@ -709,7 +715,7 @@ function renderDollarToggle() {
   const el = document.getElementById('dollarToggle'); if (!el) return;
   el.innerHTML = `<button class="${showRealDollars?'active':''}" onclick="showRealDollars=true;render()">Today's $</button>
     <button class="${!showRealDollars?'active':''}" onclick="showRealDollars=false;render()">Future $</button>
-    ${showRealDollars ? '<input type=number value="'+realDollarRate+'" step=0.5 min=0 max=10 style="width:50px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:2px 4px;font-size:11px;text-align:center" onchange="realDollarRate=Number(this.value);render()"><span style="font-size:10px">% infl.</span>' : ''}`;
+    ${showRealDollars ? '<input type=number value="'+realDollarRate+'" step=0.5 min=0 max=10 style="width:50px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:2px 4px;font-size:16px;text-align:center" onchange="realDollarRate=Number(this.value);render()"><span style="font-size:10px">% infl.</span>' : ''}`;
 }
 
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
@@ -2294,6 +2300,11 @@ function migrateParams() {
 migrateParams();
 function saveState() { try { localStorage.setItem('retiq_v1', JSON.stringify(state.params)); } catch(e) {} }
 function setParam(key, val) { state.params[key] = val; state.mcResults = null; state.rothOptResults = null; saveState(); render(); }
+function toggleSpouse(on) {
+  state.params.spouseEnabled = on;
+  if (!on) state.params.spouseAge = 0;
+  state.mcResults = null; state.rothOptResults = null; saveState(); render();
+}
 
 // ── UI Mode: Simple / Full ──────────────────────────
 function getActiveAdvancedFeatures(p) {
@@ -3813,43 +3824,42 @@ function exportDashboardSummary() {
   .no-print .btn-secondary { background: #e2e8f0; color: #475569; }
   .page { width: 100%; max-width: 612px; background: #fff; padding: 28px 32px 20px; box-shadow: 0 4px 24px rgba(0,0,0,0.15); color: #0f172a; }
   .accent-bar { height: 3px; background: linear-gradient(90deg, #10b981, #06b6d4); border-radius: 2px; margin-bottom: 10px; }
-  .header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; flex-wrap: wrap; gap: 2px 8px; }
   .header h1 { font-size: 15px; font-weight: 700; }
-  .header .ts { font-size: 7.5px; color: #94a3b8; }
-  .assumptions { font-size: 7px; color: #94a3b8; margin-bottom: 6px; }
+  .header .ts { font-size: 10px; color: #64748b; }
+  .assumptions { font-size: 9px; color: #64748b; margin-bottom: 6px; line-height: 1.4; }
   hr { border: none; border-top: 1px solid #e2e8f0; margin: 6px 0; }
   .verdict { border-radius: 5px; padding: 8px 10px; margin-bottom: 8px; }
   .verdict.strong { background: #ecfdf5; border: 1px solid #10b981; }
   .verdict.caution { background: #fffbeb; border: 1px solid #f59e0b; }
   .verdict.critical { background: #fef2f2; border: 1px solid #ef4444; }
-  .verdict-title { font-size: 10px; font-weight: 700; margin-bottom: 3px; }
-  .verdict-body { font-size: 8px; color: #475569; line-height: 1.45; }
-  .sec-head { font-size: 8.5px; font-weight: 700; color: #0f172a; margin: 8px 0 4px; letter-spacing: 0.3px; }
+  .verdict-title { font-size: 12px; font-weight: 700; margin-bottom: 3px; }
+  .verdict-body { font-size: 11px; color: #475569; line-height: 1.45; }
+  .sec-head { font-size: 11px; font-weight: 700; color: #0f172a; margin: 10px 0 5px; letter-spacing: 0.3px; }
   .metrics { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden; }
-  .metric { flex: 1; min-width: 80px; background: #f8fafc; padding: 5px 6px; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
+  .metric { flex: 1; min-width: 80px; background: #f8fafc; padding: 6px 8px; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
   .metric:last-child { border-right: none; }
-  .metric-label { font-size: 7px; color: #94a3b8; margin-bottom: 1px; }
-  .metric-value { font-size: 12px; font-weight: 700; line-height: 1.2; }
-  .metric-sub { font-size: 6.5px; color: #94a3b8; }
+  .metric-label { font-size: 9px; color: #64748b; margin-bottom: 1px; }
+  .metric-value { font-size: 14px; font-weight: 700; line-height: 1.2; }
+  .metric-sub { font-size: 8px; color: #64748b; }
   .strat-row { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden; }
-  .strat-cell { flex: 1; min-width: 140px; background: #f8fafc; padding: 5px 8px; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
+  .strat-cell { flex: 1; min-width: 140px; background: #f8fafc; padding: 6px 8px; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
   .strat-cell:last-child { border-right: none; }
-  .strat-label { font-size: 7px; color: #94a3b8; }
-  .strat-value { font-size: 8.5px; font-weight: 700; }
+  .strat-label { font-size: 9px; color: #64748b; }
+  .strat-value { font-size: 11px; font-weight: 700; }
   .levers { border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden; }
-  .lever-row { display: flex; flex-wrap: wrap; align-items: center; background: #f8fafc; padding: 5px 8px; border-bottom: 1px solid #e2e8f0; }
+  .lever-row { display: flex; flex-wrap: wrap; align-items: center; background: #f8fafc; padding: 6px 8px; border-bottom: 1px solid #e2e8f0; }
   .lever-row:last-child { border-bottom: none; }
-  .lever-title { font-size: 8.5px; font-weight: 700; width: 170px; flex-shrink: 0; }
-  .lever-amt { font-size: 9px; font-weight: 700; color: #06b6d4; width: 60px; flex-shrink: 0; }
-  .lever-detail { font-size: 7.5px; color: #475569; flex: 1; min-width: 100px; }
+  .lever-title { font-size: 11px; font-weight: 700; width: 170px; flex-shrink: 0; }
+  .lever-amt { font-size: 12px; font-weight: 700; color: #06b6d4; width: 60px; flex-shrink: 0; }
+  .lever-detail { font-size: 10px; color: #475569; flex: 1; min-width: 100px; }
   .insight { border-radius: 5px; padding: 7px 10px; background: #ecfdf5; border: 1px solid #10b981; }
-  .insight-title { font-size: 8.5px; font-weight: 700; color: #10b981; margin-bottom: 2px; }
-  .insight-body { font-size: 7.5px; color: #475569; line-height: 1.4; }
-  .footer { display: flex; flex-wrap: wrap; justify-content: space-between; font-size: 6.5px; color: #94a3b8; margin-top: 4px; }
+  .insight-title { font-size: 11px; font-weight: 700; color: #10b981; margin-bottom: 2px; }
+  .insight-body { font-size: 10px; color: #475569; line-height: 1.4; }
+  .footer { display: flex; flex-wrap: wrap; justify-content: space-between; font-size: 9px; color: #64748b; margin-top: 6px; }
   @media (max-width: 500px) {
     body { padding: 0; background: #fff; }
     .page { padding: 16px; box-shadow: none; }
-    .header { flex-direction: column; }
     .metrics { flex-direction: column; }
     .metric { border-right: none; }
     .strat-row { flex-direction: column; }
@@ -3862,7 +3872,7 @@ function exportDashboardSummary() {
   <button class="btn-secondary" onclick="window.close()">Close</button>
   <span style="font-size:12px;color:#64748b">Use your browser's Save as PDF option in the print dialog</span>
 </div>
-<div class="page">
+<div class="page" style="background:#fff;color:#0f172a">
   <div class="accent-bar"></div>
   <div class="header">
     <h1>RetIQ Dashboard Summary</h1>
@@ -4495,7 +4505,7 @@ function renderInputs() {
       <div class="card"><div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
         <span>Spouse</span>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-dim);font-weight:400">
-          <input type="checkbox" ${p.spouseEnabled||p.spouseAge>0?'checked':''} onchange="setParam('spouseEnabled',this.checked)" style="width:15px;height:15px;accent-color:var(--blue)">
+          <input type="checkbox" ${p.spouseEnabled||p.spouseAge>0?'checked':''} onchange="toggleSpouse(this.checked)" style="width:15px;height:15px;accent-color:var(--blue)">
           Include
         </label>
       </div>
@@ -4573,7 +4583,7 @@ function renderInputs() {
           }
           return `<div style="padding:14px;margin-bottom:10px;background:var(--bg-base);border:1px solid var(--border);border-radius:8px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-              <input type="text" value="${ev.name||''}" onchange="updateCashEvent(${ev.id},'name',this.value)" style="background:transparent;border:none;color:var(--text);font-size:14px;font-weight:600;flex:1">
+              <input type="text" value="${ev.name||''}" onchange="updateCashEvent(${ev.id},'name',this.value)" style="background:transparent;border:none;color:var(--text);font-size:16px;font-weight:600;flex:1">
               <button onclick="removeCashEvent(${ev.id})" style="background:none;border:none;color:var(--red);font-size:16px;cursor:pointer;padding:4px 8px" title="Remove">x</button>
             </div>
             <div class="grid-2">
@@ -4687,7 +4697,7 @@ function renderInputs() {
         </div>
         ${exps.map(ex => `<div style="padding:14px;margin-bottom:10px;background:var(--bg-base);border:1px solid var(--border);border-radius:8px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-              <input type="text" value="${ex.name||''}" onchange="updateOneTimeExpense(${ex.id},'name',this.value)" style="background:transparent;border:none;color:var(--text);font-size:14px;font-weight:600;flex:1">
+              <input type="text" value="${ex.name||''}" onchange="updateOneTimeExpense(${ex.id},'name',this.value)" style="background:transparent;border:none;color:var(--text);font-size:16px;font-weight:600;flex:1">
               <button onclick="removeOneTimeExpense(${ex.id})" style="background:none;border:none;color:var(--red);font-size:16px;cursor:pointer;padding:4px 8px" title="Remove">x</button>
             </div>
             <div class="grid-2">
@@ -4759,18 +4769,18 @@ function renderInputs() {
     } else {
 
     const rows = p.accounts.map(a => `<div class="acct-row">
-      <div style="flex:2"><input class="field-input" value="${a.name}" onchange="updateAccount(${a.id},'name',this.value)" style="font-size:13px"></div>
-      <div style="flex:1"><select class="field-input" onchange="updateAccount(${a.id},'type',this.value)" style="font-size:13px;cursor:pointer">
+      <div style="flex:2"><input class="field-input" value="${a.name}" onchange="updateAccount(${a.id},'name',this.value)" style="font-size:16px"></div>
+      <div style="flex:1"><select class="field-input" onchange="updateAccount(${a.id},'type',this.value)" style="font-size:16px;cursor:pointer">
         <option value="pretax"${a.type==='pretax'?' selected':''}>Pre-Tax</option>
         <option value="roth"${a.type==='roth'?' selected':''}>Roth</option>
         <option value="taxable"${a.type==='taxable'&&a.subtype!=='cash'?' selected':''}>Brokerage</option>
         <option value="taxable-cash"${a.type==='taxable'&&a.subtype==='cash'?' selected':''}>Cash / HYS</option>
       </select></div>
       <div style="flex:1.5;position:relative"><span class="field-prefix">$</span>
-        <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(a.balance)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="updateAccount(${a.id},'balance',parseC(this.value))" style="font-size:13px">
+        <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(a.balance)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="updateAccount(${a.id},'balance',parseC(this.value))" style="font-size:16px">
       </div>
       <div style="flex:0.7;position:relative">
-        <input type="number" class="field-input has-suffix" value="${a.returnRate !== undefined ? a.returnRate : 7}" onchange="updateAccount(${a.id},'returnRate',Number(this.value))" style="font-size:13px" title="${a.subtype==='cash'?'Interest rate (taxed as ordinary income)':'Expected nominal return'}">
+        <input type="number" class="field-input has-suffix" value="${a.returnRate !== undefined ? a.returnRate : 7}" onchange="updateAccount(${a.id},'returnRate',Number(this.value))" style="font-size:16px" title="${a.subtype==='cash'?'Interest rate (taxed as ordinary income)':'Expected nominal return'}">
         <span class="field-suffix" style="font-size:11px">%</span>
       </div>
       <button class="acct-remove" onclick="removeAccount(${a.id})">x</button>
@@ -4838,13 +4848,13 @@ function renderInputs() {
       ${debts.length > 0 ? `<div style="overflow-x:auto;margin-bottom:14px"><table class="proj-table" style="font-size:12px">
         <thead><tr><th style="text-align:left">Name</th><th>Type</th><th>Monthly</th><th>Ages</th><th></th></tr></thead>
         <tbody>${debts.map(d => `<tr>
-          <td style="text-align:left"><input type="text" value="${d.name||''}" onchange="updateDebt(${d.id},'name',this.value)" style="background:transparent;border:none;color:var(--text);font-size:12px;width:100px"></td>
-          <td><select onchange="updateDebt(${d.id},'type',this.value)" style="background:transparent;border:none;color:var(--text-dim);font-size:11px">
+          <td style="text-align:left"><input type="text" value="${d.name||''}" onchange="updateDebt(${d.id},'name',this.value)" style="background:transparent;border:none;color:var(--text);font-size:16px;width:100px"></td>
+          <td><select onchange="updateDebt(${d.id},'type',this.value)" style="background:transparent;border:none;color:var(--text-dim);font-size:16px">
             ${['mortgage','alimony','loan','other'].map(t => `<option value="${t}"${d.type===t?' selected':''}>${t}</option>`).join('')}
           </select></td>
-          <td><input type="text" inputmode="decimal" value="${fmtC(d.monthlyPayment||0)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="updateDebt(${d.id},'monthlyPayment',parseC(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:12px;width:70px;text-align:right;border-radius:4px;padding:2px 4px"></td>
+          <td><input type="text" inputmode="decimal" value="${fmtC(d.monthlyPayment||0)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="updateDebt(${d.id},'monthlyPayment',parseC(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:16px;width:70px;text-align:right;border-radius:4px;padding:2px 4px"></td>
           <td style="white-space:nowrap">
-            <input type="number" value="${d.startAge||p.currentAge}" onchange="updateDebt(${d.id},'startAge',Number(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:12px;width:40px;text-align:center;border-radius:4px;padding:2px">-<input type="number" value="${d.endAge||p.endAge}" onchange="updateDebt(${d.id},'endAge',Number(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:12px;width:40px;text-align:center;border-radius:4px;padding:2px">
+            <input type="number" value="${d.startAge||p.currentAge}" onchange="updateDebt(${d.id},'startAge',Number(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:16px;width:40px;text-align:center;border-radius:4px;padding:2px">-<input type="number" value="${d.endAge||p.endAge}" onchange="updateDebt(${d.id},'endAge',Number(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:16px;width:40px;text-align:center;border-radius:4px;padding:2px">
           </td>
           <td><button onclick="removeDebt(${d.id})" style="background:none;border:none;color:var(--red);font-size:14px;cursor:pointer" title="Remove">x</button></td>
         </tr>`).join('')}</tbody>
@@ -4875,7 +4885,7 @@ function renderInputs() {
       const label = which === 'pension' ? 'Pension' : 'Spouse Pension';
       return `
             <div class="field"><label class="field-label">Name</label>
-              <input type="text" class="field-input" value="${pen.name||label}" onchange="setPension('${which}','name',this.value)" style="font-size:13px"></div>
+              <input type="text" class="field-input" value="${pen.name||label}" onchange="setPension('${which}','name',this.value)" style="font-size:16px"></div>
             <div class="field"><label class="field-label">Annual Amount</label><div class="field-wrap"><span class="field-prefix">$</span>
               <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(pen.annualAmount||0)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="setPension('${which}','annualAmount',parseC(this.value))">
             </div></div>
@@ -5420,7 +5430,7 @@ function renderInputs() {
               const amt = entry ? entry.amount : 0;
               rows += '<tr><td style="text-align:center;color:var(--text)">' + a + '</td>' +
                 '<td><div class="field-wrap" style="margin:0"><span class="field-prefix">$</span>' +
-                '<input type="text" inputmode="decimal" class="field-input has-prefix" style="padding:4px 6px 4px 28px;font-size:12px" ' +
+                '<input type="text" inputmode="decimal" class="field-input has-prefix" style="padding:4px 6px 4px 28px;font-size:16px" ' +
                 'value="' + fmtC(amt) + '" onfocus="this.value=this.value.replace(/,/g,\'\')" ' +
                 'onblur="this.value=fmtC(parseC(this.value))" ' +
                 'onchange="setCustomScheduleAmount(' + a + ',parseC(this.value))">' +
@@ -5992,12 +6002,12 @@ function renderInputs() {
           ${sched.length > 0 ? `<div style="overflow-x:auto;margin-bottom:12px"><table class="proj-table" style="font-size:12px">
             <thead><tr><th style="text-align:left">Name</th><th>Ages</th><th>Amount</th><th>or % Income</th><th></th></tr></thead>
             <tbody>${sched.map((s, idx) => `<tr>
-              <td style="text-align:left"><input type="text" value="${s.name||''}" onchange="updateCharitySched(${idx},'name',this.value)" style="background:transparent;border:none;color:var(--text);font-size:12px;width:100px"></td>
+              <td style="text-align:left"><input type="text" value="${s.name||''}" onchange="updateCharitySched(${idx},'name',this.value)" style="background:transparent;border:none;color:var(--text);font-size:16px;width:100px"></td>
               <td style="white-space:nowrap">
-                <input type="number" value="${s.startAge||65}" onchange="updateCharitySched(${idx},'startAge',Number(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:12px;width:40px;text-align:center;border-radius:4px;padding:2px">-<input type="number" value="${s.endAge||95}" onchange="updateCharitySched(${idx},'endAge',Number(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:12px;width:40px;text-align:center;border-radius:4px;padding:2px">
+                <input type="number" value="${s.startAge||65}" onchange="updateCharitySched(${idx},'startAge',Number(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:16px;width:40px;text-align:center;border-radius:4px;padding:2px">-<input type="number" value="${s.endAge||95}" onchange="updateCharitySched(${idx},'endAge',Number(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:16px;width:40px;text-align:center;border-radius:4px;padding:2px">
               </td>
-              <td><div style="display:flex;align-items:center;gap:2px"><span style="color:var(--text-faint);font-size:11px">$</span><input type="text" inputmode="decimal" value="${fmtC(s.amount||0)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="updateCharitySched(${idx},'amount',parseC(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:12px;width:65px;text-align:right;border-radius:4px;padding:2px 4px"></div></td>
-              <td><div style="display:flex;align-items:center;gap:2px"><input type="number" value="${s.pctIncome||0}" onchange="updateCharitySched(${idx},'pctIncome',Number(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:12px;width:45px;text-align:right;border-radius:4px;padding:2px 4px"><span style="color:var(--text-faint);font-size:11px">%</span></div></td>
+              <td><div style="display:flex;align-items:center;gap:2px"><span style="color:var(--text-faint);font-size:11px">$</span><input type="text" inputmode="decimal" value="${fmtC(s.amount||0)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="updateCharitySched(${idx},'amount',parseC(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:16px;width:65px;text-align:right;border-radius:4px;padding:2px 4px"></div></td>
+              <td><div style="display:flex;align-items:center;gap:2px"><input type="number" value="${s.pctIncome||0}" onchange="updateCharitySched(${idx},'pctIncome',Number(this.value))" style="background:transparent;border:1px solid var(--border);color:var(--text);font-size:16px;width:45px;text-align:right;border-radius:4px;padding:2px 4px"><span style="color:var(--text-faint);font-size:11px">%</span></div></td>
               <td><button onclick="removeCharitySched(${idx})" style="background:none;border:none;color:var(--red);font-size:14px;cursor:pointer">x</button></td>
             </tr>`).join('')}</tbody>
           </table></div>` : ''}
@@ -6128,7 +6138,7 @@ function renderInputs() {
         })()}
 
         <div class="field" style="margin-top:14px"><label class="field-label">Notes</label>
-          <textarea class="field-input" rows="2" style="resize:vertical;font-size:13px;padding:8px" placeholder="e.g., Trust for children, charity endowment..." onchange="setLegacy('notes',this.value)">${lg.notes||''}</textarea>
+          <textarea class="field-input" rows="2" style="resize:vertical;font-size:16px;padding:8px" placeholder="e.g., Trust for children, charity endowment..." onchange="setLegacy('notes',this.value)">${lg.notes||''}</textarea>
         </div>
       ` : ''}
     </div>`;
@@ -6479,7 +6489,7 @@ function renderMonteCarlo(proj) {
     <div style="margin-bottom:14px">
       <div class="field">
         <label class="field-label">Simulation Model</label>
-        <select class="field-input" onchange="setMCConfig('model', this.value)" style="font-size:13px">
+        <select class="field-input" onchange="setMCConfig('model', this.value)" style="font-size:16px">
           <option value="normal" ${cfg.model==='normal'?'selected':''}>Normal (Bell Curve)</option>
           <option value="historical" ${cfg.model==='historical'?'selected':''}>Historical (1928\u20132024)</option>
           <option value="stress" ${cfg.model==='stress'?'selected':''}>Stress Test (Fat-Tailed)</option>
@@ -6518,15 +6528,19 @@ function buildBearMarketParams(p, bm) {
   const retirementYear = p.retirementAge - p.currentAge; // yr index when retirement starts
   const crashStart = retirementYear + bm.onsetYr;
   const crashEnd = crashStart + bm.durationYrs;
+  const equityFrac = bm.equityPct / 100;
+  const bondFrac = 1 - equityFrac;
+  const BOND_RETURN = 3; // conservative bond return during crash
   const overrides = {};
   for (let yr = crashStart; yr < crashEnd; yr++) {
     overrides[yr] = {};
     shocked.accounts
       .filter(a => investmentTypes.includes(a.type))
       .forEach(a => {
-        const baseReturn = a.returnRate !== undefined ? a.returnRate : p.nominalReturn;
-        const reduction = (bm.equityPct / 100) * (bm.crashPct / 100) * baseReturn;
-        overrides[yr][a.id] = Math.max(-50, baseReturn - reduction);
+        // Equities lose crashPct% spread over durationYrs; bonds earn BOND_RETURN
+        const annualEquityLoss = bm.crashPct / bm.durationYrs;
+        const crashReturn = equityFrac * (-annualEquityLoss) + bondFrac * BOND_RETURN;
+        overrides[yr][a.id] = Math.max(-50, crashReturn);
       });
   }
   shocked._bearOverrides = overrides;
@@ -6639,7 +6653,7 @@ function renderScenarios(proj) {
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           ${presets.map(pr => `<button class="scenario-btn${bm.crashPct===pr.val?' active':''}" style="font-size:11px;padding:5px 10px"
             onclick="state.bearMarket.crashPct=${pr.val};state.bearMarket.active=true;state.scenario='bear';render()">${pr.label}</button>`).join('')}
-          <div class="field-wrap" style="width:70px"><input type="number" class="field-input has-suffix" value="${bm.crashPct}" min="0" max="100" style="font-size:12px;padding:5px 24px 5px 8px"
+          <div class="field-wrap" style="width:70px"><input type="number" class="field-input has-suffix" value="${bm.crashPct}" min="0" max="100" style="font-size:16px;padding:5px 24px 5px 8px"
             onchange="state.bearMarket.crashPct=Math.max(0,Math.min(100,Number(this.value)));state.bearMarket.active=true;state.scenario='bear';render();">
             <span class="field-suffix">%</span></div>
         </div></div>
@@ -6669,8 +6683,23 @@ function renderScenarios(proj) {
     const bearIRMAA = bearProj.reduce((s,y) => s+y.irmaa, 0);
     const baseIRMAA = proj.reduce((s,y) => s+y.irmaa, 0);
     const bearLabel = 'Bear Market (\u2212' + bm.crashPct + '% equity, year ' + bm.onsetYr + ', ' + bm.durationYrs + 'yr recovery)';
+    // Compute effective crash-year return for display
+    const eqFrac = bm.equityPct / 100;
+    const annualEqLoss = bm.crashPct / bm.durationYrs;
+    const effCrashReturn = eqFrac * (-annualEqLoss) + (1 - eqFrac) * 3;
+    // Peak-to-trough: find the lowest NW during the crash period relative to pre-crash
+    const crashStartAge = p.retirementAge + bm.onsetYr;
+    const preCrashNW = bearProj.find(y => y.age === crashStartAge)?.netWorth || bearProj[0].netWorth;
+    const crashEndAge = crashStartAge + bm.durationYrs;
+    const crashPeriod = bearProj.filter(y => y.age >= crashStartAge && y.age <= crashEndAge);
+    const troughNW = crashPeriod.length > 0 ? Math.min(...crashPeriod.map(y => y.netWorth)) : preCrashNW;
+    const peakDrop = preCrashNW > 0 ? Math.round((preCrashNW - troughNW) / preCrashNW * 100) : 0;
 
-    bearSection += `<div class="stats-row">
+    bearSection += `<div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.6;padding:8px 12px;background:var(--bg-base);border-radius:6px;border:1px solid var(--border)">
+      During crash: portfolio return <strong style="color:var(--red)">${effCrashReturn.toFixed(1)}%/yr</strong> for ${bm.durationYrs} year${bm.durationYrs>1?'s':''} (vs. normal ${(p.nominalReturn||7)}%).
+      Peak-to-trough NW drop: <strong style="color:var(--red)">\u2212${peakDrop}%</strong> (${fmtK(preCrashNW)} \u2192 ${fmtK(troughNW)}).
+    </div>
+    <div class="stats-row">
       <div class="stat"><div class="stat-label">Base Final</div><div class="stat-value" style="color:var(--blue)">${fmtK(final)}</div></div>
       <div class="stat"><div class="stat-label">${bearLabel}</div><div class="stat-value" style="color:var(--amber)">${fmtK(bearFinal)}</div></div>
       <div class="stat"><div class="stat-label">Difference</div><div class="stat-value" style="color:${bearDiff>=0?'var(--green)':'var(--red)'}">${fmtK(bearDiff)}</div></div>
@@ -7007,6 +7036,15 @@ function clearExample() {
   state.activeExample = null;
   saveState();
   render();
+}
+
+// iOS keyboard dismiss — reset viewport zoom
+if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+  document.addEventListener('blur', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+      setTimeout(function() { window.scrollTo(0, window.scrollY); }, 50);
+    }
+  }, true);
 }
 
 </script>
