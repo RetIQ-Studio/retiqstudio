@@ -6501,15 +6501,19 @@ function buildBearMarketParams(p, bm) {
   const retirementYear = p.retirementAge - p.currentAge; // yr index when retirement starts
   const crashStart = retirementYear + bm.onsetYr;
   const crashEnd = crashStart + bm.durationYrs;
+  const equityFrac = bm.equityPct / 100;
+  const bondFrac = 1 - equityFrac;
+  const BOND_RETURN = 3; // conservative bond return during crash
   const overrides = {};
   for (let yr = crashStart; yr < crashEnd; yr++) {
     overrides[yr] = {};
     shocked.accounts
       .filter(a => investmentTypes.includes(a.type))
       .forEach(a => {
-        const baseReturn = a.returnRate !== undefined ? a.returnRate : p.nominalReturn;
-        const reduction = (bm.equityPct / 100) * (bm.crashPct / 100) * baseReturn;
-        overrides[yr][a.id] = Math.max(-50, baseReturn - reduction);
+        // Equities lose crashPct% spread over durationYrs; bonds earn BOND_RETURN
+        const annualEquityLoss = bm.crashPct / bm.durationYrs;
+        const crashReturn = equityFrac * (-annualEquityLoss) + bondFrac * BOND_RETURN;
+        overrides[yr][a.id] = Math.max(-50, crashReturn);
       });
   }
   shocked._bearOverrides = overrides;
@@ -6652,8 +6656,23 @@ function renderScenarios(proj) {
     const bearIRMAA = bearProj.reduce((s,y) => s+y.irmaa, 0);
     const baseIRMAA = proj.reduce((s,y) => s+y.irmaa, 0);
     const bearLabel = 'Bear Market (\u2212' + bm.crashPct + '% equity, year ' + bm.onsetYr + ', ' + bm.durationYrs + 'yr recovery)';
+    // Compute effective crash-year return for display
+    const eqFrac = bm.equityPct / 100;
+    const annualEqLoss = bm.crashPct / bm.durationYrs;
+    const effCrashReturn = eqFrac * (-annualEqLoss) + (1 - eqFrac) * 3;
+    // Peak-to-trough: find the lowest NW during the crash period relative to pre-crash
+    const crashStartAge = p.retirementAge + bm.onsetYr;
+    const preCrashNW = bearProj.find(y => y.age === crashStartAge)?.netWorth || bearProj[0].netWorth;
+    const crashEndAge = crashStartAge + bm.durationYrs;
+    const crashPeriod = bearProj.filter(y => y.age >= crashStartAge && y.age <= crashEndAge);
+    const troughNW = crashPeriod.length > 0 ? Math.min(...crashPeriod.map(y => y.netWorth)) : preCrashNW;
+    const peakDrop = preCrashNW > 0 ? Math.round((preCrashNW - troughNW) / preCrashNW * 100) : 0;
 
-    bearSection += `<div class="stats-row">
+    bearSection += `<div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.6;padding:8px 12px;background:var(--bg-base);border-radius:6px;border:1px solid var(--border)">
+      During crash: portfolio return <strong style="color:var(--red)">${effCrashReturn.toFixed(1)}%/yr</strong> for ${bm.durationYrs} year${bm.durationYrs>1?'s':''} (vs. normal ${(p.nominalReturn||7)}%).
+      Peak-to-trough NW drop: <strong style="color:var(--red)">\u2212${peakDrop}%</strong> (${fmtK(preCrashNW)} \u2192 ${fmtK(troughNW)}).
+    </div>
+    <div class="stats-row">
       <div class="stat"><div class="stat-label">Base Final</div><div class="stat-value" style="color:var(--blue)">${fmtK(final)}</div></div>
       <div class="stat"><div class="stat-label">${bearLabel}</div><div class="stat-value" style="color:var(--amber)">${fmtK(bearFinal)}</div></div>
       <div class="stat"><div class="stat-label">Difference</div><div class="stat-value" style="color:${bearDiff>=0?'var(--green)':'var(--red)'}">${fmtK(bearDiff)}</div></div>
