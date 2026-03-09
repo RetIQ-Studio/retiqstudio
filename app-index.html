@@ -496,11 +496,16 @@ function showExportOverlay(html) {
   overlay.id = 'exportOverlay';
   overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:#fff;display:flex;flex-direction:column';
   overlay.innerHTML = '<div style="display:flex;align-items:center;padding:env(safe-area-inset-top,8px) 12px 8px;gap:12px;border-bottom:1px solid #ddd;flex-shrink:0;background:#f8f8f8">'
-    + '<button onclick="document.getElementById(\'exportOverlay\').remove()" style="background:none;border:none;color:#3b82f6;font-size:15px;cursor:pointer;padding:4px 8px">\u2190 Close</button></div>'
+    + '<button onclick="document.getElementById(\'exportOverlay\').remove()" style="background:none;border:none;color:#3b82f6;font-size:15px;cursor:pointer;padding:4px 8px">\u2190 Close</button>'
+    + '<button id="exportShareBtn" style="background:#3b82f6;border:none;color:#fff;font-size:13px;cursor:pointer;padding:6px 14px;border-radius:6px;font-weight:600;margin-left:auto">Share</button></div>'
     + '<iframe style="flex:1;border:none;width:100%;background:#fff"></iframe>';
   document.body.appendChild(overlay);
   const iframe = overlay.querySelector('iframe');
-  iframe.srcdoc = html;
+  iframe.srcdoc = html.replace(/<div class="no-print">[\s\S]*?<\/div>/, '');
+  document.getElementById('exportShareBtn').onclick = function() {
+    const file = new File([html], 'RetIQ-Summary.html', { type: 'text/html' });
+    navigator.share({ files: [file] }).catch(() => {});
+  };
 }
 
 function shareRetIQ() {
