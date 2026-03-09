@@ -476,8 +476,19 @@ function showInfoPage(file, title) {
   overlay.innerHTML = '<div style="display:flex;align-items:center;padding:env(safe-area-inset-top,12px) 16px 12px;gap:12px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg-card)">'
     + '<button onclick="document.getElementById(\'infoPageOverlay\').remove()" style="background:none;border:none;color:var(--blue);font-size:15px;cursor:pointer;padding:4px 8px">\u2190 Back</button>'
     + '<span style="font-weight:600;color:var(--text);font-size:15px">' + title + '</span></div>'
-    + '<iframe src="' + file + '" style="flex:1;border:none;width:100%;-webkit-overflow-scrolling:touch;background:var(--bg-base)"></iframe>';
+    + '<div style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:0" id="infoPageContent">'
+    + '<p style="text-align:center;padding:40px;color:var(--text)">Loading...</p></div>';
   document.body.appendChild(overlay);
+  fetch(file).then(r => r.text()).then(html => {
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'width:100%;height:100%;border:none;background:var(--bg-base)';
+    iframe.srcdoc = html.replace('</head>', '<style>.top-bar{display:none!important}</style></head>');
+    const container = document.getElementById('infoPageContent');
+    container.innerHTML = '';
+    container.appendChild(iframe);
+  }).catch(() => {
+    document.getElementById('infoPageContent').innerHTML = '<p style="text-align:center;padding:40px;color:var(--text)">Could not load ' + title + '.</p>';
+  });
 }
 
 function showExportOverlay(html) {
