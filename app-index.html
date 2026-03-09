@@ -482,7 +482,7 @@ function showInfoPage(file, title) {
   fetch(file).then(r => r.text()).then(html => {
     const iframe = document.createElement('iframe');
     iframe.style.cssText = 'width:100%;height:100%;border:none;background:var(--bg-base)';
-    iframe.srcdoc = html.replace('</head>', '<style>.top-bar{display:none!important}</style></head>');
+    iframe.srcdoc = html.replace('</head>', '<style>.top-bar{display:none!important}</style></head>').replace('</body>', '<script>document.addEventListener("click",function(e){var a=e.target.closest("a[href^=\\"#\\"]");if(a){e.preventDefault();var t=document.querySelector(a.getAttribute("href"));if(t)t.scrollIntoView({behavior:"smooth"});}});<\/script></body>');
     const container = document.getElementById('infoPageContent');
     container.innerHTML = '';
     container.appendChild(iframe);
