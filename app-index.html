@@ -2633,18 +2633,15 @@ function removeCashEvent(id) {
 }
 // One-Time Expenses (home repairs, medical, travel, etc.)
 function addOneTimeExpense() {
-  if (proGuard()) return;
   if (!state.params.oneTimeExpenses) state.params.oneTimeExpenses = [];
   state.params.oneTimeExpenses.push({ id: Date.now(), name: 'Home Renovation', age: 70, amount: 50000, category: 'home', source: 'taxable' });
   state.mcResults = null; saveState(); render();
 }
 function updateOneTimeExpense(id, key, val) {
-  if (proGuard()) return;
   const exp = (state.params.oneTimeExpenses || []).find(e => e.id === id);
   if (exp) { exp[key] = val; state.mcResults = null; state.rothOptResults = null; saveState(); render(); }
 }
 function removeOneTimeExpense(id) {
-  if (proGuard()) return;
   state.params.oneTimeExpenses = (state.params.oneTimeExpenses || []).filter(e => e.id !== id);
   state.mcResults = null; saveState(); render();
 }
