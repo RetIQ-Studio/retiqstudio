@@ -822,6 +822,7 @@ const REGS = {
     catchup_401k_standard: 7500,     // age 50-59, 64+
     catchup_401k_secure2: 11250,     // SECURE 2.0 §109, age 60-63
     catchup_ira: 1000,               // age 50+
+    total_annual_addition: 70000,   // IRC §415(c) limit — max employee + employer combined (2025)
     qcd_limit: 108000,              // IRS Notice 2024-80 (2025 inflation-adjusted)
   },
 };
@@ -843,6 +844,7 @@ const SS_RET_UNDER_FRA_RATE  = REGS.ss.earnings_test_under_fra_rate;
 const SS_RET_FRA_YEAR_RATE   = REGS.ss.earnings_test_fra_year_rate;
 const SS_RET_BASE_YEAR       = REGS.ss.base_year;
 const SS_RET_GROWTH          = REGS.ss.growth_rate;
+const TOTAL_ANNUAL_ADDITION = REGS.retirement_accounts.total_annual_addition;
 const QCD_ANNUAL_LIMIT = REGS.retirement_accounts.qcd_limit;
 const SS_WAGE_BASE = REGS.ss.wage_base;
 const SS_BEND_POINT_1 = REGS.ss.bend_point_1;
@@ -1160,6 +1162,54 @@ function randT(df) {
     chi2 += n * n;
   }
   return z / Math.sqrt(chi2 / df);
+}
+
+// -- Employer 401(k) Match ------------------------------------------
+// Computes the employer match contribution for a given year.
+// matchCfg: { enabled, formula, customPct, customCap, vesting, vestingYears }
+// salary: gross earned income for this person this year
+// employeeContrib: the employee's own 401k contribution this year
+// yearsOfService: years since the person started working (yr index)
+// limInf: inflation multiplier for IRC §415 limit scaling
+function calcEmployerMatch(matchCfg, salary, employeeContrib, yearsOfService, limInf) {
+  if (!matchCfg || !matchCfg.enabled || salary <= 0 || employeeContrib <= 0) return 0;
+  // Parse formula
+  let matchPct, capPct;
+  const f = matchCfg.formula || '50_6';
+  if (f === 'custom') {
+    matchPct = (matchCfg.customPct || 50) / 100;
+    capPct = (matchCfg.customCap || 6) / 100;
+  } else if (f === 'dollar_for_dollar') {
+    matchPct = 1.0;
+    capPct = (matchCfg.customCap || 6) / 100;
+  } else {
+    // Standard formulas: "50_6", "100_3", "100_4", "100_6"
+    const parts = f.split('_');
+    matchPct = parseInt(parts[0]) / 100;
+    capPct = parseInt(parts[1]) / 100;
+  }
+  // Employer matches matchPct of employee contributions, up to capPct of salary
+  const maxMatchable = salary * capPct;
+  const matchableContrib = Math.min(employeeContrib, maxMatchable);
+  let match = Math.round(matchableContrib * matchPct);
+  // IRC §415(c) limit: total employee + employer cannot exceed the annual addition limit
+  const limit415 = Math.round(TOTAL_ANNUAL_ADDITION * limInf);
+  match = Math.min(match, Math.max(0, limit415 - employeeContrib));
+  // Vesting
+  const vest = matchCfg.vesting || 'immediate';
+  if (vest === 'immediate') {
+    // 100% vested immediately
+  } else if (vest === 'cliff') {
+    // 0% until vestingYears, then 100%
+    const cliffYrs = matchCfg.vestingYears || 3;
+    if (yearsOfService < cliffYrs) match = 0;
+  } else if (vest === 'graded') {
+    // Linear vesting over vestingYears (e.g., 20% per year over 5 years)
+    const gradeYrs = matchCfg.vestingYears || 5;
+    const vestedPct = Math.min(1, yearsOfService / gradeYrs);
+    match = Math.round(match * vestedPct);
+  }
+  return match;
 }
 
 // -- Main Projection Engine ----------------------------------------
@@ -1595,6 +1645,7 @@ function runProjection(p) {
 
     // Savings phase -- with optional contribution limit enforcement
     let saved = 0;
+    let employerMatchAmt = 0;
     if (!effectivelyRetired && !primaryDead) {
       // Pre-retirement cash flow: check if after-tax income covers expenses + savings
       // Compute approximate tax on earned income for cash flow check
@@ -1654,6 +1705,11 @@ function runProjection(p) {
         // If no taxable account, overflow back to pre-tax / roth if room
         if (!hasTaxable) { const overflow = Math.max(0, savAmt - toPT - toRoth); toPT += Math.min(overflow, Math.max(0, limit401k + catchUp - toPT)); }
         preTax += toPT; roth += toRoth; taxableInv += toTaxable; saved = toPT + toRoth + toTaxable;
+        // Employer match: primary
+        if (hasPreTax) {
+          const emMatch = calcEmployerMatch(p.employerMatch, primaryEarned, toPT, yr, limInf);
+          preTax += emMatch; employerMatchAmt += emMatch;
+        }
 
         // Spouse savings
         if (p.spouseAge && !spRetired && !spouseDead) {
@@ -1665,6 +1721,11 @@ function runProjection(p) {
           let spR = Math.min(spSavAmt * 0.25, hasRoth ? limitIRA + spCatchUpIRA : 0);
           let spT = hasTaxable ? Math.max(0, spSavAmt - spPT - spR) : 0;
           preTax += spPT; roth += spR; taxableInv += spT; saved += spPT + spR + spT;
+          // Employer match: spouse
+          if (hasPreTax) {
+            const spEmMatch = calcEmployerMatch(p.spouseEmployerMatch, spouseEarned, spPT, yr, limInf);
+            preTax += spEmMatch; employerMatchAmt += spEmMatch;
+          }
         }
       } else {
         // No limits -- original proportional allocation
@@ -1675,7 +1736,17 @@ function runProjection(p) {
         const savRatio = targetSavings > 0 ? actualSavings / targetSavings : 0;
         const savAmt = (partialRetire ? savingsAtYear * (retireMonth / 12) : savingsAtYear) * savRatio;
         allocate(savAmt); saved = savAmt;
-        if (p.spouseAge && !spRetired && !spouseDead) { const spSavBase = spPartialRetire ? spSavingsAtYear * (spouseRetireMonth / 12) : spSavingsAtYear; allocate(spSavBase * savRatio); saved += spSavBase * savRatio; }
+        // Employer match: primary (no-limits branch)
+        const nlLimInf = Math.pow(1 + p.inflation / 100, yr);
+        const nlPrimaryPT = savAmt * wPT;
+        if (nlPrimaryPT > 0) {
+          const emMatch = calcEmployerMatch(p.employerMatch, primaryEarned, nlPrimaryPT, yr, nlLimInf);
+          preTax += emMatch; employerMatchAmt += emMatch;
+        }
+        if (p.spouseAge && !spRetired && !spouseDead) { const spSavBase = spPartialRetire ? spSavingsAtYear * (spouseRetireMonth / 12) : spSavingsAtYear; const spSavAmt2 = spSavBase * savRatio; allocate(spSavAmt2); saved += spSavAmt2;
+          const nlSpPT = spSavAmt2 * wPT;
+          if (nlSpPT > 0) { const spEmMatch = calcEmployerMatch(p.spouseEmployerMatch, spouseEarned, nlSpPT, yr, nlLimInf); preTax += spEmMatch; employerMatchAmt += spEmMatch; }
+        }
       }
     }
 
@@ -2018,7 +2089,7 @@ function runProjection(p) {
       acaSubsidy: Math.round(acaSubsidy), acaFPLPercent: acaFPLPercent, acaBenchmark: Math.round(acaBenchmark), acaNetPremium: Math.round(acaNetPremium),
       debtPayments: Math.round(debtPayments), ltcCost, charityTotal: Math.round(charityAmount),
       other: Math.round(other), totalInc: Math.round(totalInc), expenses: Math.round(expenses),
-      savings: Math.round(saved), withdrawal: Math.round(withdrawal),
+      savings: Math.round(saved), employerMatch: Math.round(employerMatchAmt), withdrawal: Math.round(withdrawal),
       tax: Math.round(tax), fedTax: Math.round(fedTax), stateTax: Math.round(stateTax),
       cgTax: Math.round(cgTax), niitTax: Math.round(niitTax), capGains: Math.round(capGains),
       preTax: _pt, roth: _ro,
@@ -2292,6 +2363,9 @@ function migrateParams() {
     // Remove legacy fields
     delete hcm.startAge; delete hcm.endAge;
   }
+  // v4.1 Migration: employer 401(k) match
+  if (state.params.employerMatch === undefined) state.params.employerMatch = { enabled: false, formula: '50_6', customPct: 50, customCap: 6, vesting: 'immediate', vestingYears: 0 };
+  if (state.params.spouseEmployerMatch === undefined) state.params.spouseEmployerMatch = { enabled: false, formula: '50_6', customPct: 50, customCap: 6, vesting: 'immediate', vestingYears: 0 };
   // v3.3 Migration: post-retirement return rate
   if (state.params.postRetirementReturn === undefined) state.params.postRetirementReturn = null;
   // v3.3 Migration: SS trust fund reduction
@@ -2300,6 +2374,7 @@ function migrateParams() {
 migrateParams();
 function saveState() { try { localStorage.setItem('retiq_v1', JSON.stringify(state.params)); } catch(e) {} }
 function setParam(key, val) { state.params[key] = val; state.mcResults = null; state.rothOptResults = null; saveState(); render(); }
+function setEmployerMatch(which, key, val) { const m = state.params[which]; if (!m) return; m[key] = val; state.mcResults = null; state.rothOptResults = null; saveState(); render(); }
 function toggleSpouse(on) {
   state.params.spouseEnabled = on;
   if (!on) state.params.spouseAge = 0;
@@ -2332,6 +2407,7 @@ function getActiveAdvancedFeatures(p) {
   if (p.preRetirementExpenses > 0) active.push('Pre-Retirement Expenses');
   if (p.postRetirementReturn !== null && p.postRetirementReturn !== undefined) active.push('Post-Retirement Return Rate');
   if (p.ssTrustFundReduction && p.ssTrustFundReduction.enabled) active.push('SS Trust Fund Reduction');
+  if ((p.employerMatch && p.employerMatch.enabled) || (p.spouseEmployerMatch && p.spouseEmployerMatch.enabled)) active.push('Employer 401(k) Match');
   return active;
 }
 function isSimplePlan(p) { return getActiveAdvancedFeatures(p).length === 0; }
@@ -2475,6 +2551,7 @@ function exportProjectionCSV() {
     { head:'Age', key:'age', isCurrency:false },
     { head:'Year', key:'year', isCurrency:false },
     { head:'Earned Income', key:'earned', isCurrency:true },
+    { head:'Employer Match', key:'employerMatch', isCurrency:true },
     { head:'Social Security', key:'ss', isCurrency:true },
     { head:'SSDI', key:'ssdi', isCurrency:true },
     { head:'Pension', key:'pension', isCurrency:true },
@@ -4029,6 +4106,12 @@ function renderThisYear(proj, p, bust) {
   if (y.lifeInsBenefit > 0) incomeRows.push({ label: 'Life Insurance Benefit', value: y.lifeInsBenefit, color: 'var(--green)', note: 'tax-free' });
   if (incomeRows.length > 0) sections.push({ label: 'Income', rows: incomeRows });
 
+  // Savings / Employer Match
+  const savRows = [];
+  if (y.savings > 0) savRows.push({ label: 'Your Savings', value: y.savings, color: 'var(--green)' });
+  if (y.employerMatch > 0) savRows.push({ label: 'Employer 401(k) Match', value: y.employerMatch, color: 'var(--green)', note: 'added to pre-tax accounts' });
+  if (savRows.length > 0) sections.push({ label: 'Savings', rows: savRows });
+
   // Withdrawals
   const wdRows = [];
   if (y.withdrawal > 0) {
@@ -4369,6 +4452,7 @@ function renderDashboard(proj) {
         <strong style="color:var(--amber)">${p.retirementAge}</strong>.
         Household income: <strong style="color:var(--text)">${fmt(p.annualIncome + (p.spouseIncome||0))}/yr</strong> (growing ${p.incomeGrowth || 0}%/yr),
         saving <strong style="color:var(--green)">${fmt(p.annualSavings + (p.spouseSavings||0))}/yr</strong> (growing ${p.savingsGrowth || 0}%/yr).
+        ${(() => { const emTotal = proj.reduce((s,y)=>s+(y.employerMatch||0),0); return emTotal > 0 ? `Employer match adds <strong style="color:var(--green)">${fmtK(emTotal)}</strong> to pre-tax accounts over your career. ` : ''; })()}
         ${p.preRetirementExpenses > 0 ? `Pre-retirement expenses: <strong style="color:var(--red)">${fmt(p.preRetirementExpenses)}/yr</strong> (${p.preRetirementExpenseInflation !== undefined ? p.preRetirementExpenseInflation : p.inflation}% inflation). ` : ''}
         Portfolio: <strong style="color:var(--blue)">${fmtK(totalAcct)}</strong>.
         ${rmdStartYr ? `<span class="badge badge-rmd">RMD</span> Required Minimum Distributions begin at age <strong>${rmdStartYr.age}</strong>. ` : ''}
@@ -4864,6 +4948,58 @@ function renderInputs() {
         </label>
         <div class="field-help" style="margin-left:24px">When enabled, savings respect annual 401(k) and IRA limits with age 50+ catch-up and SECURE 2.0 age 60-63 super catch-up. Overflow goes to taxable accounts.</div>
       </div>
+      ${(() => {
+        const renderMatchCard = (which, label) => {
+          const m = p[which] || {};
+          const formulaOpts = [
+            { v: '50_6', l: '50% of first 6% (most common)' },
+            { v: '100_3', l: '100% of first 3%' },
+            { v: '100_4', l: '100% of first 4%' },
+            { v: '100_6', l: '100% of first 6%' },
+            { v: 'dollar_for_dollar', l: 'Dollar-for-dollar up to cap' },
+            { v: 'custom', l: 'Custom formula' },
+          ];
+          const vestOpts = [
+            { v: 'immediate', l: 'Immediate (100%)' },
+            { v: 'cliff', l: 'Cliff (0% until vested)' },
+            { v: 'graded', l: 'Graded (linear over years)' },
+          ];
+          return `<div style="margin-top:14px;padding:12px 14px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border)">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);margin-bottom:4px">
+              <input type="checkbox" ${m.enabled?'checked':''} onchange="setEmployerMatch('${which}','enabled',this.checked)" style="width:16px;height:16px;accent-color:var(--blue)">
+              ${label} Employer 401(k) Match ${tip('Your employer contributes additional money to your pre-tax 401(k) based on your own contributions. This is separate from the employee contribution limit (IRS &sect;415). Employer match grows tax-deferred and is subject to RMDs.')}
+            </label>
+            ${m.enabled ? `<div style="margin-left:24px;margin-top:8px">
+              <div class="field"><label class="field-label">Match Formula</label>
+                <select class="field-input" onchange="setEmployerMatch('${which}','formula',this.value)" style="cursor:pointer">
+                  ${formulaOpts.map(o => '<option value="'+o.v+'"'+(m.formula===o.v?' selected':'')+'>'+o.l+'</option>').join('')}
+                </select>
+              </div>
+              ${m.formula === 'custom' || m.formula === 'dollar_for_dollar' ? `<div class="grid-2">
+                ${m.formula === 'custom' ? `<div class="field"><label class="field-label">Match Rate</label><div class="field-wrap">
+                  <input type="number" class="field-input has-suffix" value="${m.customPct||50}" onchange="setEmployerMatch('${which}','customPct',Number(this.value))">
+                  <span class="field-suffix">%</span></div>
+                  <div class="field-help">Percentage employer matches of your contribution</div></div>` : ''}
+                <div class="field"><label class="field-label">Cap (% of salary)</label><div class="field-wrap">
+                  <input type="number" class="field-input has-suffix" value="${m.customCap||6}" onchange="setEmployerMatch('${which}','customCap',Number(this.value))">
+                  <span class="field-suffix">%</span></div>
+                  <div class="field-help">Employer matches up to this % of your gross salary</div></div>
+              </div>` : ''}
+              <div class="field"><label class="field-label">Vesting Schedule</label>
+                <select class="field-input" onchange="setEmployerMatch('${which}','vesting',this.value)" style="cursor:pointer">
+                  ${vestOpts.map(o => '<option value="'+o.v+'"'+(m.vesting===o.v?' selected':'')+'>'+o.l+'</option>').join('')}
+                </select>
+              </div>
+              ${m.vesting !== 'immediate' ? `<div class="field"><label class="field-label">Vesting Period</label><div class="field-wrap">
+                <input type="number" class="field-input has-suffix" value="${m.vestingYears||3}" onchange="setEmployerMatch('${which}','vestingYears',Number(this.value))" min="1" max="7">
+                <span class="field-suffix">years</span></div>
+                <div class="field-help">${m.vesting==='cliff'?'0% vested until this many years of service, then 100%':'Vests linearly over this many years (e.g., 20%/yr for 5 years)'}</div></div>` : ''}
+            </div>` : ''}
+          </div>`;
+        };
+        return renderMatchCard('employerMatch', 'Your')
+          + ((p.spouseEnabled || (p.spouseAge && p.spouseAge > 0)) ? renderMatchCard('spouseEmployerMatch', 'Spouse') : '');
+      })()}
       <div style="margin-top:14px;padding:12px 14px;background:var(--bg-base);border-radius:8px;border:1px solid var(--border)">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);margin-bottom:4px">
           <input type="checkbox" ${p.postRetirementReturn != null ? 'checked' : ''} onchange="if(this.checked){setParam('postRetirementReturn',5)}else{setParam('postRetirementReturn',null)}" style="width:16px;height:16px;accent-color:var(--blue)">
@@ -6394,6 +6530,7 @@ function renderProjectionTable(proj) {
       { head:'Age', key:'age', color:'', isCurrency:false, special:'age' },
       { head:'Year', key:'year', color:'', isCurrency:false },
       { head:'Earned', key:'earned', color:'var(--cyan)', isCurrency:true },
+      { head:'Emp Match', key:'employerMatch', color:'var(--green)', isCurrency:true },
       { head:'SS', key:'ss', color:'var(--green)', isCurrency:true },
       { head:'SS W/H', key:'ssWithheld', color:'var(--red)', isCurrency:true },
       { head:'SSDI', key:'ssdi', color:'var(--blue)', isCurrency:true },
