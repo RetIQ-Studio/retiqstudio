@@ -180,7 +180,7 @@ button:hover { opacity: 0.88; }
 .tip-icon { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; background: var(--bg-hover); color: var(--text-muted); font-size: 10px; font-weight: 600; font-style: normal; cursor: help; margin-left: 4px; flex-shrink: 0; border: 1px solid var(--border); transition: all 0.15s; user-select: none; line-height: 1; }
 .tip-icon:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
 .tip-bubble { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--tooltip-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 12px; font-weight: 400; color: var(--text); line-height: 1.55; width: max-content; max-width: 280px; z-index: 200; box-shadow: 0 4px 16px rgba(0,0,0,0.25); pointer-events: auto; }
-.tip-bubble::after { content: ''; position: absolute; top: 100%; left: var(--arrow-left, 50%); transform: translateX(-50%); border: 6px solid transparent; border-top-color: var(--border); }
+.tip-bubble::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: var(--border); }
 .tip-wrap.tip-open .tip-bubble { display: block; }
 @media (max-width: 700px) {
   .tip-bubble { max-width: 240px; }
@@ -3165,22 +3165,29 @@ function renderModeToggle() {
 function tip(text) {
   return `<span class="tip-wrap" onmouseenter="tipShow(this)" onmouseleave="tipHide(this)"><i class="tip-icon" onclick="tipToggle(event,this.parentNode)" aria-label="Info">i</i><span class="tip-bubble">${text}</span></span>`;
 }
-function tipShow(el) { if (!('ontouchstart' in window)) { el.classList.add('tip-open'); tipClamp(el); } }
+function tipShow(el) { if (!('ontouchstart' in window)) el.classList.add('tip-open'); }
 function tipHide(el) { if (!('ontouchstart' in window)) el.classList.remove('tip-open'); }
-function tipToggle(e, el) { e.stopPropagation(); document.querySelectorAll('.tip-open').forEach(t => { if (t !== el) t.classList.remove('tip-open'); }); el.classList.toggle('tip-open'); if (el.classList.contains('tip-open')) tipClamp(el); }
-function tipClamp(wrap) {
-  var bubble = wrap.querySelector('.tip-bubble'); if (!bubble) return;
-  bubble.style.left = ''; bubble.style.right = ''; bubble.style.transform = ''; bubble.style.removeProperty('--arrow-left');
-  requestAnimationFrame(function() {
-    var bRect = bubble.getBoundingClientRect(), wRect = wrap.getBoundingClientRect();
-    var vw = window.innerWidth, pad = 8, newLeft;
-    if (bRect.left < pad) { newLeft = pad - wRect.left; }
-    else if (bRect.right > vw - pad) { newLeft = vw - pad - bRect.width - wRect.left; }
-    if (newLeft !== undefined) {
-      bubble.style.left = newLeft + 'px'; bubble.style.right = 'auto'; bubble.style.transform = 'none';
-      bubble.style.setProperty('--arrow-left', ((wRect.width / 2) - newLeft) + 'px');
-    }
-  });
+function tipToggle(e, el) {
+  e.stopPropagation();
+  document.querySelectorAll('.tip-open').forEach(t => { if (t !== el) t.classList.remove('tip-open'); });
+  el.classList.toggle('tip-open');
+  if (el.classList.contains('tip-open')) {
+    const bubble = el.querySelector('.tip-bubble');
+    if (!bubble) return;
+    bubble.style.left = ''; bubble.style.right = ''; bubble.style.transform = '';
+    requestAnimationFrame(() => {
+      const rect = bubble.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const PAD = 10;
+      if (rect.left < PAD) {
+        const nudge = PAD - rect.left;
+        bubble.style.transform = `translateX(calc(-50% + ${nudge}px))`;
+      } else if (rect.right > vw - PAD) {
+        const nudge = rect.right - (vw - PAD);
+        bubble.style.transform = `translateX(calc(-50% - ${nudge}px))`;
+      }
+    });
+  }
 }
 document.addEventListener('click', () => document.querySelectorAll('.tip-open').forEach(t => t.classList.remove('tip-open')));
 
