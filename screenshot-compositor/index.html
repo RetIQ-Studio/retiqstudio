@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>RetIQ — App Store Screenshot Compositor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #111827;
+  color: #e2e8f0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Controls Bar ─── */
+.controls {
+  padding: 16px 24px;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  z-index: 100;
+  position: sticky;
+  top: 0;
+}
+
+.tab-switch {
+  display: flex;
+  background: #0f172a;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #334155;
+}
+.tab-switch button {
+  padding: 8px 20px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.tab-switch button.active {
+  background: #22d3ee;
+  color: #0f172a;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.control-group label {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.control-group input[type="text"] {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: #e2e8f0;
+  font-family: inherit;
+  font-size: 13px;
+  width: 280px;
+}
+.control-group input[type="text"]:focus {
+  outline: none;
+  border-color: #22d3ee;
+}
+
+.upload-btn {
+  padding: 8px 16px;
+  background: #22d3ee;
+  color: #0f172a;
+  border: none;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.upload-btn:hover { opacity: 0.85; }
+
+.nav-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nav-btn {
+  padding: 6px 14px;
+  background: #334155;
+  color: #e2e8f0;
+  border: none;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.nav-btn:hover { background: #475569; }
+.nav-label {
+  font-size: 12px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.export-btn {
+  padding: 8px 16px;
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: auto;
+  transition: opacity 0.15s;
+}
+.export-btn:hover { opacity: 0.85; }
+.export-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.slot-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.slot-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #475569;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
+}
+.slot-dot.active {
+  border-color: #22d3ee;
+  background: #22d3ee;
+}
+.slot-dot.has-image {
+  border-color: #10b981;
+}
+.slot-dot.has-image.active {
+  border-color: #22d3ee;
+  background: #22d3ee;
+}
+
+/* ─── Preview Area ─── */
+.preview-area {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 24px;
+  overflow: auto;
+}
+
+/* ─── Canvas (actual App Store dimensions) ─── */
+.canvas {
+  position: relative;
+  transform-origin: top center;
+  flex-shrink: 0;
+}
+
+.canvas-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+/* Radial gradient background */
+.canvas-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 40%, #1e293b 0%, #0f172a 70%);
+}
+
+/* Noise texture overlay */
+.canvas-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+}
+
+/* ─── Caption Area ─── */
+.caption-area {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.eyebrow {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  color: #22d3ee;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.headline {
+  font-size: 72px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.15;
+  max-width: 85%;
+  word-wrap: break-word;
+}
+
+/* ─── iPhone Frame ─── */
+.device-frame-iphone {
+  position: relative;
+  z-index: 2;
+  margin: 0 auto;
+}
+
+.iphone-body {
+  position: relative;
+  background: #1a1a1a;
+  border-radius: 68px;
+  padding: 16px;
+  box-shadow:
+    0 0 0 2px #333,
+    0 20px 60px rgba(0,0,0,0.5),
+    inset 0 0 0 1px rgba(255,255,255,0.05);
+}
+
+/* Side buttons */
+.iphone-body::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 180px;
+  width: 4px;
+  height: 45px;
+  background: #2a2a2a;
+  border-radius: 2px 0 0 2px;
+  box-shadow:
+    0 50px 0 #2a2a2a,
+    0 -60px 0 #2a2a2a;
+}
+.iphone-body::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 220px;
+  width: 4px;
+  height: 70px;
+  background: #2a2a2a;
+  border-radius: 0 2px 2px 0;
+}
+
+.iphone-screen {
+  position: relative;
+  background: #000;
+  border-radius: 52px;
+  overflow: hidden;
+}
+
+.iphone-screen img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.iphone-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+/* Dynamic Island */
+.dynamic-island {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 126px;
+  height: 37px;
+  background: #000;
+  border-radius: 20px;
+  z-index: 5;
+}
+
+/* ─── iPad Frame ─── */
+.device-frame-ipad {
+  position: relative;
+  z-index: 2;
+  margin: 0 auto;
+}
+
+.ipad-body {
+  position: relative;
+  background: #2a2a2a;
+  border-radius: 28px;
+  padding: 20px;
+  box-shadow:
+    0 0 0 2px #3a3a3a,
+    0 20px 60px rgba(0,0,0,0.5),
+    inset 0 0 0 1px rgba(255,255,255,0.05);
+}
+
+.ipad-screen {
+  position: relative;
+  background: #000;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.ipad-screen img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ipad-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+/* Front camera */
+.ipad-camera {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  background: #1a1a1a;
+  border-radius: 50%;
+  z-index: 5;
+  border: 1px solid #333;
+}
+
+/* Home bar */
+.ipad-homebar {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140px;
+  height: 5px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 3px;
+  z-index: 5;
+}
+
+/* ─── Hidden file input ─── */
+#fileInput { display: none; }
+
+/* ─── Exporting indicator ─── */
+.exporting-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  font-size: 20px;
+  font-weight: 600;
+  color: #22d3ee;
+}
+</style>
+</head>
+<body>
+
+<div class="controls" id="controls">
+  <div class="tab-switch">
+    <button class="active" onclick="setDevice('iphone')">iPhone</button>
+    <button onclick="setDevice('ipad')">iPad</button>
+  </div>
+
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Upload Screenshot</button>
+    <input type="file" id="fileInput" accept="image/*" onchange="handleUpload(event)">
+  </div>
+
+  <div class="control-group">
+    <label>Eyebrow</label>
+    <input type="text" id="eyebrowInput" value="RETIREMENT PLANNING" oninput="updateCaption()">
+  </div>
+
+  <div class="control-group">
+    <label>Headline</label>
+    <input type="text" id="headlineInput" value="See your entire retirement at a glance" oninput="updateCaption()">
+  </div>
+
+  <div class="nav-group">
+    <button class="nav-btn" onclick="prevSlot()">&larr;</button>
+    <div class="slot-dots" id="slotDots"></div>
+    <span class="nav-label" id="navLabel">1 of 6</span>
+    <button class="nav-btn" onclick="nextSlot()">&rarr;</button>
+  </div>
+
+  <button class="export-btn" id="exportBtn" onclick="exportFrame()">Export PNG</button>
+</div>
+
+<div class="preview-area" id="previewArea">
+  <div class="canvas" id="canvas">
+    <div class="canvas-bg"></div>
+    <div class="caption-area" id="captionArea">
+      <div class="eyebrow" id="eyebrowText">RETIREMENT PLANNING</div>
+      <div class="headline" id="headlineText">See your entire retirement at a glance</div>
+    </div>
+    <div id="deviceFrame"></div>
+  </div>
+</div>
+
+<script>
+// ─── Screenshot Slots ───
+const slots = [
+  { eyebrow: 'RETIREMENT PLANNING', headline: 'See your entire retirement at a glance', image: null },
+  { eyebrow: 'ROTH CONVERSION', headline: 'Find the Roth strategy that saves the most', image: null },
+  { eyebrow: 'SOCIAL SECURITY', headline: 'Know exactly when to claim', image: null },
+  { eyebrow: 'MONTE CARLO', headline: 'Test your plan against 1,000 scenarios', image: null },
+  { eyebrow: 'COMPREHENSIVE INPUT', headline: 'Built for real complexity', image: null },
+  { eyebrow: 'VALIDATED', headline: 'Every calculation verified against IRS sources', image: null },
+];
+
+let currentSlot = 0;
+let currentDevice = 'iphone';
+
+// ─── Device Dimensions ───
+const DEVICES = {
+  iphone: {
+    canvas: { w: 1320, h: 2868 },
+    captionTop: 160,
+    captionHeight: 300,
+    frameWidth: 860,
+    screenWidth: 828,
+    screenHeight: 1792,
+    bodyPadding: 16,
+    bodyRadius: 68,
+    screenRadius: 52,
+  },
+  ipad: {
+    canvas: { w: 2064, h: 2752 },
+    captionTop: 100,
+    captionHeight: 280,
+    frameWidth: 1700,
+    screenWidth: 1660,
+    screenHeight: 2150,
+    bodyPadding: 20,
+    bodyRadius: 28,
+    screenRadius: 14,
+  },
+};
+
+function setDevice(device) {
+  currentDevice = device;
+  document.querySelectorAll('.tab-switch button').forEach((btn, i) => {
+    btn.classList.toggle('active', (i === 0 && device === 'iphone') || (i === 1 && device === 'ipad'));
+  });
+  renderCanvas();
+}
+
+function setSlot(idx) {
+  // Save current inputs
+  slots[currentSlot].eyebrow = document.getElementById('eyebrowInput').value;
+  slots[currentSlot].headline = document.getElementById('headlineInput').value;
+
+  currentSlot = idx;
+
+  // Load slot data into inputs
+  document.getElementById('eyebrowInput').value = slots[idx].eyebrow;
+  document.getElementById('headlineInput').value = slots[idx].headline;
+
+  updateDots();
+  renderCanvas();
+}
+
+function prevSlot() { setSlot((currentSlot - 1 + slots.length) % slots.length); }
+function nextSlot() { setSlot((currentSlot + 1) % slots.length); }
+
+function updateDots() {
+  const dots = document.getElementById('slotDots');
+  dots.innerHTML = slots.map((s, i) => {
+    const classes = ['slot-dot'];
+    if (i === currentSlot) classes.push('active');
+    if (s.image) classes.push('has-image');
+    return `<button class="${classes.join(' ')}" onclick="setSlot(${i})" title="Screenshot ${i + 1}: ${s.eyebrow}"></button>`;
+  }).join('');
+  document.getElementById('navLabel').textContent = `${currentSlot + 1} of ${slots.length}`;
+}
+
+function updateCaption() {
+  slots[currentSlot].eyebrow = document.getElementById('eyebrowInput').value;
+  slots[currentSlot].headline = document.getElementById('headlineInput').value;
+  document.getElementById('eyebrowText').textContent = slots[currentSlot].eyebrow;
+  document.getElementById('headlineText').textContent = slots[currentSlot].headline;
+}
+
+function handleUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    slots[currentSlot].image = ev.target.result;
+    updateDots();
+    renderCanvas();
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+
+function renderCanvas() {
+  const d = DEVICES[currentDevice];
+  const canvas = document.getElementById('canvas');
+  const slot = slots[currentSlot];
+
+  canvas.style.width = d.canvas.w + 'px';
+  canvas.style.height = d.canvas.h + 'px';
+
+  // Caption area
+  const captionArea = document.getElementById('captionArea');
+  captionArea.style.paddingTop = d.captionTop + 'px';
+  captionArea.style.height = (d.captionTop + d.captionHeight) + 'px';
+
+  document.getElementById('eyebrowText').textContent = slot.eyebrow;
+  document.getElementById('headlineText').textContent = slot.headline;
+
+  // Device frame
+  const frameEl = document.getElementById('deviceFrame');
+
+  if (currentDevice === 'iphone') {
+    const bodyW = d.screenWidth + d.bodyPadding * 2;
+    const bodyH = d.screenHeight + d.bodyPadding * 2;
+    const screenContent = slot.image
+      ? `<img src="${slot.image}" alt="Screenshot">`
+      : `<div class="iphone-placeholder" style="width:${d.screenWidth}px;height:${d.screenHeight}px">Upload Screenshot</div>`;
+
+    frameEl.innerHTML = `
+      <div class="device-frame-iphone" style="width:${bodyW}px;margin:40px auto 0;">
+        <div class="iphone-body" style="width:${bodyW}px;height:${bodyH}px;border-radius:${d.bodyRadius}px;padding:${d.bodyPadding}px">
+          <div class="dynamic-island"></div>
+          <div class="iphone-screen" style="width:${d.screenWidth}px;height:${d.screenHeight}px;border-radius:${d.screenRadius}px">
+            ${screenContent}
+          </div>
+        </div>
+      </div>`;
+  } else {
+    const bodyW = d.screenWidth + d.bodyPadding * 2;
+    const bodyH = d.screenHeight + d.bodyPadding * 2;
+    const screenContent = slot.image
+      ? `<img src="${slot.image}" alt="Screenshot">`
+      : `<div class="ipad-placeholder" style="width:${d.screenWidth}px;height:${d.screenHeight}px">Upload Screenshot</div>`;
+
+    frameEl.innerHTML = `
+      <div class="device-frame-ipad" style="width:${bodyW}px;margin:30px auto 0;">
+        <div class="ipad-body" style="width:${bodyW}px;height:${bodyH}px;border-radius:${d.bodyRadius}px;padding:${d.bodyPadding}px">
+          <div class="ipad-camera"></div>
+          <div class="ipad-screen" style="width:${d.screenWidth}px;height:${d.screenHeight}px;border-radius:${d.screenRadius}px">
+            ${screenContent}
+          </div>
+          <div class="ipad-homebar"></div>
+        </div>
+      </div>`;
+  }
+
+  fitPreview();
+}
+
+function fitPreview() {
+  const d = DEVICES[currentDevice];
+  const canvas = document.getElementById('canvas');
+  const area = document.getElementById('previewArea');
+  const areaH = area.clientHeight - 48;
+  const areaW = area.clientWidth - 48;
+  const scaleH = areaH / d.canvas.h;
+  const scaleW = areaW / d.canvas.w;
+  const scale = Math.min(scaleH, scaleW, 1);
+  canvas.style.transform = `scale(${scale})`;
+}
+
+async function exportFrame() {
+  const btn = document.getElementById('exportBtn');
+  btn.disabled = true;
+  btn.textContent = 'Exporting...';
+
+  const overlay = document.createElement('div');
+  overlay.className = 'exporting-overlay';
+  overlay.textContent = 'Rendering full-resolution PNG...';
+  document.body.appendChild(overlay);
+
+  const canvas = document.getElementById('canvas');
+  const d = DEVICES[currentDevice];
+
+  // Temporarily remove transform for full-res capture
+  const origTransform = canvas.style.transform;
+  canvas.style.transform = 'none';
+
+  try {
+    const result = await html2canvas(canvas, {
+      width: d.canvas.w,
+      height: d.canvas.h,
+      scale: 1,
+      useCORS: true,
+      backgroundColor: null,
+      logging: false,
+    });
+
+    const link = document.createElement('a');
+    link.download = `retiq-screenshot-${currentSlot + 1}-${currentDevice}.png`;
+    link.href = result.toDataURL('image/png');
+    link.click();
+  } catch (err) {
+    alert('Export failed: ' + err.message);
+  }
+
+  canvas.style.transform = origTransform;
+  overlay.remove();
+  btn.disabled = false;
+  btn.textContent = 'Export PNG';
+}
+
+// ─── Keyboard shortcuts ───
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowLeft') prevSlot();
+  if (e.key === 'ArrowRight') nextSlot();
+  if (e.key === 'e' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); exportFrame(); }
+});
+
+// ─── Init ───
+window.addEventListener('resize', fitPreview);
+updateDots();
+renderCanvas();
+</script>
+</body>
+</html>

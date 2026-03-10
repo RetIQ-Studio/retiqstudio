@@ -4308,9 +4308,39 @@ function renderDashboard(proj) {
     </div>
 
     ${verdictHtml}
-    ${leversHtml}
 
-    ${renderThisYear(proj, p, bust)}
+    <div class="card"><div class="card-title">Plan Summary</div>
+      <div style="font-size:13px;line-height:1.8;color:var(--text-dim)">
+        You are <strong style="color:var(--text)">${p.currentAge}</strong>, retiring at
+        <strong style="color:var(--amber)">${p.retirementAge}</strong>.
+        Household income: <strong style="color:var(--text)">${fmt(p.annualIncome + (p.spouseIncome||0))}/yr</strong> (growing ${p.incomeGrowth || 0}%/yr),
+        saving <strong style="color:var(--green)">${fmt(p.annualSavings + (p.spouseSavings||0))}/yr</strong> (growing ${p.savingsGrowth || 0}%/yr).
+        ${(() => { const emTotal = proj.reduce((s,y)=>s+(y.employerMatch||0),0); return emTotal > 0 ? `Employer match adds <strong style="color:var(--green)">${fmtK(emTotal)}</strong> to pre-tax accounts over your career. ` : ''; })()}
+        ${p.preRetirementExpenses > 0 ? `Pre-retirement expenses: <strong style="color:var(--red)">${fmt(p.preRetirementExpenses)}/yr</strong> (${p.preRetirementExpenseInflation !== undefined ? p.preRetirementExpenseInflation : p.inflation}% inflation). ` : ''}
+        Portfolio: <strong style="color:var(--blue)">${fmtK(totalAcct)}</strong>.
+        ${rmdStartYr ? `<span class="badge badge-rmd">RMD</span> Required Minimum Distributions begin at age <strong>${rmdStartYr.age}</strong>. ` : ''}
+        ${totalIRMAA > 0 ? `<span class="badge badge-irmaa">IRMAA</span> Medicare surcharges total <strong style="color:var(--pink)">${fmtK(totalIRMAA)}</strong> over your lifetime. ` : ''}
+        ${(() => { const tc = proj.reduce((s,y)=>s+y.rothConv,0); return tc > 0 ? `<span class="badge badge-roth">ROTH CONV</span> Converting <strong style="color:var(--cyan)">${fmtK(tc)}</strong> from pre-tax to Roth (ages ${p.rothConversion?.startAge}-${p.rothConversion?.endAge}). ` : ''; })()}
+        ${final > 0
+          ? `Portfolio reaches <strong style="color:var(--green)">${fmtK(final)}</strong> at age ${p.endAge}.`
+          : `<span style="color:var(--red)">Portfolio depleted at age <strong>${bust}</strong>.</span>`}
+        ${(() => {
+          const lg = p.legacy || {};
+          if (!lg.enabled || !lg.targetAmount) return '';
+          return final >= lg.targetAmount
+            ? ` <span style="color:var(--green)">&#10003; Legacy goal of ${fmtK(lg.targetAmount)} met -- surplus of ${fmtK(final - lg.targetAmount)}.</span>`
+            : ` <span style="color:var(--amber)">! Legacy goal of ${fmtK(lg.targetAmount)} not met -- shortfall of ${fmtK(lg.targetAmount - Math.max(0,final))}.</span>`;
+        })()}
+        ${(() => {
+          const dTotal = proj.reduce((s,y) => s + (y.debtPayments||0), 0);
+          return dTotal > 0 ? ` Lifetime debt payments: <strong style="color:var(--red)">${fmtK(dTotal)}</strong>.` : '';
+        })()}
+        ${(() => {
+          const ltTotal = proj.reduce((s,y) => s + (y.ltcCost||0), 0);
+          return ltTotal > 0 ? ` Long-term care costs: <strong style="color:var(--pink)">${fmtK(ltTotal)}</strong>.` : '';
+        })()}
+      </div>
+    </div>
 
     <div class="stats-row">
       <div class="stat"><div class="stat-label">Current Net Worth</div><div class="stat-value" style="color:var(--blue)">${fmtK(totalAcct)}</div></div>
@@ -4357,6 +4387,10 @@ function renderDashboard(proj) {
       </div>
     </div>
 
+    ${renderThisYear(proj, p, bust)}
+
+    ${leversHtml}
+
     <div class="grid-2">
       <div class="card" data-accent="blue">${buildChart(proj, nwKeys, nwColors, nwLabels, { title:'Net Worth Over Time', stacked: nwKeys.length > 1, height:180 })}</div>
       <div class="card" data-accent="cyan">${buildChart(proj, ['totalInc','expenses'], ['#06b6d4','#ef4444'], ['Total Income','Expenses'], { title:'Income vs Expenses', height:180 })}</div>
@@ -4370,40 +4404,7 @@ function renderDashboard(proj) {
       )}</div>
     </div>
 
-    ${buildStrategyReport(proj)}
-
-    <div class="card"><div class="card-title">Plan Summary</div>
-      <div style="font-size:13px;line-height:1.8;color:var(--text-dim)">
-        You are <strong style="color:var(--text)">${p.currentAge}</strong>, retiring at
-        <strong style="color:var(--amber)">${p.retirementAge}</strong>.
-        Household income: <strong style="color:var(--text)">${fmt(p.annualIncome + (p.spouseIncome||0))}/yr</strong> (growing ${p.incomeGrowth || 0}%/yr),
-        saving <strong style="color:var(--green)">${fmt(p.annualSavings + (p.spouseSavings||0))}/yr</strong> (growing ${p.savingsGrowth || 0}%/yr).
-        ${(() => { const emTotal = proj.reduce((s,y)=>s+(y.employerMatch||0),0); return emTotal > 0 ? `Employer match adds <strong style="color:var(--green)">${fmtK(emTotal)}</strong> to pre-tax accounts over your career. ` : ''; })()}
-        ${p.preRetirementExpenses > 0 ? `Pre-retirement expenses: <strong style="color:var(--red)">${fmt(p.preRetirementExpenses)}/yr</strong> (${p.preRetirementExpenseInflation !== undefined ? p.preRetirementExpenseInflation : p.inflation}% inflation). ` : ''}
-        Portfolio: <strong style="color:var(--blue)">${fmtK(totalAcct)}</strong>.
-        ${rmdStartYr ? `<span class="badge badge-rmd">RMD</span> Required Minimum Distributions begin at age <strong>${rmdStartYr.age}</strong>. ` : ''}
-        ${totalIRMAA > 0 ? `<span class="badge badge-irmaa">IRMAA</span> Medicare surcharges total <strong style="color:var(--pink)">${fmtK(totalIRMAA)}</strong> over your lifetime. ` : ''}
-        ${(() => { const tc = proj.reduce((s,y)=>s+y.rothConv,0); return tc > 0 ? `<span class="badge badge-roth">ROTH CONV</span> Converting <strong style="color:var(--cyan)">${fmtK(tc)}</strong> from pre-tax to Roth (ages ${p.rothConversion?.startAge}-${p.rothConversion?.endAge}). ` : ''; })()}
-        ${final > 0
-          ? `Portfolio reaches <strong style="color:var(--green)">${fmtK(final)}</strong> at age ${p.endAge}.`
-          : `<span style="color:var(--red)">Portfolio depleted at age <strong>${bust}</strong>.</span>`}
-        ${(() => {
-          const lg = p.legacy || {};
-          if (!lg.enabled || !lg.targetAmount) return '';
-          return final >= lg.targetAmount
-            ? ` <span style="color:var(--green)">&#10003; Legacy goal of ${fmtK(lg.targetAmount)} met -- surplus of ${fmtK(final - lg.targetAmount)}.</span>`
-            : ` <span style="color:var(--amber)">! Legacy goal of ${fmtK(lg.targetAmount)} not met -- shortfall of ${fmtK(lg.targetAmount - Math.max(0,final))}.</span>`;
-        })()}
-        ${(() => {
-          const dTotal = proj.reduce((s,y) => s + (y.debtPayments||0), 0);
-          return dTotal > 0 ? ` Lifetime debt payments: <strong style="color:var(--red)">${fmtK(dTotal)}</strong>.` : '';
-        })()}
-        ${(() => {
-          const ltTotal = proj.reduce((s,y) => s + (y.ltcCost||0), 0);
-          return ltTotal > 0 ? ` Long-term care costs: <strong style="color:var(--pink)">${fmtK(ltTotal)}</strong>.` : '';
-        })()}
-      </div>
-    </div>`;
+    ${buildStrategyReport(proj)}`;
 }
 
 function renderLifeInsurance(p) {

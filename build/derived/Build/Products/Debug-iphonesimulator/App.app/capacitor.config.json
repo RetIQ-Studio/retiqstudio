@@ -1,0 +1,9 @@
+{
+	"appId": "app.retirementiq",
+	"appName": "RetIQ",
+	"webDir": "retiq-deploy/app",
+	"ios": {
+		"backgroundColor": "#0a1226"
+	},
+	"packageClassList": []
+}
