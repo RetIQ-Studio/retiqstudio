@@ -222,6 +222,15 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>A checkbox at the bottom of the Accounts tab toggles contribution limit enforcement. When enabled, annual savings respect 401(k) limits ($23,500 in 2025), plus $7,500 catch-up at 50+, plus the enhanced $11,250 catch-up for ages 60&ndash;63 (SECURE Act 2.0). IRA limits ($7,000 + catch-up) also apply. Savings are allocated in order: pre-tax up to limit, then Roth up to limit, then overflow to brokerage.</p>
 
     <p>In retirement, withdrawals follow a configurable 4-bucket order (default: Cash/HYS &rarr; Brokerage &rarr; Pre-Tax &rarr; Roth). Reorder in the Assumptions tab using the arrow buttons. RMDs are always taken from pre-tax regardless of withdrawal order.</p>
+
+    <h3>Employer 401(k) Match</h3>
+    <p>Model your employer&rsquo;s 401(k) matching contribution. The employer match is <em>separate</em> from the employee contribution limit &mdash; your own salary deferrals are capped at $23,500 (2025), but employer contributions can push the combined total up to the IRC &sect;415(c) annual addition limit of $70,000 (2025). All limits are inflation-indexed in projections.</p>
+    <ul>
+      <li><strong>Match Formula:</strong> Choose from common formulas (50% of first 6%, 100% of first 3/4/6%, dollar-for-dollar) or enter a custom match rate and salary cap percentage.</li>
+      <li><strong>Vesting Schedule:</strong> <em>Immediate</em> (100% vested from day one), <em>Cliff</em> (0% until a set number of years, then 100%), or <em>Graded</em> (vests linearly over a number of years, e.g., 20%/yr over 5 years).</li>
+    </ul>
+    <p>Employer match contributions are added directly to your pre-tax (401k) account balance each year you are employed. They appear in the projection table as a separate &ldquo;Emp Match&rdquo; column and are included in the dashboard Plan Summary. Both primary and spouse employer match can be configured independently.</p>
+    <div class="tip"><strong>Tip:</strong> Contributing at least enough to capture your full employer match is often called &ldquo;free money.&rdquo; If your employer matches 50% of the first 6% of salary, you need to contribute at least 6% to get the full match.</div>
   </div>
 
   <!-- 7 -->
