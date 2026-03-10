@@ -662,6 +662,14 @@ const STATE_TAXES = {
     brackets:[{min:0,max:10000,rate:0.04},{min:10000,max:40000,rate:0.06},{min:40000,max:60000,rate:0.065},{min:60000,max:350000,rate:0.085},{min:350000,max:1000000,rate:0.0925},{min:1000000,max:Infinity,rate:0.1075}],
     singleBrackets:null, stdDed:0, stdDedSingle:0, ssExempt:true, ssExemptAge:0, ssExemptIncomeLimit:0, retirementExclusion:0, retirementExclusionAge:0, cgAsOrdinary:true, notes:'DC Office of Tax and Revenue.' },
 };
+
+const ESTATE_TAX_STATES = {
+  'WA': 2193000, 'OR': 1000000, 'MA': 2000000, 'MN': 3000000,
+  'IL': 4000000, 'MD': 5000000, 'VT': 5000000, 'CT': 13610000,
+  'HI': 5490000, 'ME': 6800000, 'NY': 6940000, 'RI': 1774583,
+  'DC': 4571981
+};
+
 function calcStateTax(ctx, stateCode) {
   // ctx = { ordinaryInc, capGains, ss, ssTaxable, pensionTaxable,
   //         taxableWd, earned, other, stdDed, isSingle, age }
@@ -6205,6 +6213,14 @@ function renderInputs() {
     const pct = lg.targetAmount > 0 ? Math.min(100, Math.round(Math.max(0, final) / lg.targetAmount * 100)) : 0;
     const surplus = final - (lg.targetAmount || 0);
     const barColor = pct >= 100 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444';
+
+    const estateThreshold = ESTATE_TAX_STATES[p.stateCode] ?? null;
+    const endNetWorth = proj[proj.length - 1].netWorth;
+    const showEstateTaxWarning = estateThreshold !== null && endNetWorth > estateThreshold;
+    if (showEstateTaxWarning) {
+      const stName = STATE_TAXES[p.stateCode]?.name || p.stateCode;
+      content += `<div style="margin-bottom:14px;padding:10px 14px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:8px;font-size:12px;color:var(--amber);line-height:1.6">&#9888; <strong>Estate Tax Notice:</strong> Your projected estate (~${fmtK(endNetWorth)}) may exceed <strong>${stName}'s estate tax threshold</strong> (~${fmtK(estateThreshold)}). This tool models income taxes on inherited accounts but does <em>not</em> model estate taxes. Consider consulting an estate attorney. As a rough placeholder, you can add a one-time expense at your longevity date.</div>`;
+    }
 
     content += `<div class="card" data-accent="green"><div class="card-title">Legacy Planning</div>
       <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
