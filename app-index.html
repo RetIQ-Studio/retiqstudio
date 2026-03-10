@@ -397,7 +397,6 @@ button:hover { opacity: 0.88; }
   <div class="header-top">
     <div class="header-left">
       <span class="logo-text">RetIQ</span>
-      <span class="logo-badge">v4.0</span>
       <span id="regsBadge" class="logo-badge" style="opacity:0.7" title="Regulatory data year">2025</span>
       <div class="mode-toggle" id="modeToggle"></div>
     </div>
@@ -6929,7 +6928,7 @@ function render() {
     case 'scenarios': html = renderScenarios(proj); break;
     case 'validation': html = renderValidation(); break;
   }
-  html += '<div class="footer">RetIQ v4.0 &#183; All data local &#183; Not financial advice &#183; <a href="mailto:support@retirementiq.app" style="color:inherit;opacity:0.6;text-decoration:none">support@retirementiq.app</a></div>';
+  html += '<div class="footer">RetIQ &#183; All data local &#183; Not financial advice &#183; <a href="mailto:support@retirementiq.app" style="color:inherit;opacity:0.6;text-decoration:none">support@retirementiq.app</a></div>';
   document.getElementById('app').innerHTML = html;
   renderDollarToggle();
   updateHeaderHeight();
