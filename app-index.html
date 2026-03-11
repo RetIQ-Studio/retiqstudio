@@ -3711,7 +3711,7 @@ function computePlanHealth(proj) {
   // Count issues for verdict
   const issueCount = topLevers.filter(l => l.color !== 'var(--green)' && l.color !== 'var(--blue)').length;
   if (issueCount > 0 && grade === 'strong') {
-    verdictText += ` You have <strong>${issueCount}</strong> area${issueCount > 1 ? 's' : ''} worth understanding.`;
+    verdictText += ` See the highest-impact areas below for details.`;
   }
 
   return { grade, verdictText, verdictColor, verdictIcon, levers: topLevers, bust, final, totalTax, totalIRMAA, totalRMD, peakRMD };
@@ -4602,6 +4602,8 @@ function renderDashboard(proj) {
       })()}
     </div>
 
+    ${leversHtml}
+
     <div class="card max-spend-card" style="padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:14px">&#128200;</span>
@@ -4627,8 +4629,6 @@ function renderDashboard(proj) {
     </div>
 
     ${renderThisYear(proj, p, bust)}
-
-    ${leversHtml}
 
     <div class="grid-2">
       <div class="card" data-accent="blue">${buildChart(proj, nwKeys, nwColors, nwLabels, { title:'Net Worth Over Time', stacked: nwKeys.length > 1, height:180 })}</div>
