@@ -2271,7 +2271,7 @@ const fmtK = (n, yr) => {
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
 
 let state = {
-  tab: 'dashboard', inputTab: 'personal', projChartKeys: ['netWorth'], projShowTable: false, mcResults: null, scenario: null, rothOptResults: null, scenarioChartKeys: ['netWorth'], thisYearCollapsed: false, bearMarket: { equityPct: 70, crashPct: 30, onsetYr: 1, durationYrs: 3, active: false },
+  tab: 'dashboard', inputTab: 'personal', projChartKeys: ['netWorth'], projShowTable: false, mcResults: null, scenario: null, rothOptResults: null, scenarioChartKeys: ['netWorth'], thisYearCollapsed: false, bearMarket: { equityPct: 70, crashPct: 30, onsetYr: 1, durationYrs: 3, active: false }, hcInflation: null,
   optScoreMode: 'balanced',
   reportGoal: 'netWorth',
   mcConfig: { numSims: 500, returnStdDev: 6, inflationStdDev: 1.5, model: 'normal', confidenceThreshold: 90 },
@@ -5671,6 +5671,61 @@ function renderInputs() {
         </div>
       ` : ''}
     </div>`;
+
+    // -- Pre-Medicare Bridge Cost Summary --
+    if (hc.enabled && yearsGap > 0) {
+      const bridgeProj = runProjection(p);
+      const bridgeYears = bridgeProj.filter(y => y.healthcare > 0 && y.age < effectiveMedAge && y.age >= retAge);
+      const totalGrossCost = bridgeYears.reduce((s, y) => s + (y.healthcare || 0) + (y.acaSubsidy || 0), 0);
+      const totalSubsidy = bridgeYears.reduce((s, y) => s + (y.acaSubsidy || 0), 0);
+      const totalNetCost = bridgeYears.reduce((s, y) => s + (y.healthcare || 0), 0);
+      const avgAnnual = bridgeYears.length > 0 ? Math.round(totalNetCost / bridgeYears.length) : 0;
+      const showFPL = bridgeYears.some(y => y.acaFPLPercent > 0);
+      const srcLabel = { aca: 'ACA Marketplace', cobra: 'COBRA', spouse_plan: 'Spouse Plan', va: 'VA', private: 'Private/Mkt' };
+
+      // Retire-earlier comparison
+      const earlierAge = Math.max(p.currentAge + 1, retAge - 3);
+      let earlierHtml = '';
+      if (earlierAge < retAge) {
+        const earlierProj = runProjection({...p, retirementAge: earlierAge});
+        const earlierBridge = earlierProj.filter(y => y.healthcare > 0 && y.age < effectiveMedAge && y.age >= earlierAge);
+        const earlierTotal = earlierBridge.reduce((s, y) => s + (y.healthcare || 0), 0);
+        const extraCost = earlierTotal - totalNetCost;
+        earlierHtml = `<div style="font-size:12px;color:var(--text-dim);margin-top:12px;line-height:1.6">
+          Retiring 3 years earlier (at age ${earlierAge}) would ${extraCost >= 0 ? 'add' : 'save'} <strong style="color:${extraCost >= 0 ? 'var(--amber)' : 'var(--green)'}">${fmt(Math.abs(Math.round(extraCost)))}</strong> in pre-Medicare healthcare costs
+          (${bridgeYears.length} &rarr; ${earlierBridge.length} gap years).
+        </div>`;
+      }
+
+      const bridgeRows = bridgeYears.map((y, i) => `<tr style="background:${i % 2 ? 'var(--bg-base)' : 'var(--bg-card)'}">
+        <td style="padding:4px 8px">${y.age}</td><td style="padding:4px 8px">${y.year}</td>
+        <td style="padding:4px 8px">${srcLabel[y.healthcareSource] || y.healthcareSource || 'N/A'}</td>
+        <td style="padding:4px 8px;text-align:right">${fmt(Math.round((y.healthcare || 0) + (y.acaSubsidy || 0)))}</td>
+        <td style="padding:4px 8px;text-align:right;color:var(--green)">${y.acaSubsidy > 0 ? fmt(Math.round(y.acaSubsidy)) : '\u2014'}</td>
+        <td style="padding:4px 8px;text-align:right;font-weight:600">${fmt(Math.round(y.healthcare || 0))}</td>
+        ${showFPL ? `<td style="padding:4px 8px;text-align:right">${y.acaFPLPercent > 0 ? Math.round(y.acaFPLPercent) + '%' : '\u2014'}</td>` : ''}
+      </tr>`).join('');
+
+      content += `
+    <div class="card" data-accent="pink"><div class="card-title">Pre-Medicare Coverage Cost Summary</div>
+      <div class="stats-row" style="justify-content:center;margin-bottom:14px">
+        <div class="stat"><div class="stat-label">Gap Length</div><div class="stat-value" style="color:var(--cyan)">${bridgeYears.length} yr${bridgeYears.length !== 1 ? 's' : ''}</div><div class="stat-sub">Age ${retAge}\u2013${effectiveMedAge}</div></div>
+        <div class="stat"><div class="stat-label">Total Net Cost</div><div class="stat-value" style="color:var(--amber)">${fmtK(totalNetCost)}</div><div class="stat-sub">After subsidies</div></div>
+        <div class="stat"><div class="stat-label">Avg Per Year</div><div class="stat-value" style="color:var(--text)">${fmtK(avgAnnual)}</div></div>
+        ${totalSubsidy > 0 ? `<div class="stat"><div class="stat-label">Total Subsidies</div><div class="stat-value" style="color:var(--green)">${fmtK(totalSubsidy)}</div></div>` : ''}
+      </div>
+      <div style="overflow-x:auto"><table class="proj-table" style="font-size:12px">
+        <thead><tr>
+          <th style="padding:4px 8px">Age</th><th style="padding:4px 8px">Year</th><th style="padding:4px 8px">Source</th>
+          <th style="padding:4px 8px;text-align:right">Gross</th><th style="padding:4px 8px;text-align:right">Subsidy</th>
+          <th style="padding:4px 8px;text-align:right">Your Cost</th>
+          ${showFPL ? '<th style="padding:4px 8px;text-align:right">FPL %</th>' : ''}
+        </tr></thead>
+        <tbody>${bridgeRows}</tbody>
+      </table></div>
+      ${earlierHtml}
+    </div>`;
+    }
   }
 
   if (state.inputTab === 'rothconv') {
@@ -7078,7 +7133,7 @@ function renderScenarios(proj) {
   }).join(' ');
 
   let cmp = '';
-  if (state.scenario !== null && state.scenario !== 'survivor' && state.scenario !== 'bear') {
+  if (state.scenario !== null && state.scenario !== 'survivor' && state.scenario !== 'bear' && state.scenario !== 'hcInflation') {
     const sc = scenarios[state.scenario];
     const sp = runProjection({...p,...sc.o});
     const sf = sp[sp.length-1].netWorth, diff = sf - final;
@@ -7220,6 +7275,76 @@ function renderScenarios(proj) {
     </div>`;
   }
 
+  // -- Healthcare Inflation Stress Test --
+  const hc = p.preMedicareHealthcare || {};
+  const hcBaseInf = hc.inflation || 5;
+  if (state.hcInflation === null || state.hcInflation === undefined) state.hcInflation = Math.max(hcBaseInf + 2, 7);
+  const isHcActive = state.scenario === 'hcInflation';
+
+  let hcInflSection = `
+  <div class="card" data-accent="pink"><div class="card-title">Healthcare Inflation Stress Test</div>
+    <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
+      Medical costs have historically inflated at 4\u20137% annually. Your current plan uses <strong>${hcBaseInf}%</strong> for the pre-Medicare gap.
+      This stress test shows the full-plan impact of higher healthcare inflation.
+    </div>`;
+
+  if (!hc.enabled) {
+    hcInflSection += `<div style="font-size:13px;color:var(--text-dim);padding:8px 0">
+      Enable Pre-Medicare Healthcare coverage in the Healthcare tab to model this scenario.
+    </div>`;
+  } else {
+    hcInflSection += `
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+      <div class="field" style="flex:0 0 auto;margin:0"><label class="field-label">HC Inflation</label><div class="field-wrap">
+        <input type="number" class="field-input has-suffix" value="${state.hcInflation}" style="width:60px" onchange="state.hcInflation=Number(this.value);render()">
+        <span class="field-suffix">%</span></div></div>
+      <div style="display:flex;gap:4px">
+        ${[6,8,10].map(v => `<button class="tab${state.hcInflation===v?' active':''}" onclick="state.hcInflation=${v};render()" style="font-size:11px;padding:3px 8px">${v}%</button>`).join('')}
+      </div>
+    </div>
+    <button class="mc-btn" onclick="state.scenario=${isHcActive?"null":"'hcInflation'"};render()" style="background:${isHcActive?'var(--green)':'linear-gradient(135deg,#ec4899,#f43f5e)'};margin-bottom:12px">
+      ${isHcActive ? '\u2713 Showing Healthcare Inflation Scenario' : 'Run Healthcare Inflation Stress Test'}
+    </button>`;
+  }
+
+  if (isHcActive && hc.enabled) {
+    const hcInflProj = runProjection({
+      ...p,
+      preMedicareHealthcare: { ...hc, inflation: state.hcInflation || 8 }
+    });
+    const hcInflFinal = hcInflProj[hcInflProj.length-1].netWorth;
+    const hcInflDiff = hcInflFinal - final;
+    const hcInflBust = hcInflProj.find(y => y.netWorth <= 0)?.age;
+    const baseHCTotal = proj.reduce((s,y) => s + (y.healthcare || 0), 0);
+    const stressHCTotal = hcInflProj.reduce((s,y) => s + (y.healthcare || 0), 0);
+    const hcDelta = stressHCTotal - baseHCTotal;
+    // Count gap years
+    const retAge = Math.ceil(p.retirementAge);
+    const ssdi1 = p.ssdiPrimary || {};
+    const eMedAge = ssdi1.enabled ? Math.min((ssdi1.startAge || 0) + 2, 65) : 65;
+    const gapN = Math.max(0, eMedAge - retAge);
+
+    const chartData = proj.map((b,i) => ({ age: b.age, year: b.year, retired: b.retired, base: b.netWorth, stress: hcInflProj[i]?.netWorth || 0 }));
+
+    hcInflSection += `
+    <div class="stats-row" style="justify-content:center;margin-bottom:12px">
+      <div class="stat"><div class="stat-label">Base Final NW</div><div class="stat-value" style="color:var(--cyan)">${fmtK(final)}</div></div>
+      <div class="stat"><div class="stat-label">High HC Infl Final</div><div class="stat-value" style="color:${hcInflFinal > 0 ? 'var(--amber)' : 'var(--red)'}">${fmtK(hcInflFinal)}</div></div>
+      <div class="stat"><div class="stat-label">Difference</div><div class="stat-value" style="color:${hcInflDiff >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtK(hcInflDiff)}</div></div>
+      <div class="stat"><div class="stat-label">HC Cost \u0394</div><div class="stat-value" style="color:var(--amber)">${fmtK(hcDelta)}</div><div class="stat-sub">Extra HC cost</div></div>
+    </div>
+    <div class="card">${buildChart(chartData, ['base','stress'], ['#06b6d4','#ec4899'], ['Base','HC Inflation ' + state.hcInflation + '%'], {title:'Net Worth: Base vs HC Inflation ' + state.hcInflation + '%', height:160})}</div>
+    <div style="font-size:12px;color:var(--text-dim);margin-top:10px;line-height:1.6;padding:8px 12px;background:var(--bg-base);border-radius:6px;border:1px solid var(--border)">
+      At <strong>${state.hcInflation}%</strong> healthcare inflation (vs your current <strong>${hcBaseInf}%</strong>), pre-Medicare coverage costs rise from
+      <strong>${fmtK(baseHCTotal)}</strong> to <strong>${fmtK(stressHCTotal)}</strong> \u2014 <strong style="color:var(--amber)">${fmtK(hcDelta)}</strong> more over the ${gapN}-year gap.
+      ${hcInflBust
+        ? ` <strong style="color:var(--red)">This causes your portfolio to deplete at age ${hcInflBust}.</strong>`
+        : ` Your plan survives but ends with <strong style="color:${hcInflDiff >= 0 ? 'var(--green)' : 'var(--amber)'}">${fmtK(Math.abs(hcInflDiff))}</strong> ${hcInflDiff >= 0 ? 'more' : 'less'} at age ${p.endAge}.`}
+    </div>`;
+  }
+
+  hcInflSection += `</div>`;
+
   // -- Survivor Scenario --
   const svWho = state.survivorWho || 'spouse';
   const svAge = state.survivorAge || (p.retirementAge + 5);
@@ -7303,7 +7428,7 @@ function renderScenarios(proj) {
   return `<div class="card" data-accent="amber"><div class="card-title">Scenario Comparison</div>
     <div style="font-size:13px;color:var(--text-dim);margin-bottom:16px">Compare your base plan against different assumptions.</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">${btns}</div>
-  </div>` + cmp + bearSection + survivorSection;
+  </div>` + cmp + bearSection + hcInflSection + survivorSection;
 }
 
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
