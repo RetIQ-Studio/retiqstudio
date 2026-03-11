@@ -64,6 +64,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <div class="toc-title">Contents</div>
     <ol>
       <li><a href="#quickstart">Quick Start</a></li>
+      <li><a href="#examples">Example Plans</a></li>
       <li><a href="#navigation">Navigation &amp; Layout</a></li>
       <li><a href="#personal">Personal Tab</a></li>
       <li><a href="#income">Income Tab</a></li>
@@ -107,8 +108,33 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
   </div>
 
   <!-- 2 -->
+  <div class="sec" id="examples">
+    <h2>2. Example Plans</h2>
+    <p>RetIQ includes three pre-built example families that demonstrate different retirement planning scenarios. Use them to learn how the tool works, explore specific features, or see how different situations affect outcomes. Examples are available to Pro users from the overflow menu (&hellip;) in the header.</p>
+
+    <h3>The Clarks &mdash; The Cost of Simplicity</h3>
+    <p>A 64-year-old couple in Florida retiring at 65. Simple scenario with modest savings, no pension, no debts, and Social Security as the primary income source. Opens in <strong>Simple mode</strong>. Use this example to see the baseline: what happens when you rely primarily on Social Security and a moderate portfolio with minimal complexity.</p>
+
+    <h3>The Lees &mdash; The Optimization Gap</h3>
+    <p>A 59-year-old dual-income couple in Virginia with a 6-year runway before retirement. Includes pre-tax, Roth, brokerage, cash, and HSA accounts with family-level HSA contributions. Opens in <strong>Simple mode</strong>. This example highlights the Roth conversion window, HSA triple-tax advantage, and Social Security timing decisions that can make a six-figure difference over a 30-year retirement.</p>
+
+    <h3>The Washingtons &mdash; The Complexity You Didn&rsquo;t Know You Had</h3>
+    <p>A 63-year-old couple in Massachusetts with a pension, long-term care planning, legacy goals, mortgage, and a large portfolio that triggers estate tax considerations. Opens in <strong>Full mode</strong>. This example shows how advanced features interact: pension survivor benefits, estate tax warnings (MA has a $2M threshold), LTC insurance coverage gaps, debt payoff timing, and how all of these affect the optimal Roth conversion and Social Security strategy.</p>
+
+    <h3>How to Use Examples</h3>
+    <ul>
+      <li>Open the overflow menu (&hellip;) in the header and select an example family.</li>
+      <li>A confirmation dialog warns that the example will replace your current plan. Export your plan first using Save (&darr;) if you want to keep it.</li>
+      <li>A dashboard banner shows which example is active so you always know you&rsquo;re viewing sample data, not your own plan.</li>
+      <li>Examples set the UI mode automatically &mdash; Clarks and Lees open in Simple, Washingtons opens in Full.</li>
+      <li>To return to the default demo plan, click &ldquo;Reset to Demo&rdquo; on the dashboard banner or select &ldquo;Reset to Demo&rdquo; from the overflow menu.</li>
+    </ul>
+    <div class="tip"><strong>Tip:</strong> After loading an example, try running the Strategy Report Card and Monte Carlo to see how each family&rsquo;s plan holds up. Then experiment with changes &mdash; adjust the Clarks&rsquo; SS claiming age, run a Roth optimization for the Lees, or toggle the Washingtons&rsquo; LTC insurance off to see the impact.</div>
+  </div>
+
+  <!-- 3 -->
   <div class="sec" id="navigation">
-    <h2>2. Navigation &amp; Layout</h2>
+    <h2>3. Navigation &amp; Layout</h2>
     <p>The header has two sections:</p>
     <p><strong>Top bar:</strong> Contains the logo, plan badge, mode toggle, action buttons (Save, Load, Theme), an overflow menu (&hellip;) with links and sharing, and the Upgrade button.</p>
     <p><strong>Underline nav:</strong> Switches between major views &mdash; Dashboard, Inputs, Projection, Monte Carlo, Scenarios, and Validation. The active tab is highlighted with a blue underline.</p>
@@ -119,7 +145,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <li><strong>Today's $ / Future $</strong> toggle &mdash; switches all dollar values between inflation-adjusted and nominal (located in the Projection tab).</li>
       <li>Theme toggle (moon/sun icon).</li>
       <li>Save/Load icon buttons for data portability.</li>
-      <li>Overflow menu (&hellip;) with links to Features, Manual, Security, and sharing.</li>
+      <li>Overflow menu (&hellip;) with links to Features, Manual, Security, sharing, and <a href="#examples">example plans</a>.</li>
     </ul>
 
     <h3>Simple vs. Full Mode</h3>
@@ -130,9 +156,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <div class="tip"><strong>Tip:</strong> A blue info bar appears in Simple mode when advanced features are active in the background, showing how many and offering a quick switch to Full.</div>
   </div>
 
-  <!-- 3 -->
+  <!-- 4 -->
   <div class="sec" id="personal">
-    <h2>3. Personal Tab</h2>
+    <h2>4. Personal Tab</h2>
     <p>Core demographic inputs that drive the entire projection.</p>
     <table>
       <tr><th>Field</th><th>Description</th></tr>
@@ -148,9 +174,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>When spouse is enabled, you can set "Your Death Age" and "Spouse Death Age" to model what happens when one spouse passes. Expenses adjust by the survivor ratio, filing status changes, survivor SS benefits kick in, and life insurance death benefits (if configured in the Legacy tab) deposit tax-free into the survivor's portfolio.</p>
   </div>
 
-  <!-- 4 -->
+  <!-- 5 -->
   <div class="sec" id="income">
-    <h2>4. Income Tab</h2>
+    <h2>5. Income Tab</h2>
     <table>
       <tr><th>Field</th><th>Description</th></tr>
       <tr><td>Annual Gross Income</td><td>Your current pre-tax annual income. Grows by the income growth rate until retirement.</td></tr>
@@ -177,9 +203,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <div class="tip"><strong>Example &mdash; Rental Property:</strong> Selling a $400K rental at age 75 with 87% net and $150K basis. Net proceeds: $348K with $198K in taxable capital gains (no Section 121 exclusion for investment property).</div>
   </div>
 
-  <!-- 5 -->
+  <!-- 6 -->
   <div class="sec" id="expenses">
-    <h2>5. Expenses Tab</h2>
+    <h2>6. Expenses Tab</h2>
     <p>RetIQ models expenses in two distinct phases: working years and retirement.</p>
 
     <p><strong>Pre-Retirement Expenses:</strong> Your annual living costs during working years &mdash; housing, food, transportation, childcare, insurance, and discretionary spending. These are deducted from your after-tax income alongside savings contributions and taxes. If your income can't cover expenses + savings + taxes, the shortfall is drawn from cash and brokerage accounts. A real-time cash flow breakdown shows your surplus or shortfall.</p>
@@ -207,9 +233,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <div class="tip"><strong>Tip:</strong> One-time expenses are not inflation-adjusted. If the cost is several years away, consider entering the future nominal amount rather than today's dollars.</div>
   </div>
 
-  <!-- 6 -->
+  <!-- 7 -->
   <div class="sec" id="accounts">
-    <h2>6. Accounts Tab</h2>
+    <h2>7. Accounts Tab</h2>
     <p>Add each investment account with:</p>
     <ul>
       <li><strong>Name:</strong> Label for identification (e.g., "Vanguard 401k", "Fidelity Roth").</li>
@@ -233,9 +259,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <div class="tip"><strong>Tip:</strong> Contributing at least enough to capture your full employer match is often called &ldquo;free money.&rdquo; If your employer matches 50% of the first 6% of salary, you need to contribute at least 6% to get the full match.</div>
   </div>
 
-  <!-- 7 -->
+  <!-- 8 -->
   <div class="sec" id="pension">
-    <h2>7. Pension Tab</h2>
+    <h2>8. Pension Tab</h2>
     <p>Model guaranteed income streams for either or both spouses:</p>
     <ul>
       <li><strong>Enable:</strong> Check to activate.</li>
@@ -262,9 +288,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <div class="tip"><strong>Plan Health:</strong> If a pension is set to Single Life and you have a spouse, Plan Health will flag the survivor risk and suggest reviewing Joint &amp; Survivor options.</div>
   </div>
 
-  <!-- 8 -->
+  <!-- 9 -->
   <div class="sec" id="ss">
-    <h2>8. Social Security Tab</h2>
+    <h2>9. Social Security Tab</h2>
     <h3>Claim Age</h3>
     <p>Set the age you plan to start collecting SS (62-70). Earlier means smaller monthly checks; later means larger. The comparison table below shows monthly and annual amounts at each claiming age, the percentage of FRA benefit, and the breakeven age vs. claiming at 62.</p>
     <h3>Benefit Estimation</h3>
@@ -288,9 +314,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>RetIQ matches SSA calculations exactly: FRA is computed in integer months per birth year, early reduction uses the exact 5/9% (first 36 months) and 5/12% (beyond 36 months) rates, delayed credits use the exact 2/3% per month rate, and the final benefit is rounded down to the whole dollar per SSA rules.</p>
   </div>
 
-  <!-- 9 -->
+  <!-- 10 -->
   <div class="sec" id="ssdi">
-    <h2>9. Disability (SSDI) Tab</h2>
+    <h2>10. Disability (SSDI) Tab</h2>
     <p>Social Security Disability Insurance replaces a portion of your income if you become unable to work due to a qualifying disability. RetIQ models SSDI for either or both spouses, including its downstream effects on Medicare eligibility, Social Security transitions, taxes, and survivor benefits.</p>
 
     <h3>Setting Up SSDI</h3>
@@ -336,9 +362,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <div class="tip"><strong>Where to find your SSDI amount:</strong> Your benefit letter from SSA states your monthly disability amount. If you haven't applied yet, log in to <a href="https://www.ssa.gov/myaccount/" target="_blank" rel="noopener">my Social Security</a> and check the disability estimate on your statement. This is an estimate based on your current earnings record.</div>
   </div>
 
-  <!-- 10 -->
+  <!-- 11 -->
   <div class="sec" id="healthcare">
-    <h2>10. Healthcare Tab</h2>
+    <h2>11. Healthcare Tab</h2>
     <p>If you retire before Medicare eligibility, you need to bridge the healthcare gap. RetIQ lets you choose from six coverage sources, each with its own cost defaults and engine behavior:</p>
 
     <h3>Coverage Sources</h3>
@@ -401,9 +427,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <div class="tip"><strong>2025 LTC cost benchmarks:</strong> Nursing home: $110&ndash;130K/year. Assisted living: $70&ndash;75K/year. Home health aide: $75&ndash;80K/year (national medians). LTC costs inflate at roughly 5% annually.</div>
   </div>
 
-  <!-- 11 -->
+  <!-- 12 -->
   <div class="sec" id="medicare">
-    <h2>11. Medicare Tab</h2>
+    <h2>12. Medicare Tab</h2>
     <p>Medicare modeling begins at age 65 for most people, or earlier if SSDI triggers the 24-month early eligibility rule (see <a href="#ssdi">Disability (SSDI) Tab</a>). Key components:</p>
     <ul>
       <li><strong>Base Part B premium:</strong> $185/month (2025).</li>
@@ -414,9 +440,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <div class="warn"><strong>Note:</strong> Roth conversions increase your MAGI and can push you into higher IRMAA brackets. The Roth Conversion Optimizer accounts for this when scoring strategies.</div>
   </div>
 
-  <!-- 12 -->
+  <!-- 13 -->
   <div class="sec" id="rothconv">
-    <h2>12. Roth Conversion Tab</h2>
+    <h2>13. Roth Conversion Tab</h2>
     <p>This tab has two sections that work together: the <strong>Strategy</strong> (your active plan) and the <strong>Optimizer</strong> (a research tool). Understanding the relationship between them is key.</p>
 
     <h3>Roth Conversion Strategy (your active plan)</h3>
@@ -451,9 +477,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <div class="tip"><strong>Typical workflow:</strong> (1) Set a reasonable starting strategy (e.g., Fill 22%, ages 65&ndash;72). (2) Review the Impact Analysis. (3) Run the Optimizer to see if there&rsquo;s something better. (4) Apply a result or adjust manually. (5) Check the Dashboard and Monte Carlo to confirm the strategy works across scenarios. Note: the optimizer tests fixed-amount, fill-bracket, and Smart Fill strategies. For Target MAGI, % of Balance, or Custom Schedule, configure those manually.</div>
   </div>
 
-  <!-- 13 -->
+  <!-- 14 -->
   <div class="sec" id="charity">
-    <h2>13. Charity / QCD Tab</h2>
+    <h2>14. Charity / QCD Tab</h2>
     <ul>
       <li><strong>Annual Charitable Giving:</strong> Total planned charitable donations per year.</li>
       <li><strong>Use QCD:</strong> Enable Qualified Charitable Distributions from IRAs. QCDs satisfy RMDs without being included in taxable income. 2025 limit: $108,000/year.</li>
@@ -461,9 +487,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>If QCD is enabled, charitable giving is sourced from RMD amounts first, reducing taxable income. Any giving beyond RMDs is treated as a standard charitable deduction.</p>
   </div>
 
-  <!-- 14 -->
+  <!-- 15 -->
   <div class="sec" id="legacy">
-    <h2>14. Legacy Tab</h2>
+    <h2>15. Legacy Tab</h2>
     <p>Set a target inheritance amount (today's dollars). The dashboard and projection track whether your plan achieves this goal at end-of-plan. The legacy target is inflation-adjusted in projections.</p>
 
     <h3>Legacy Composition Breakdown</h3>
@@ -486,9 +512,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>When life insurance policies are configured (see <a href="#lifeinsurance">Life Insurance</a> below), death benefits received during the projection increase the taxable account balance. The composition breakdown annotates this with the total insurance contribution. Since death benefits are tax-free, they improve the after-tax legacy without adding to the pre-tax burden on heirs.</p>
   </div>
 
-  <!-- 14.5 -->
+  <!-- 17 -->
   <div class="sec" id="lifeinsurance">
-    <h2>Life Insurance</h2>
+    <h2>16. Life Insurance</h2>
     <p>Life insurance policies are configured in the Legacy tab (Full mode). Click "+ Add Life Insurance Policy" to add a new policy. Each policy has:</p>
     <ul>
       <li><strong>Insured Person:</strong> You or your spouse. Determines when premiums stop and benefits trigger.</li>
@@ -513,9 +539,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     </ul>
   </div>
 
-  <!-- 15 -->
+  <!-- 17 -->
   <div class="sec" id="liabilities">
-    <h2>15. Liabilities Tab</h2>
+    <h2>17. Liabilities Tab</h2>
     <p>Track debts that affect your annual expenses:</p>
     <ul>
       <li><strong>Name:</strong> Label (e.g., "Mortgage", "Car Loan").</li>
@@ -526,9 +552,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>The annual total of all debt payments is shown and factored into the projection. After payoff, the expense disappears from the projection.</p>
   </div>
 
-  <!-- 16 -->
+  <!-- 18 -->
   <div class="sec" id="assumptions">
-    <h2>16. Assumptions Tab</h2>
+    <h2>18. Assumptions Tab</h2>
     <table>
       <tr><th>Field</th><th>Description</th><th>Typical</th></tr>
       <tr><td>Nominal Return</td><td>Expected average annual investment return before inflation</td><td>6-8%</td></tr>
@@ -551,9 +577,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <div class="tip"><strong>Tip:</strong> Drawing Cash/HYS first preserves tax-advantaged growth in Roth and pre-tax accounts. Experiment with different orders to see the tax impact in the Projection table.</div>
   </div>
 
-  <!-- 17 -->
+  <!-- 19 -->
   <div class="sec" id="dashboard">
-    <h2>17. Dashboard</h2>
+    <h2>19. Dashboard</h2>
     <p>The dashboard provides a high-level summary of your plan:</p>
     <ul>
       <li><strong>Key metrics:</strong> Final net worth, peak net worth, retire age, years funded, RMD start age, IRMAA surcharges, and legacy goal tracking (with dominant account type hint).</li>
@@ -609,9 +635,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>The dashboard updates instantly when any input changes.</p>
   </div>
 
-  <!-- 18 -->
+  <!-- 20 -->
   <div class="sec" id="projection">
-    <h2>18. Projection Table</h2>
+    <h2>20. Projection Table</h2>
     <p>The year-by-year projection table is the core output. Each row is one year of your plan. Columns include:</p>
     <p>Age, Year, Earned Income, Social Security, SS W/H (earnings test withholding), SSDI, Pension, Healthcare, Expenses, Federal Tax, State Tax, Withdrawals, RMD, QCD, Charity, Roth Conversion, IRMAA, Medicare, Pre-Tax Balance, Roth Balance, Cash/HYS Balance, Brokerage Balance, and Net Worth. Columns with all-zero values are hidden automatically.</p>
     <p>The header row is sticky so column labels remain visible while scrolling. A totals row at the bottom sums lifetime values. The table scrolls both horizontally and vertically.</p>
@@ -619,9 +645,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <div class="tip"><strong>Tip:</strong> Use the CSV Export button (in the Projection view) to download the table for analysis in Excel or Google Sheets.</div>
   </div>
 
-  <!-- 19 -->
+  <!-- 21 -->
   <div class="sec" id="montecarlo">
-    <h2>19. Monte Carlo Simulation</h2>
+    <h2>21. Monte Carlo Simulation</h2>
     <p>The Monte Carlo engine runs randomized projections to estimate the probability your money lasts through your plan. Choose from three simulation models, each offering a different perspective on your plan&rsquo;s resilience.</p>
     <h3>Simulation Models</h3>
     <ul>
@@ -645,9 +671,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <div class="warn"><strong>Interpretation:</strong> A 90%+ success rate is generally considered strong. Below 80% suggests your plan may need adjustment. Historical and Stress Test models are inherently more demanding than Normal &mdash; a lower success rate in these models is expected and informative, not necessarily alarming.</div>
   </div>
 
-  <!-- 20 -->
+  <!-- 22 -->
   <div class="sec" id="scenarios">
-    <h2>20. Scenario Comparison</h2>
+    <h2>22. Scenario Comparison</h2>
     <p>Test how changes to key assumptions affect your plan. RetIQ includes 10 named scenarios:</p>
     <p><strong>Retirement age:</strong> Retire at 60, Retire at 62, Retire at 67, Retire at 70.</p>
     <p><strong>Expenses &amp; returns:</strong> Higher ret. expenses (+20%), High inflation (5%), Stagflation (5% return, 5% inflation), +20% Exp + High Inflation.</p>
@@ -666,23 +692,23 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <div class="tip"><strong>Pro tip:</strong> Combine the bear market stress test with conservative assumptions (e.g., run a named scenario like Stagflation first, then apply a bear market shock) to see how your plan handles multiple headwinds simultaneously.</div>
   </div>
 
-  <!-- 21 -->
+  <!-- 23 -->
   <div class="sec" id="saveload">
-    <h2>21. Save &amp; Load</h2>
+    <h2>23. Save &amp; Load</h2>
     <h3>Auto-Save</h3>
     <p>RetIQ automatically saves your plan to the browser's local storage after every change. If you close and reopen the app, your data is still there.</p>
     <h3>HTML Snapshot</h3>
     <p>Click "HTML" in the header to export a self-contained HTML file of your entire plan. This file includes all inputs, charts, and projections and can be opened in any browser without the app. Great for archiving, printing, or sharing with an advisor.</p>
     <h3>Load</h3>
-    <p>Click "Load" to import a previously saved JSON or HTML snapshot file. This replaces your current plan data.</p>
+    <p>Click "Load" to import a previously saved JSON or HTML snapshot file. This replaces your current plan data. After loading, a dashboard banner shows the filename and date of the imported file so you always know which snapshot you&rsquo;re viewing.</p>
     <h3>CSV Export</h3>
     <p>In the Projection view, use the CSV export button to download the projection table for analysis in Excel or Google Sheets.</p>
     <div class="warn"><strong>Important:</strong> Browser local storage is per-device. To transfer your plan to another device, export an HTML or JSON file and import it on the other device.</div>
   </div>
 
-  <!-- 22 -->
+  <!-- 24 -->
   <div class="sec" id="install">
-    <h2>22. Install &amp; Licensing</h2>
+    <h2>24. Install &amp; Licensing</h2>
     <h3>Installing the PWA</h3>
     <p>Click the "Install" button in the header (when available) to add RetIQ to your home screen or desktop. The installed app works offline and launches like a native application.</p>
     <h3>Free vs. Pro</h3>
@@ -695,9 +721,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>If you lose your license key, click &ldquo;Activate&rdquo; and then &ldquo;Lost your license key? Recover via email.&rdquo; Enter the email address you used at Stripe checkout and click &ldquo;Send Recovery Email.&rdquo; If a license exists for that address, RetIQ will email your key to you. For security, the same confirmation message is shown whether or not the email is on file. Recovery is rate-limited to three requests per email per hour. Your email is stored by RetIQ solely for license recovery &mdash; it is never used for marketing or shared with third parties.</p>
   </div>
 
-  <!-- 23 -->
+  <!-- 25 -->
   <div class="sec" id="validation">
-    <h2>23. Validation Report</h2>
+    <h2>25. Validation Report</h2>
     <p>RetIQ includes a built-in Validation tab that runs 261 automated tests against every calculation in the engine. Each test compares the engine's output to values derived from authoritative sources:</p>
     <ul>
       <li><strong>IRS:</strong> Rev. Proc. 2024-40 (2025 tax brackets, standard deduction, capital gains thresholds), Pub 590-B (RMD Uniform Lifetime Table), Pub 915 (SS taxation worksheets), Notice 2024-80 (QCD limits, contribution limits), IRC &sect;1411 (NIIT).</li>
@@ -713,9 +739,9 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <div class="tip"><strong>Transparency:</strong> The validation suite runs automatically before each release to ensure every calculation matches its authoritative source. You can run these same tests yourself in the <strong>Validation</strong> tab or inspect the full report at <a href="https://retirementiq.app/validation.html" style="color:var(--accent)">retirementiq.app/validation.html</a>. If you find a discrepancy, please report it — accuracy is our highest priority.</div>
   </div>
 
-  <!-- 24 -->
+  <!-- 26 -->
   <div class="sec" id="faq">
-    <h2>24. FAQ</h2>
+    <h2>26. FAQ</h2>
 
     <h3>Is my data secure?</h3>
     <p>Yes. RetIQ runs entirely in your browser. No financial data is ever sent to any server. The only network calls are for license verification (license key only) and optional PWA updates. You can verify this yourself using View Page Source or browser DevTools. For a complete audit of every network request, storage key, and privacy measure, see the <a href="https://retirementiq.app/security.html" style="color:var(--accent)">Privacy &amp; Security Transparency</a> page.</p>
@@ -760,7 +786,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Your SSDI payments stop, but your surviving spouse can claim a survivor benefit based on your Social Security work record. RetIQ calculates this from your PIA (or your SSDI amount if no separate SS income was entered). The survivor receives the higher of their own SS benefit or the survivor benefit &mdash; not both.</p>
   </div>
 
-  <div class="footer">RetIQ v4.0 &middot; retirementiq.app &middot; Not financial advice &middot; All computation runs locally in your browser</div>
+  <div class="footer">RetIQ v4.1 &middot; retirementiq.app &middot; Not financial advice &middot; All computation runs locally in your browser</div>
 </div>
 </body>
 </html>

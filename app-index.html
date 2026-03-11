@@ -2462,6 +2462,7 @@ function loadExample(key) {
   state.params = JSON.parse(JSON.stringify(ex.params));
   migrateParams();
   state.activeExample = key;
+  state.importedPlanInfo = null;
   state.tab = 'dashboard';
   state.mcResults = null;
   state.rothOptResults = null;
@@ -2473,6 +2474,7 @@ function clearExample() {
   if (!confirm('Reset to the default demo plan (The Johnsons)?')) return;
   state.params = JSON.parse(JSON.stringify(DEMO_PARAMS));
   state.activeExample = null;
+  state.importedPlanInfo = null;
   state.tab = 'dashboard';
   state.mcResults = null;
   state.rothOptResults = null;
@@ -2808,7 +2810,11 @@ function importData(evt) {
         if (jsonStr) { state.params = JSON.parse(jsonStr); }
         else { alert('Could not find saved data in this HTML file.'); return; }
       }
-      migrateParams(); saveState(); render();
+      migrateParams();
+      state.activeExample = null;
+      const fileDate = f.lastModified ? new Date(f.lastModified).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      state.importedPlanInfo = { filename: f.name, date: fileDate };
+      saveState(); render();
     } catch(err) { alert('Could not load file: ' + err.message); }
   };
   r.readAsText(f); evt.target.value = '';
@@ -4524,6 +4530,16 @@ function renderDashboard(proj) {
     ${!isPro() ? `<div style="background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(6,182,212,0.12));border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <div style="font-size:13px;color:var(--text)"><strong>&#128101; Demo Mode</strong> &mdash; Viewing the Johnson family sample plan. <span style="color:var(--text-dim)">Upgrade to enter your own data.</span></div>
       <button class="pro-gate-btn" onclick="document.getElementById('buyBtn').click()" style="font-size:11px;padding:6px 14px">Upgrade &mdash; $29 launch price</button>
+    </div>` : ''}
+
+    ${state.activeExample && exampleMeta[state.activeExample] ? `<div style="background:linear-gradient(135deg,rgba(168,85,247,0.12),rgba(236,72,153,0.12));border:1px solid rgba(168,85,247,0.3);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="font-size:13px;color:var(--text)"><strong>&#128203; Example Plan</strong> &mdash; ${exampleMeta[state.activeExample].name}: ${exampleMeta[state.activeExample].tagline} <span style="color:var(--text-dim)">This is not your personal plan.</span></div>
+      <button onclick="clearExample()" style="background:transparent;border:1px solid rgba(168,85,247,0.4);border-radius:6px;padding:4px 14px;font-size:11px;color:var(--text-dim);cursor:pointer">Reset to Demo</button>
+    </div>` : ''}
+
+    ${state.importedPlanInfo ? `<div style="background:linear-gradient(135deg,rgba(34,197,94,0.12),rgba(59,130,246,0.12));border:1px solid rgba(34,197,94,0.3);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="font-size:13px;color:var(--text)"><strong>&#128194; Loaded Plan</strong> &mdash; ${state.importedPlanInfo.filename}${state.importedPlanInfo.date ? ' <span style="color:var(--text-dim)">(' + state.importedPlanInfo.date + ')</span>' : ''}</div>
+      <button onclick="state.importedPlanInfo=null;render()" style="background:transparent;border:1px solid rgba(34,197,94,0.4);border-radius:6px;padding:4px 14px;font-size:11px;color:var(--text-dim);cursor:pointer">Dismiss</button>
     </div>` : ''}
 
     <div style="display:flex;justify-content:flex-end;margin-bottom:6px">
