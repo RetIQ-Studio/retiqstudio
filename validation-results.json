@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-03-07T18:10:04.423Z",
+  "timestamp": "2026-03-11T14:54:58.722Z",
   "summary": {
-    "total": 261,
-    "passed": 261,
+    "total": 276,
+    "passed": 276,
     "failed": 0,
     "passRate": "100.0%"
   },
@@ -2520,6 +2520,147 @@
           "actual": 31500,
           "expected": 31500,
           "tolerance": 0,
+          "pass": true
+        }
+      ]
+    },
+    "HSA": {
+      "passed": 15,
+      "failed": 0,
+      "tests": [
+        {
+          "category": "HSA",
+          "name": "HSA contribution reduces federal taxable income",
+          "source": "HSA contributions are above-the-line deduction",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "HSA",
+          "name": "HSA contribution does NOT reduce CA state income",
+          "source": "CA does not allow HSA deduction at state level",
+          "actual": 7813,
+          "expected": 7813,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "HSA",
+          "name": "HSA contribution DOES reduce OR state income",
+          "source": "Oregon follows federal HSA deduction",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "HSA",
+          "name": "HSA balance grows at configured rate tax-free",
+          "source": "HSA growth at 6% nominal, 0% inflation",
+          "actual": 53000,
+          "expected": 53000,
+          "tolerance": 50,
+          "pass": true
+        },
+        {
+          "category": "HSA",
+          "name": "HSA medical withdrawal at age 60: tax-free",
+          "source": "Qualified medical HSA withdrawals are tax-free pre-65",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "HSA",
+          "name": "HSA non-medical withdrawal at age 60: taxed + 20% penalty",
+          "source": "Non-qualified pre-65 HSA withdrawal: ordinary income + 20% penalty",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "HSA",
+          "name": "HSA withdrawal at age 67 (100% medical): tax-free",
+          "source": "Qualified medical HSA withdrawals are tax-free post-65",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "HSA",
+          "name": "HSA medical withdrawal at 67: zero MAGI impact",
+          "source": "Medical HSA withdrawals do not count toward MAGI",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "HSA",
+          "name": "HSA withdrawal at age 67 (50% medical): 50% taxed",
+          "source": "Non-medical portion post-65 treated as ordinary income",
+          "actual": 15000,
+          "expected": 15000,
+          "tolerance": 500,
+          "pass": true
+        },
+        {
+          "category": "HSA",
+          "name": "HSA: no RMD generated at any age",
+          "source": "HSAs have no Required Minimum Distributions",
+          "actual": 0,
+          "expected": 0,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "HSA",
+          "name": "Contribution limits enforced: self, age 56 = $5,300 max",
+          "source": "HSA self limit $4,300 + $1,000 catch-up age 55+",
+          "actual": 5300,
+          "expected": 5300,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "HSA",
+          "name": "Contribution limits enforced: family, age 58 = $9,550 max",
+          "source": "HSA family limit $8,550 + $1,000 catch-up age 55+",
+          "actual": 9550,
+          "expected": 9550,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "HSA",
+          "name": "Contributions stop at hsaContributionStopAge",
+          "source": "No HSA contributions at or after stop age",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "HSA",
+          "name": "ACA MAGI reduced by HSA contribution",
+          "source": "HSA contributions are above-the-line, reduce ACA MAGI",
+          "actual": 1,
+          "expected": 1,
+          "tolerance": 1,
+          "pass": true
+        },
+        {
+          "category": "HSA",
+          "name": "Net worth includes HSA balance",
+          "source": "Net worth = sum of all 5 account buckets",
+          "actual": 195000,
+          "expected": 195000,
+          "tolerance": 1,
           "pass": true
         }
       ]

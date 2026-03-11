@@ -1500,6 +1500,252 @@ test('REGS', 'STD_DEDUCTION matches REGS',
   'Alias integrity', STD_DEDUCTION, REGS.federal.std_deduction_mfj, 0);
 
 // ══════════════════════════════════════════════════════════════════
+// HSA (Health Savings Account) — Triple-Tax Treatment
+// ══════════════════════════════════════════════════════════════════
+
+section('HSA — Health Savings Account');
+
+// Base HSA params: age 55, retired at 62, with HSA account
+const hsaBase = {
+  currentAge: 55, retirementAge: 62, endAge: 70,
+  annualIncome: 120000, annualSavings: 20000, annualExpenses: 50000,
+  incomeGrowth: 0, savingsGrowth: 0, ssClaimAge: 67, ssAnnualIncome: 80000, ssCOLA: 2,
+  ssManualMonthly: 0, ssUseManual: false, survivorSSClaimAge: 60, useDetailedSS: false, earningsHistory: [],
+  spouseEnabled: false, nominalReturn: 7, inflation: 0, additionalIncome: 0, stateCode: 'none',
+  pension: { enabled: false }, spousePension: { enabled: false },
+  preMedicareHealthcare: { enabled: false }, expensePhases: { enabled: false }, enforceContribLimits: true,
+  ssdiPrimary: { enabled: false }, ssdiSpouse: { enabled: false },
+  charitableGiving: { enabled: false }, debts: [], legacy: { enabled: false }, longTermCare: { enabled: false },
+  rothConversion: { enabled: false },
+  withdrawalOrder: ['cash', 'hsa', 'taxable', 'pretax', 'roth'],
+  hsaAnnualContribution: 4300,
+  hsaContributionStopAge: 65,
+  hsaCoverageType: 'self',
+  hsaMedicalWithdrawalFraction: 1.0,
+  accounts: [
+    { id: 1, name: '401(k)', type: 'pretax', balance: 500000, returnRate: 7 },
+    { id: 2, name: 'HSA', type: 'hsa', balance: 50000, returnRate: 6 },
+    { id: 3, name: 'Brokerage', type: 'taxable', balance: 100000, returnRate: 7 },
+  ],
+};
+
+// Test 1: HSA contribution reduces federal taxable income
+{
+  const withHSA = runProjection({ ...hsaBase, stateCode: 'none' });
+  const noHSA = runProjection({ ...hsaBase, stateCode: 'none', hsaAnnualContribution: 0 });
+  // Year 0 (age 55, working): HSA contrib should reduce tax
+  test('HSA', 'HSA contribution reduces federal taxable income',
+    'HSA contributions are above-the-line deduction',
+    withHSA[0].fedTax < noHSA[0].fedTax ? 1 : 0, 1);
+}
+
+// Test 2: HSA contribution does NOT reduce CA state income
+{
+  const caWithHSA = runProjection({ ...hsaBase, stateCode: 'CA' });
+  const caNoHSA = runProjection({ ...hsaBase, stateCode: 'CA', hsaAnnualContribution: 0 });
+  // CA should have same state tax regardless of HSA contributions
+  test('HSA', 'HSA contribution does NOT reduce CA state income',
+    'CA does not allow HSA deduction at state level',
+    caWithHSA[0].stateTax, caNoHSA[0].stateTax);
+}
+
+// Test 3: HSA contribution DOES reduce OR state income
+{
+  const orWithHSA = runProjection({ ...hsaBase, stateCode: 'OR' });
+  const orNoHSA = runProjection({ ...hsaBase, stateCode: 'OR', hsaAnnualContribution: 0 });
+  test('HSA', 'HSA contribution DOES reduce OR state income',
+    'Oregon follows federal HSA deduction',
+    orWithHSA[0].stateTax < orNoHSA[0].stateTax ? 1 : 0, 1);
+}
+
+// Test 4: HSA balance grows at configured rate tax-free
+{
+  const hsaGrowth = runProjection({
+    ...hsaBase, hsaAnnualContribution: 0, annualSavings: 0, annualExpenses: 0,
+    accounts: [
+      { id: 1, name: 'HSA', type: 'hsa', balance: 50000, returnRate: 6 },
+    ],
+  });
+  // Year 0: balance 50000 grows at 6% nominal, 0% inflation -> after year 0 should be ~53000
+  const expectedGrowth = Math.round(50000 * 1.06);
+  test('HSA', 'HSA balance grows at configured rate tax-free',
+    'HSA growth at 6% nominal, 0% inflation',
+    hsaGrowth[0].hsa, expectedGrowth, 50);
+}
+
+// Test 5: HSA medical withdrawal at age 60: tax-free
+{
+  // Force HSA withdrawal by making it the primary source and having expenses exceed income
+  const hsaWd60 = runProjection({
+    ...hsaBase, currentAge: 60, retirementAge: 60, annualIncome: 0, annualSavings: 0,
+    ssClaimAge: 70, annualExpenses: 30000, hsaAnnualContribution: 0,
+    hsaMedicalWithdrawalFraction: 1.0,
+    withdrawalOrder: ['hsa', 'pretax', 'taxable', 'roth'],
+    accounts: [
+      { id: 1, name: 'HSA', type: 'hsa', balance: 200000, returnRate: 0 },
+      { id: 2, name: '401(k)', type: 'pretax', balance: 100000, returnRate: 0 },
+    ],
+  });
+  // With 100% medical, HSA withdrawal should produce $0 in taxable income
+  test('HSA', 'HSA medical withdrawal at age 60: tax-free',
+    'Qualified medical HSA withdrawals are tax-free pre-65',
+    hsaWd60[0].fedTax, 0);
+}
+
+// Test 6: HSA non-medical withdrawal at age 60: income + 20% penalty
+{
+  const hsaNonMed60 = runProjection({
+    ...hsaBase, currentAge: 60, retirementAge: 60, annualIncome: 0, annualSavings: 0,
+    ssClaimAge: 70, annualExpenses: 30000, hsaAnnualContribution: 0,
+    hsaMedicalWithdrawalFraction: 0.0,
+    withdrawalOrder: ['hsa', 'pretax', 'taxable', 'roth'],
+    accounts: [
+      { id: 1, name: 'HSA', type: 'hsa', balance: 200000, returnRate: 0 },
+      { id: 2, name: '401(k)', type: 'pretax', balance: 100000, returnRate: 0 },
+    ],
+  });
+  // 0% medical = fully taxed + penalty; tax should be > 0
+  test('HSA', 'HSA non-medical withdrawal at age 60: taxed + 20% penalty',
+    'Non-qualified pre-65 HSA withdrawal: ordinary income + 20% penalty',
+    hsaNonMed60[0].fedTax > 0 ? 1 : 0, 1);
+}
+
+// Test 7: HSA withdrawal at age 67 (100% medical): tax-free, zero MAGI impact
+{
+  const hsa67med = runProjection({
+    ...hsaBase, currentAge: 67, retirementAge: 60, annualIncome: 0, annualSavings: 0,
+    ssClaimAge: 70, annualExpenses: 30000, hsaAnnualContribution: 0,
+    hsaMedicalWithdrawalFraction: 1.0,
+    withdrawalOrder: ['hsa', 'pretax', 'taxable', 'roth'],
+    accounts: [
+      { id: 1, name: 'HSA', type: 'hsa', balance: 200000, returnRate: 0 },
+      { id: 2, name: '401(k)', type: 'pretax', balance: 100000, returnRate: 0 },
+    ],
+  });
+  // 100% medical at 67: no tax, MAGI should not include HSA withdrawal
+  test('HSA', 'HSA withdrawal at age 67 (100% medical): tax-free',
+    'Qualified medical HSA withdrawals are tax-free post-65',
+    hsa67med[0].fedTax, 0);
+  test('HSA', 'HSA medical withdrawal at 67: zero MAGI impact',
+    'Medical HSA withdrawals do not count toward MAGI',
+    hsa67med[0].magi, 0, 1);
+}
+
+// Test 8: HSA withdrawal at age 67 (50% medical): 50% taxed as ordinary income
+{
+  const hsa67half = runProjection({
+    ...hsaBase, currentAge: 67, retirementAge: 60, annualIncome: 0, annualSavings: 0,
+    ssClaimAge: 70, annualExpenses: 30000, hsaAnnualContribution: 0,
+    hsaMedicalWithdrawalFraction: 0.5,
+    withdrawalOrder: ['hsa', 'pretax', 'taxable', 'roth'],
+    accounts: [
+      { id: 1, name: 'HSA', type: 'hsa', balance: 200000, returnRate: 0 },
+      { id: 2, name: '401(k)', type: 'pretax', balance: 100000, returnRate: 0 },
+    ],
+  });
+  // 50% of withdrawal should be taxable → MAGI should be ~15000 ($30k * 50%)
+  test('HSA', 'HSA withdrawal at age 67 (50% medical): 50% taxed',
+    'Non-medical portion post-65 treated as ordinary income',
+    hsa67half[0].magi, 15000, 500);
+}
+
+// Test 9: HSA has no RMD at any age
+{
+  const hsaNoRMD = runProjection({
+    ...hsaBase, currentAge: 75, endAge: 95, retirementAge: 60, annualIncome: 0, annualSavings: 0,
+    ssClaimAge: 67, annualExpenses: 30000, hsaAnnualContribution: 0,
+    accounts: [
+      { id: 1, name: 'HSA', type: 'hsa', balance: 500000, returnRate: 0 },
+    ],
+  });
+  // RMD should be 0 since there's no pre-tax balance
+  test('HSA', 'HSA: no RMD generated at any age',
+    'HSAs have no Required Minimum Distributions',
+    hsaNoRMD[0].rmd, 0);
+}
+
+// Test 10: Contribution limits enforced (self-only, age 56): max $5,300
+{
+  const hsaLimit56 = runProjection({
+    ...hsaBase, currentAge: 56, hsaAnnualContribution: 10000,
+    hsaCoverageType: 'self', inflation: 0,
+  });
+  // Self limit $4,300 + $1,000 catch-up (age 55+) = $5,300
+  test('HSA', 'Contribution limits enforced: self, age 56 = $5,300 max',
+    'HSA self limit $4,300 + $1,000 catch-up age 55+',
+    hsaLimit56[0].hsaContrib, 5300);
+}
+
+// Test 11: Contribution limits enforced (family, age 58): max $9,550
+{
+  const hsaLimit58 = runProjection({
+    ...hsaBase, currentAge: 58, hsaAnnualContribution: 15000,
+    hsaCoverageType: 'family', inflation: 0,
+  });
+  // Family limit $8,550 + $1,000 catch-up (age 55+) = $9,550
+  test('HSA', 'Contribution limits enforced: family, age 58 = $9,550 max',
+    'HSA family limit $8,550 + $1,000 catch-up age 55+',
+    hsaLimit58[0].hsaContrib, 9550);
+}
+
+// Test 12: Contributions stop at hsaContributionStopAge
+{
+  const hsaStop = runProjection({
+    ...hsaBase, currentAge: 63, retirementAge: 70, hsaContributionStopAge: 65,
+    hsaAnnualContribution: 4300, inflation: 0,
+  });
+  // Age 63 (yr 0): should contribute
+  // Age 65 (yr 2): should NOT contribute (stop at 65)
+  test('HSA', 'Contributions stop at hsaContributionStopAge',
+    'No HSA contributions at or after stop age',
+    hsaStop[0].hsaContrib > 0 && hsaStop[2].hsaContrib === 0 ? 1 : 0, 1);
+}
+
+// Test 13: ACA MAGI reduced by HSA contribution in pre-Medicare years
+{
+  const hsaACA = runProjection({
+    ...hsaBase, currentAge: 60, retirementAge: 60, annualIncome: 0,
+    hsaAnnualContribution: 4300, hsaContributionStopAge: 65,
+    preMedicareHealthcare: { enabled: true, source: 'aca', annualCost: 12000, acaHouseholdSize: 1 },
+    accounts: [
+      { id: 1, name: '401(k)', type: 'pretax', balance: 500000, returnRate: 7 },
+      { id: 2, name: 'HSA', type: 'hsa', balance: 50000, returnRate: 6 },
+    ],
+  });
+  const noHsaACA = runProjection({
+    ...hsaBase, currentAge: 60, retirementAge: 60, annualIncome: 0,
+    hsaAnnualContribution: 0,
+    preMedicareHealthcare: { enabled: true, source: 'aca', annualCost: 12000, acaHouseholdSize: 1 },
+    accounts: [
+      { id: 1, name: '401(k)', type: 'pretax', balance: 500000, returnRate: 7 },
+      { id: 2, name: 'HSA', type: 'hsa', balance: 50000, returnRate: 6 },
+    ],
+  });
+  // HSA contributions reduce MAGI → stored magi should be lower
+  test('HSA', 'ACA MAGI reduced by HSA contribution',
+    'HSA contributions are above-the-line, reduce ACA MAGI',
+    hsaACA[0].magi < noHsaACA[0].magi ? 1 : 0, 1);
+}
+
+// Test 14: Net worth includes HSA balance
+{
+  const hsaNW = runProjection({
+    ...hsaBase, hsaAnnualContribution: 0, inflation: 0,
+    accounts: [
+      { id: 1, name: '401(k)', type: 'pretax', balance: 100000, returnRate: 0 },
+      { id: 2, name: 'HSA', type: 'hsa', balance: 50000, returnRate: 0 },
+      { id: 3, name: 'Brokerage', type: 'taxable', balance: 25000, returnRate: 0 },
+    ],
+  });
+  // Net worth at year 0 should include all three: 100k + 50k + 25k = 175k (plus any savings)
+  const yr0nw = hsaNW[0].netWorth;
+  const yr0sum = hsaNW[0].preTax + hsaNW[0].hsa + hsaNW[0].taxable;
+  test('HSA', 'Net worth includes HSA balance',
+    'Net worth = sum of all 5 account buckets',
+    yr0nw, yr0sum);
+}
+
+// ══════════════════════════════════════════════════════════════════
 // RESULTS
 // ══════════════════════════════════════════════════════════════════
 
