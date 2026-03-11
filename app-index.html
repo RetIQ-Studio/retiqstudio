@@ -2129,7 +2129,7 @@ function runProjection(p) {
   return years;
 }
 
-function runMonteCarlo(p, n = 500, retStd = 6, infStd = 1.5, model = 'normal') {
+function runMonteCarlo(p, n = 500, retStd = 6, infStd = 1.5, model = 'normal', confidenceThreshold = 90) {
   const numYears = p.endAge - p.currentAge + 1;
   const results = [];
   const hist = HISTORICAL_MARKET_DATA;
@@ -2185,6 +2185,22 @@ function runMonteCarlo(p, n = 500, retStd = 6, infStd = 1.5, model = 'normal') {
     results.push({ final: proj[proj.length - 1].netWorth, proj,
       bustAge: proj.find(y => y.netWorth <= 0)?.age || null });
   }
+  // Build successByAge: fraction of sims solvent at each age from retirement to end
+  const retIdx = results[0].proj.findIndex(y => y.age >= p.retirementAge);
+  const sIdx = retIdx >= 0 ? retIdx : 0;
+  const pLen = results[0].proj.length;
+  const successByAge = [];
+  for (let i = sIdx; i < pLen; i++) {
+    const age = results[0].proj[i].age;
+    const solventCount = results.filter(r => r.proj[i] && r.proj[i].netWorth > 0).length;
+    successByAge.push({ age, rate: Math.round(solventCount / n * 100) });
+  }
+  const threshold = confidenceThreshold || 90;
+  let fundedToAge = p.retirementAge;
+  for (let i = successByAge.length - 1; i >= 0; i--) {
+    if (successByAge[i].rate >= threshold) { fundedToAge = successByAge[i].age; break; }
+  }
+
   results.sort((a, b) => a.final - b.final);
   const successCount = results.filter(r => r.final > 0).length;
   return {
@@ -2194,6 +2210,9 @@ function runMonteCarlo(p, n = 500, retStd = 6, infStd = 1.5, model = 'normal') {
     p90: results[Math.floor(n * 0.9)].proj,
     avgBustAge: (() => { const busts = results.filter(r => r.bustAge); return busts.length > 0 ? Math.round(busts.reduce((s,r) => s + r.bustAge, 0) / busts.length) : null; })(),
     model: model,
+    successByAge,
+    fundedToAge,
+    fundedToAgeThreshold: threshold,
   };
 }
 
@@ -2221,7 +2240,7 @@ let state = {
   tab: 'dashboard', inputTab: 'personal', projChartKeys: ['netWorth'], projShowTable: false, mcResults: null, scenario: null, rothOptResults: null, scenarioChartKeys: ['netWorth'], thisYearCollapsed: false, bearMarket: { equityPct: 70, crashPct: 30, onsetYr: 1, durationYrs: 3, active: false },
   optScoreMode: 'balanced',
   reportGoal: 'netWorth',
-  mcConfig: { numSims: 500, returnStdDev: 6, inflationStdDev: 1.5, model: 'normal' },
+  mcConfig: { numSims: 500, returnStdDev: 6, inflationStdDev: 1.5, model: 'normal', confidenceThreshold: 90 },
   params: {
     // Demo: The Johnsons — a couple approaching retirement
     currentAge: 57, retirementAge: 62, endAge: 95,
@@ -2558,6 +2577,8 @@ function migrateParams() {
   // v4.1 Migration: employer 401(k) match
   if (state.params.employerMatch === undefined) state.params.employerMatch = { enabled: false, formula: '50_6', customPct: 50, customCap: 6, vesting: 'immediate', vestingYears: 0 };
   if (state.params.spouseEmployerMatch === undefined) state.params.spouseEmployerMatch = { enabled: false, formula: '50_6', customPct: 50, customCap: 6, vesting: 'immediate', vestingYears: 0 };
+  // v4.2 Migration: MC confidence threshold
+  if (!state.mcConfig.confidenceThreshold) state.mcConfig.confidenceThreshold = 90;
   // v3.3 Migration: post-retirement return rate
   if (state.params.postRetirementReturn === undefined) state.params.postRetirementReturn = null;
   // v3.3 Migration: SS trust fund reduction
@@ -3334,7 +3355,7 @@ function runMC() {
   if (btn) { btn.textContent = 'Running...'; btn.disabled = true; }
   const mc = state.mcConfig;
   if (!mc.model) mc.model = 'normal';
-  setTimeout(() => { state.mcResults = runMonteCarlo(state.params, mc.numSims, mc.returnStdDev, mc.inflationStdDev, mc.model); render(); }, 50);
+  setTimeout(() => { state.mcResults = runMonteCarlo(state.params, mc.numSims, mc.returnStdDev, mc.inflationStdDev, mc.model, mc.confidenceThreshold || 90); render(); }, 50);
 }
 
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
@@ -4017,6 +4038,7 @@ function exportDashboardSummary() {
       <div class="sec-head">MONTE CARLO SIMULATION (${mc.model === 'historical' ? 'Historical' : mc.model === 'stress' ? 'Stress Test' : 'Normal'})</div>
       <div class="metrics">
         <div class="metric"><div class="metric-label">Success Rate</div><div class="metric-value" style="color:#10b981">${mc.successRate}%</div></div>
+        <div class="metric"><div class="metric-label">Funded to Age</div><div class="metric-value" style="color:${mc.fundedToAge >= p.endAge - 5 ? '#10b981' : mc.fundedToAge >= p.endAge - 10 ? '#f59e0b' : '#ef4444'}">${mc.fundedToAge >= p.endAge ? p.endAge + '+' : mc.fundedToAge}</div></div>
         <div class="metric"><div class="metric-label">Median End NW</div><div class="metric-value" style="color:#06b6d4">${fmtK(medianFinal)}</div></div>
         <div class="metric"><div class="metric-label">Worst Case (10th %ile)</div><div class="metric-value" style="color:#f59e0b">${fmtK(p5Final)}</div></div>
       </div>`;
@@ -6824,6 +6846,7 @@ function renderMonteCarlo(proj) {
       : '';
     results = `<div class="stats-row" style="justify-content:center">
       <div class="stat"><div class="stat-label">Success Rate</div><div class="stat-value" style="color:${color}">${mc.successRate}%</div><div class="stat-sub">${mc.successRate>=90?'Strong':mc.successRate>=75?'Good':mc.successRate>=50?'Caution':'High risk'}</div></div>
+      ${(() => { const ftAge = mc.fundedToAge; const ftTh = mc.fundedToAgeThreshold || 90; const ftDisp = ftAge >= p.endAge ? p.endAge + '+' : '' + ftAge; const ftCol = ftAge >= p.endAge - 5 ? 'var(--green)' : ftAge >= p.endAge - 10 ? 'var(--amber)' : 'var(--red)'; const ftSub = ftAge >= p.endAge ? 'Fully funded to plan end' : 'At ' + ftTh + '% confidence'; return '<div class="stat"><div class="stat-label">Funded to Age</div><div class="stat-value" style="color:' + ftCol + '">' + ftDisp + '</div><div class="stat-sub">' + ftSub + '</div></div>'; })()}
       <div class="stat"><div class="stat-label">Median Final</div><div class="stat-value" style="color:var(--cyan)">${fmtK(mF)}</div></div>
       <div class="stat"><div class="stat-label">10th Pctl</div><div class="stat-value" style="color:var(--amber)">${fmtK(p10F)}</div><div class="stat-sub">Bad luck</div></div>
       <div class="stat"><div class="stat-label">90th Pctl</div><div class="stat-value" style="color:var(--green)">${fmtK(p90F)}</div><div class="stat-sub">Good luck</div></div>
@@ -6909,6 +6932,14 @@ function renderMonteCarlo(proj) {
         <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Simulation Settings</div>
         <div class="grid-3" style="gap:8px">
           ${simSettings}
+          <div class="field"><label class="field-label">Confidence</label><div class="field-wrap">
+            <select class="field-input" onchange="setMCConfig('confidenceThreshold',Number(this.value))" style="font-size:13px">
+              <option value="80" ${cfg.confidenceThreshold===80?'selected':''}>80%</option>
+              <option value="85" ${cfg.confidenceThreshold===85?'selected':''}>85%</option>
+              <option value="90" ${cfg.confidenceThreshold===90?'selected':''}>90%</option>
+              <option value="95" ${cfg.confidenceThreshold===95?'selected':''}>95%</option>
+            </select>
+          </div><div class="field-help">Funded to Age threshold</div></div>
         </div>
       </div>
     </div>
