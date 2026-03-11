@@ -869,12 +869,13 @@ function getFPL(householdSize, inflationYr) {
   return Math.round(base * Math.pow(1 + ACA_FPL_INFLATE, inflationYr));
 }
 
-function estimateSLCSP(primaryAge, hasSpouse, inflationYr) {
+function estimateSLCSP(primaryAge, hasSpouse, inflationYr, hcInflRate) {
   // Approximate national average SLCSP, age-adjusted
-  // Base: ~$9,000/yr for single age-55 in 2025, +4%/yr of age, +5%/yr healthcare inflation
+  // Base: ~$9,000/yr for single age-55 in 2025, +4%/yr of age, healthcare inflation per year
   const baseSingle = 9000;
   const ageFactor = 1 + Math.max(0, primaryAge - 55) * 0.04;
-  const single = Math.round(baseSingle * ageFactor * Math.pow(1.05, inflationYr));
+  const rate = (hcInflRate || 5) / 100;
+  const single = Math.round(baseSingle * ageFactor * Math.pow(1 + rate, inflationYr));
   return hasSpouse ? Math.round(single * 1.9) : single;
 }
 
@@ -1639,9 +1640,10 @@ function runProjection(p) {
           const acaRules = hc.acaSubsidyRules || 'auto';
           const useEnhancedOverride = acaRules === 'enhanced' ? true : acaRules === 'original' ? false : null;
           const effectiveYear = useEnhancedOverride === true ? 2025 : useEnhancedOverride === false ? 2026 : projYear;
+          const hcInfRate = (hc.inflation || 5) / 100;
           const benchmark = hc.acaBenchmarkOverride > 0
-            ? Math.round(hc.acaBenchmarkOverride * Math.pow(1.05, yr))
-            : estimateSLCSP(age, householdSize > 1, yr);
+            ? Math.round(hc.acaBenchmarkOverride * Math.pow(1 + hcInfRate, yr))
+            : estimateSLCSP(age, householdSize > 1, yr, hc.inflation);
           const acaResult = calcACASubsidy(acaMAGI, benchmark, householdSize, yr, effectiveYear);
           healthcareCost = acaResult.netPremium;
           acaSubsidy = acaResult.subsidy;
@@ -5420,7 +5422,7 @@ function renderInputs() {
     // ACA subsidy preview: estimate year-1 ACA cost using current-year income approximation
     const acaHHSize = hc.acaHouseholdSize || (isCouple ? 2 : 1);
     const acaPreviewIncome = (p.annualExpenses || 60000); // rough proxy: living expenses ≈ income in early retirement
-    const acaPreviewBenchmark = hc.acaBenchmarkOverride > 0 ? hc.acaBenchmarkOverride : estimateSLCSP(retAge, acaHHSize > 1, 0);
+    const acaPreviewBenchmark = hc.acaBenchmarkOverride > 0 ? hc.acaBenchmarkOverride : estimateSLCSP(retAge, acaHHSize > 1, 0, hc.inflation);
     const acaRulesUI = hc.acaSubsidyRules || 'auto';
     const acaPreviewYear = acaRulesUI === 'enhanced' ? 2025 : acaRulesUI === 'original' ? 2026 : new Date().getFullYear();
     const acaPreview = calcACASubsidy(acaPreviewIncome, acaPreviewBenchmark, acaHHSize, 0, acaPreviewYear);
@@ -5438,7 +5440,8 @@ function renderInputs() {
           total += 0;
         } else if (hcSrc === 'aca') {
           const yrAge = retAge + i;
-          const bm = hc.acaBenchmarkOverride > 0 ? Math.round(hc.acaBenchmarkOverride * Math.pow(1.05, i)) : estimateSLCSP(yrAge, acaHHSize > 1, i);
+          const bmInf = (hc.inflation || 5) / 100;
+          const bm = hc.acaBenchmarkOverride > 0 ? Math.round(hc.acaBenchmarkOverride * Math.pow(1 + bmInf, i)) : estimateSLCSP(yrAge, acaHHSize > 1, i, hc.inflation);
           const yr = acaRulesUI === 'enhanced' ? 2025 : acaRulesUI === 'original' ? 2026 : new Date().getFullYear() + i;
           const res = calcACASubsidy(acaPreviewIncome, bm, acaHHSize, i, yr);
           total += res.netPremium;
@@ -7315,8 +7318,8 @@ function renderScenarios(proj) {
     const hcInflFinal = hcInflProj[hcInflProj.length-1].netWorth;
     const hcInflDiff = hcInflFinal - final;
     const hcInflBust = hcInflProj.find(y => y.netWorth <= 0)?.age;
-    const baseHCTotal = proj.reduce((s,y) => s + (y.healthcare || 0), 0);
-    const stressHCTotal = hcInflProj.reduce((s,y) => s + (y.healthcare || 0), 0);
+    const baseHCTotal = proj.filter(y => y.age >= retAge && y.age < eMedAge).reduce((s,y) => s + (y.healthcare || 0), 0);
+    const stressHCTotal = hcInflProj.filter(y => y.age >= retAge && y.age < eMedAge).reduce((s,y) => s + (y.healthcare || 0), 0);
     const hcDelta = stressHCTotal - baseHCTotal;
     // Count gap years
     const retAge = Math.ceil(p.retirementAge);
