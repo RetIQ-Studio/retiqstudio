@@ -1894,12 +1894,25 @@ function runProjection(p) {
       rmdCash = rmdTaken; // cash on hand from RMD, not yet allocated
     }
 
+    const wdOrder = (() => {
+      const sched = p.withdrawalOrderSchedule;
+      if (sched && sched.length > 0) {
+        const phase = sched.find(ph => age >= ph.startAge && age <= ph.endAge);
+        if (phase && phase.order && phase.order.length > 0) {
+          const base = ['cash', 'hsa', 'taxable', 'pretax', 'roth'];
+          const order = [...phase.order];
+          for (const src of base) { if (!order.includes(src)) order.push(src); }
+          return order;
+        }
+      }
+      return p.withdrawalOrder || ['cash', 'hsa', 'taxable', 'pretax', 'roth'];
+    })();
+
     if (effectivelyRetired || primaryDead) {
       // totalInc includes earned income (covers partial retirement year & working spouse)
       const gap = Math.max(0, expenses - totalInc);
       let remaining = gap;
       // Step 2: Fill spending gap in user-configured order
-      const wdOrder = p.withdrawalOrder || ['cash', 'hsa', 'taxable', 'pretax', 'roth'];
       for (const src of wdOrder) {
         if (remaining <= 0) break;
         if (src === 'pretax') {
@@ -2160,6 +2173,7 @@ function runProjection(p) {
       irmaaBracket: irmaa.bracketIdx, isSingle, magi: Math.round(magi),
       cashEventNet: Math.round(cashEventNet), cashEventGains: Math.round(cashEventGains),
       lifeInsPremiums: Math.round(lifeInsPremiums), lifeInsBenefit: Math.round(lifeInsBenefit),
+      wdOrder: wdOrder,
     });
   }
   return years;
@@ -2350,6 +2364,7 @@ let state = {
 
     // Withdrawal order (after RMDs)
     withdrawalOrder: ['cash', 'hsa', 'taxable', 'pretax', 'roth'],
+    withdrawalOrderSchedule: [],
 
     // HSA (Health Savings Account) settings
     hsaAnnualContribution: 0,
@@ -2411,7 +2426,7 @@ const clarkParams = {
   debts: [], legacy: { enabled: false, targetAmount: 0, notes: '' },
   longTermCare: { enabled: false, annualCost: 110000, startAge: 82, duration: 4, inflation: 5, hasInsurance: false, insuranceCoverage: 0 },
   lifeInsurance: [],
-  withdrawalOrder: ['cash', 'hsa', 'taxable', 'pretax', 'roth'],
+  withdrawalOrder: ['cash', 'hsa', 'taxable', 'pretax', 'roth'], withdrawalOrderSchedule: [],
   hsaAnnualContribution: 0, hsaContributionStopAge: 65, hsaCoverageType: 'self', hsaMedicalWithdrawalFraction: 1.0,
   rothConversion: { enabled: false, strategy: 'fillBracket', fixedAmount: 40000, startAge: 65, endAge: 75, targetBracket: 0.22, targetMAGI: 200000, percentOfBalance: 10, customSchedule: [] },
   accounts: [
@@ -2448,7 +2463,7 @@ const leeParams = {
   debts: [], legacy: { enabled: false, targetAmount: 0, notes: '' },
   longTermCare: { enabled: false, annualCost: 110000, startAge: 82, duration: 4, inflation: 5, hasInsurance: false, insuranceCoverage: 0 },
   lifeInsurance: [],
-  withdrawalOrder: ['cash', 'hsa', 'taxable', 'pretax', 'roth'],
+  withdrawalOrder: ['cash', 'hsa', 'taxable', 'pretax', 'roth'], withdrawalOrderSchedule: [],
   hsaAnnualContribution: 8550, hsaContributionStopAge: 65, hsaCoverageType: 'family', hsaMedicalWithdrawalFraction: 1.0,
   rothConversion: { enabled: false, strategy: 'smartFill', fixedAmount: 40000, startAge: 62, endAge: 72, targetBracket: 0.22, targetMAGI: 200000, percentOfBalance: 10, customSchedule: [] },
   accounts: [
@@ -2491,7 +2506,7 @@ const washingtonParams = {
   legacy: { enabled: true, targetAmount: 750000, notes: '' },
   longTermCare: { enabled: true, annualCost: 110000, startAge: 82, duration: 4, inflation: 5, hasInsurance: false, insuranceCoverage: 0 },
   lifeInsurance: [],
-  withdrawalOrder: ['cash', 'hsa', 'taxable', 'pretax', 'roth'],
+  withdrawalOrder: ['cash', 'hsa', 'taxable', 'pretax', 'roth'], withdrawalOrderSchedule: [],
   hsaAnnualContribution: 0, hsaContributionStopAge: 65, hsaCoverageType: 'self', hsaMedicalWithdrawalFraction: 1.0,
   rothConversion: { enabled: false, strategy: 'fillBracket', fixedAmount: 40000, startAge: 65, endAge: 75, targetBracket: 0.22, targetMAGI: 200000, percentOfBalance: 10, customSchedule: [] },
   accounts: [
@@ -2591,6 +2606,8 @@ function migrateParams() {
   if (state.params.gkLowerGuardrail === undefined) state.params.gkLowerGuardrail = 3.0;
   if (state.params.gkUpperGuardrail === undefined) state.params.gkUpperGuardrail = 5.5;
   if (state.params.gkAdjustment === undefined) state.params.gkAdjustment = 10;
+  // v4.2 Migration: withdrawal order phase schedule
+  if (state.params.withdrawalOrderSchedule === undefined) state.params.withdrawalOrderSchedule = [];
   // v3.0 Migration: cash events
   if (state.params.cashEvents === undefined) state.params.cashEvents = [];
   // v4.0 Migration: one-time expenses
@@ -2649,6 +2666,7 @@ function getActiveAdvancedFeatures(p) {
   if (p.preMedicareHealthcare && p.preMedicareHealthcare.enabled) active.push('Pre-Medicare Healthcare');
   const defaultWD = p.accounts && p.accounts.some(a => a.type === 'hsa') ? '["cash","hsa","taxable","pretax","roth"]' : '["cash","taxable","pretax","roth"]';
   if (JSON.stringify(p.withdrawalOrder || ['cash','hsa','taxable','pretax','roth']) !== defaultWD) active.push('Custom Withdrawal Order');
+  if (p.withdrawalOrderSchedule && p.withdrawalOrderSchedule.length > 0) active.push('Withdrawal Phase Schedule (' + p.withdrawalOrderSchedule.length + ' phase' + (p.withdrawalOrderSchedule.length > 1 ? 's' : '') + ')');
   if (p.accounts && p.accounts.some(a => a.subtype === 'cash')) active.push('Cash/HYS Accounts');
   if (p.accounts && p.accounts.some(a => a.returnRate !== undefined && a.returnRate !== p.nominalReturn)) active.push('Custom Account Return Rates');
   if (p.pension && p.pension.enabled && (p.pension.survivorBenefit !== 'none' || p.pension.taxablePercent !== 100 || (p.pension.cola && p.pension.cola !== 0)))
@@ -2947,6 +2965,38 @@ function moveWithdrawalOrder(idx, dir) {
   if (newIdx < 0 || newIdx >= order.length) return;
   [order[idx], order[newIdx]] = [order[newIdx], order[idx]];
   state.params.withdrawalOrder = order;
+  state.mcResults = null; state.rothOptResults = null; saveState(); render();
+}
+function addWithdrawalPhase() {
+  if (proGuard()) return;
+  if (!state.params.withdrawalOrderSchedule) state.params.withdrawalOrderSchedule = [];
+  const existing = state.params.withdrawalOrderSchedule;
+  const lastEnd = existing.length > 0 ? Math.max(...existing.map(p => p.endAge)) : null;
+  const startAge = lastEnd !== null ? lastEnd + 1 : Math.ceil(state.params.retirementAge);
+  const endAge = Math.min(startAge + 4, state.params.endAge);
+  existing.push({
+    startAge,
+    endAge,
+    order: [...(state.params.withdrawalOrder || ['cash', 'hsa', 'taxable', 'pretax', 'roth'])]
+  });
+  state.mcResults = null; state.rothOptResults = null; saveState(); render();
+}
+function removeWithdrawalPhase(idx) {
+  if (proGuard()) return;
+  state.params.withdrawalOrderSchedule.splice(idx, 1);
+  state.mcResults = null; state.rothOptResults = null; saveState(); render();
+}
+function setWithdrawalPhase(idx, key, val) {
+  if (proGuard()) return;
+  state.params.withdrawalOrderSchedule[idx][key] = val;
+  state.mcResults = null; state.rothOptResults = null; saveState(); render();
+}
+function moveWithdrawalPhaseOrder(phaseIdx, itemIdx, dir) {
+  if (proGuard()) return;
+  const order = state.params.withdrawalOrderSchedule[phaseIdx].order;
+  const newIdx = itemIdx + dir;
+  if (newIdx < 0 || newIdx >= order.length) return;
+  [order[itemIdx], order[newIdx]] = [order[newIdx], order[itemIdx]];
   state.mcResults = null; state.rothOptResults = null; saveState(); render();
 }
 function setPension(which, key, val) {
@@ -4280,7 +4330,7 @@ function exportDashboardSummary() {
     </div>
     <div class="strat-cell">
       <div class="strat-label">Withdrawal Order</div>
-      <div class="strat-value" style="color:#64748b">${(p.withdrawalOrder || ['cash','hsa','taxable','pretax','roth']).map(s => s === 'pretax' ? 'Pre-Tax' : s === 'cash' ? 'Cash/HYS' : s === 'taxable' ? 'Brokerage' : s === 'hsa' ? 'HSA' : 'Roth').join(' → ')}</div>
+      <div class="strat-value" style="color:#64748b">${(p.withdrawalOrder || ['cash','hsa','taxable','pretax','roth']).map(s => s === 'pretax' ? 'Pre-Tax' : s === 'cash' ? 'Cash/HYS' : s === 'taxable' ? 'Brokerage' : s === 'hsa' ? 'HSA' : 'Roth').join(' → ')}${p.withdrawalOrderSchedule && p.withdrawalOrderSchedule.length > 0 ? ' <span style="color:var(--blue);font-size:10px">+ ' + p.withdrawalOrderSchedule.length + ' phase' + (p.withdrawalOrderSchedule.length > 1 ? 's' : '') + '</span>' : ''}</div>
     </div>
   </div>
 
@@ -4317,8 +4367,8 @@ function renderThisYear(proj, p, bust) {
   // Balance change = growth + contributions - withdrawals - conversions
   // For pre-tax: delta = growth - withdrawal - rothConv + savings(pretax)
   // We approximate: withdrawal from source ≈ max(0, prev_balance + growth - new_balance - conversions)
-  // Simpler: total withdrawal is known, and we can show the order
-  const wdOrder = (p.withdrawalOrder || ['cash','hsa','taxable','pretax','roth']);
+  // Use the actual resolved order from the engine (per-year, respects phase schedule)
+  const wdOrder = y.wdOrder || (p.withdrawalOrder || ['cash','hsa','taxable','pretax','roth']);
   const wdLabels = { cash:'Cash / HYS', taxable:'Brokerage', pretax:'Pre-Tax', roth:'Roth', hsa:'HSA' };
   const wdColors = { cash:'var(--cyan)', taxable:'var(--amber)', pretax:'var(--blue)', roth:'var(--green)', hsa:'#8b5cf6' };
 
@@ -6768,8 +6818,8 @@ function renderInputs() {
         </div>
       </div>
       ${!isEssentials ? `<div style="margin-top:20px;padding:14px;background:var(--bg-base);border-radius:10px;border:1px solid var(--border)">
-        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Retirement Withdrawal Order ${tip('When you need money in retirement, which account should RetIQ draw from first? The order matters because each account type is taxed differently.')}</div>
-        <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;line-height:1.5">This is the order RetIQ draws from your accounts in retirement. The default order (Cash &rarr; HSA &rarr; Brokerage &rarr; Pre-Tax &rarr; Roth) is a widely-used approach: spend taxable money first, then use HSA for medical expenses (tax-free), and let tax-advantaged accounts keep growing. Roth goes last because it grows tax-free and passes to heirs tax-free.</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Default Withdrawal Order ${tip('When you need money in retirement, which account should RetIQ draw from first? The order matters because each account type is taxed differently.')}</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;line-height:1.5">This order applies whenever no phase schedule covers a given year. If you don't add phases below, this order applies for all of retirement. The default (Cash &rarr; HSA &rarr; Brokerage &rarr; Pre-Tax &rarr; Roth) is a widely-used approach.</div>
         ${(p.withdrawalOrder || ['cash','hsa','taxable','pretax','roth']).map((src, i, arr) => {
           const labels = { cash: 'Cash / HYS', taxable: 'Brokerage', pretax: 'Pre-Tax (401k/IRA)', roth: 'Roth', hsa: 'HSA' };
           const colors = { cash: 'var(--cyan)', taxable: 'var(--amber)', pretax: 'var(--blue)', roth: 'var(--green)', hsa: '#8b5cf6' };
@@ -6786,6 +6836,52 @@ function renderInputs() {
             + '</div></div>';
         }).join('')}
         ${(() => { const hasHsa = p.accounts.some(a => a.type === 'hsa'); const defaultOrder = hasHsa ? ['cash','hsa','taxable','pretax','roth'] : ['cash','taxable','pretax','roth']; const defaultLabel = hasHsa ? 'Cash → HSA → Brokerage → Pre-Tax → Roth' : 'Cash → Brokerage → Pre-Tax → Roth'; return JSON.stringify(p.withdrawalOrder || defaultOrder) !== JSON.stringify(defaultOrder) ? '<button onclick="state.params.withdrawalOrder=' + JSON.stringify(defaultOrder) + ';state.mcResults=null;state.rothOptResults=null;saveState();render()" style="margin-top:8px;background:transparent;border:1px dashed var(--border-active);border-radius:6px;color:var(--blue);padding:6px 14px;font-size:11px;width:100%;cursor:pointer">Reset to recommended order (' + defaultLabel + ')</button>' : ''; })()}
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">Phase Schedule (optional)</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:12px;line-height:1.5">Add age-based phases to change the withdrawal order at different stages of retirement. Useful for Roth conversion windows, ACA MAGI control, or RMD planning. Years not covered by any phase use the Default order above.</div>
+          ${(() => {
+            const sched = p.withdrawalOrderSchedule || [];
+            const hasOverlap = (() => {
+              for (let i = 0; i < sched.length; i++)
+                for (let j = i + 1; j < sched.length; j++)
+                  if (sched[i].startAge <= sched[j].endAge && sched[j].startAge <= sched[i].endAge) return true;
+              return false;
+            })();
+            const labels = { cash: 'Cash/HYS', taxable: 'Brokerage', pretax: 'Pre-Tax', roth: 'Roth', hsa: 'HSA' };
+            const colors = { cash: 'var(--cyan)', taxable: 'var(--amber)', pretax: 'var(--blue)', roth: 'var(--green)', hsa: '#8b5cf6' };
+            let html = '';
+            if (hasOverlap) {
+              html += '<div style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.4);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:11px;color:var(--amber)">&#9888; Phase ages overlap &mdash; check your start/end ages. Overlapping years will use the first matching phase.</div>';
+            }
+            sched.forEach((phase, pi) => {
+              html += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px">'
+                + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
+                + '<span style="font-size:11px;font-weight:600;color:var(--text-muted)">Phase ' + (pi + 1) + '</span>'
+                + '<span style="font-size:11px;color:var(--text-dim)">Ages</span>'
+                + '<input type="number" value="' + phase.startAge + '" onchange="setWithdrawalPhase(' + pi + ',\'startAge\',Number(this.value))" style="width:56px;padding:4px 6px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center" />'
+                + '<span style="font-size:11px;color:var(--text-dim)">to</span>'
+                + '<input type="number" value="' + phase.endAge + '" onchange="setWithdrawalPhase(' + pi + ',\'endAge\',Number(this.value))" style="width:56px;padding:4px 6px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center" />'
+                + '<div style="flex:1"></div>'
+                + '<button onclick="removeWithdrawalPhase(' + pi + ')" style="background:transparent;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 6px" title="Remove phase">&#10005;</button>'
+                + '</div>';
+              html += '<div style="display:flex;flex-direction:column;gap:3px">';
+              phase.order.forEach((src, si) => {
+                html += '<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;background:var(--bg-base);border:1px solid var(--border);border-radius:5px">'
+                  + '<span style="font-size:11px;font-weight:700;color:var(--text-muted);width:14px;text-align:center">' + (si + 1) + '</span>'
+                  + '<span style="font-size:11px;font-weight:600;color:' + (colors[src] || 'var(--text)') + ';flex:1">' + (labels[src] || src) + '</span>'
+                  + '<button onclick="moveWithdrawalPhaseOrder(' + pi + ',' + si + ',-1)" style="background:var(--bg-input);border:1px solid var(--border);border-radius:3px;padding:1px 6px;font-size:10px;color:' + (si === 0 ? 'var(--text-faint)' : 'var(--text)') + ';cursor:' + (si === 0 ? 'default' : 'pointer') + ';opacity:' + (si === 0 ? '0.3' : '1') + '"' + (si === 0 ? ' disabled' : '') + '>&#9650;</button>'
+                  + '<button onclick="moveWithdrawalPhaseOrder(' + pi + ',' + si + ',1)" style="background:var(--bg-input);border:1px solid var(--border);border-radius:3px;padding:1px 6px;font-size:10px;color:' + (si === phase.order.length - 1 ? 'var(--text-faint)' : 'var(--text)') + ';cursor:' + (si === phase.order.length - 1 ? 'default' : 'pointer') + ';opacity:' + (si === phase.order.length - 1 ? '0.3' : '1') + '"' + (si === phase.order.length - 1 ? ' disabled' : '') + '>&#9660;</button>'
+                  + '</div>';
+              });
+              html += '</div></div>';
+            });
+            html += '<button onclick="addWithdrawalPhase()" style="margin-top:4px;background:transparent;border:1px dashed var(--border-active);border-radius:6px;color:var(--blue);padding:6px 14px;font-size:11px;width:100%;cursor:pointer">+ Add Phase</button>';
+            if (sched.length > 0) {
+              html += '<button onclick="state.params.withdrawalOrderSchedule=[];state.mcResults=null;state.rothOptResults=null;saveState();render()" style="margin-top:6px;background:transparent;border:1px dashed var(--border);border-radius:6px;color:var(--text-dim);padding:6px 14px;font-size:11px;width:100%;cursor:pointer">Clear all phases</button>';
+            }
+            return html;
+          })()}
+        </div>
       </div>
       <div style="margin-top:16px;font-size:12px;color:var(--text-faint);line-height:1.7">
         <strong style="color:var(--text-muted)">Model notes:</strong> 2025 tax brackets (OBBB Act). Std deduction $${STD_DEDUCTION.toLocaleString()} MFJ / $${STD_DEDUCTION_SINGLE.toLocaleString()} single + senior additions. SS taxation per IRS §86. SSA 2025 bend points &amp; wage base.
