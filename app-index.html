@@ -2394,7 +2394,7 @@ const leeParams = {
   longTermCare: { enabled: false, annualCost: 110000, startAge: 82, duration: 4, inflation: 5, hasInsurance: false, insuranceCoverage: 0 },
   lifeInsurance: [],
   withdrawalOrder: ['cash', 'hsa', 'taxable', 'pretax', 'roth'],
-  hsaAnnualContribution: 0, hsaContributionStopAge: 65, hsaCoverageType: 'self', hsaMedicalWithdrawalFraction: 1.0,
+  hsaAnnualContribution: 8550, hsaContributionStopAge: 65, hsaCoverageType: 'family', hsaMedicalWithdrawalFraction: 1.0,
   rothConversion: { enabled: false, strategy: 'smartFill', fixedAmount: 40000, startAge: 62, endAge: 72, targetBracket: 0.22, targetMAGI: 200000, percentOfBalance: 10, customSchedule: [] },
   accounts: [
     { id: 1, name: '401(k)', type: 'pretax', balance: 820000, returnRate: 7 },
@@ -2402,6 +2402,7 @@ const leeParams = {
     { id: 3, name: 'Roth IRA', type: 'roth', balance: 180000, returnRate: 7 },
     { id: 4, name: 'Brokerage', type: 'taxable', balance: 250000, returnRate: 7 },
     { id: 5, name: 'Cash / HYS', type: 'cash', balance: 50000, returnRate: 4.5 },
+    { id: 6, name: 'HSA', type: 'hsa', balance: 35000, returnRate: 6 },
   ],
   postRetirementReturn: null, ssTrustFundReduction: { enabled: false, reductionPct: 20, startYear: 2034 },
 };
@@ -2420,7 +2421,7 @@ const washingtonParams = {
   spouseIncome: 78000, spouseSavings: 12000, spouseIncomeGrowth: 2, spouseSavingsGrowth: 2,
   spouseSSClaimAge: 67, spouseSSIncome: 70000,
   spouseSSUseManual: true, spouseSSManualMonthly: 1700, spouseSurvivorSSClaimAge: 60,
-  nominalReturn: 7, inflation: 3, additionalIncome: 0, stateCode: 'GA',
+  nominalReturn: 7, inflation: 3, additionalIncome: 0, stateCode: 'MA',
   pension: { enabled: true, annualAmount: 30000, startAge: 65, cola: 2, name: 'State Pension', survivorBenefit: 'joint50', taxablePercent: 100 },
   spousePension: { enabled: false, annualAmount: 0, startAge: 65, cola: 0, name: 'Spouse Pension', survivorBenefit: 'none', taxablePercent: 100 },
   preMedicareHealthcare: { enabled: false, source: 'aca', annualCost: 18000, inflation: 5, cobraDuration: 18, cobraFollowUpCost: 18000, cobraFollowUpInflation: 5, spousePlanFollowUpCost: 18000, spousePlanFollowUpInflation: 5, acaHouseholdSize: 2, acaBenchmarkOverride: 0, acaSubsidyRules: 'auto' },
@@ -2432,17 +2433,17 @@ const washingtonParams = {
   debts: [
     { id: 1, name: 'Mortgage', type: 'mortgage', monthlyPayment: 1800, startAge: 63, endAge: 72 },
   ],
-  legacy: { enabled: true, targetAmount: 400000, notes: '' },
-  longTermCare: { enabled: false, annualCost: 110000, startAge: 82, duration: 4, inflation: 5, hasInsurance: false, insuranceCoverage: 0 },
+  legacy: { enabled: true, targetAmount: 750000, notes: '' },
+  longTermCare: { enabled: true, annualCost: 110000, startAge: 82, duration: 4, inflation: 5, hasInsurance: false, insuranceCoverage: 0 },
   lifeInsurance: [],
   withdrawalOrder: ['cash', 'hsa', 'taxable', 'pretax', 'roth'],
   hsaAnnualContribution: 0, hsaContributionStopAge: 65, hsaCoverageType: 'self', hsaMedicalWithdrawalFraction: 1.0,
   rothConversion: { enabled: false, strategy: 'fillBracket', fixedAmount: 40000, startAge: 65, endAge: 75, targetBracket: 0.22, targetMAGI: 200000, percentOfBalance: 10, customSchedule: [] },
   accounts: [
-    { id: 1, name: '401(k)', type: 'pretax', balance: 750000, returnRate: 7 },
-    { id: 2, name: 'Roth IRA', type: 'roth', balance: 200000, returnRate: 7 },
-    { id: 3, name: 'Brokerage', type: 'taxable', balance: 150000, returnRate: 7 },
-    { id: 4, name: 'Cash / HYS', type: 'cash', balance: 80000, returnRate: 4.5 },
+    { id: 1, name: '401(k)', type: 'pretax', balance: 950000, returnRate: 7 },
+    { id: 2, name: 'Roth IRA', type: 'roth', balance: 250000, returnRate: 7 },
+    { id: 3, name: 'Brokerage', type: 'taxable', balance: 200000, returnRate: 7 },
+    { id: 4, name: 'Cash / HYS', type: 'cash', balance: 100000, returnRate: 4.5 },
   ],
   postRetirementReturn: null, ssTrustFundReduction: { enabled: false, reductionPct: 20, startYear: 2034 },
 };
@@ -2457,7 +2458,7 @@ function loadExample(key) {
   if (proGuard()) return;
   const ex = exampleMeta[key];
   if (!ex) return;
-  if (!confirm('Load "' + ex.name + ' \u2014 ' + ex.tagline + '" example?\n\nThis will replace your current plan.')) return;
+  if (!confirm('Load "' + ex.name + ' \u2014 ' + ex.tagline + '" example?\n\nThis will replace your current plan. Use Save (\u2913) to export your current plan first if you want to keep it.')) return;
   state.params = JSON.parse(JSON.stringify(ex.params));
   migrateParams();
   state.activeExample = key;
