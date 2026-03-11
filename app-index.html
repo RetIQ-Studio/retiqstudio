@@ -1207,6 +1207,7 @@ function runProjection(p) {
   let taxableInv = p.accounts.filter(a => a.type === 'taxable' && a.subtype !== 'cash').reduce((s, a) => s + a.balance, 0);
   let taxable = cash + taxableInv; // combined for backward compat
   let hsa = p.accounts.filter(a => a.type === 'hsa').reduce((s, a) => s + a.balance, 0);
+  let gkCurrentSpend = null; // Guyton-Klinger: tracks nominal spending, initialized at retirement
 
   // Per-account return rates (Feature #7) -- compute weighted average per type
   const weightedReturn = (type, subtype) => {
@@ -1552,6 +1553,39 @@ function runProjection(p) {
       expenses = p.preRetirementExpenses * Math.pow(1 + preRetInf / 100, yr);
     } else if (p.expenseMode === 'percent' && effectivelyRetired) {
       expenses = (preTax + roth + taxable) * (p.withdrawalRate || 4) / 100 * expMultiplier;
+    } else if (p.expenseMode === 'vpw' && effectivelyRetired) {
+      const totalPortfolio = preTax + roth + taxable;
+      const remainingYears = Math.max(1, p.endAge - age + 1);
+      const vpwRate = 1 / remainingYears;
+      let vpwExpenses = totalPortfolio * vpwRate;
+      // Apply spending floor (inflation-adjusted)
+      const vpwFloor = (p.vpwFloor || 0) * Math.pow(1 + p.inflation / 100, yr);
+      if (vpwFloor > 0 && vpwExpenses < vpwFloor) vpwExpenses = vpwFloor;
+      expenses = vpwExpenses * expMultiplier;
+    } else if (p.expenseMode === 'guardrails' && effectivelyRetired) {
+      const totalPortfolio = preTax + roth + taxable;
+      // Initialize at retirement: start from annualExpenses inflated to retirement
+      if (gkCurrentSpend === null) {
+        const yrsToRetire = Math.max(0, p.retirementAge - p.currentAge);
+        gkCurrentSpend = p.annualExpenses * Math.pow(1 + p.inflation / 100, yrsToRetire);
+      }
+      const lowerGuardrail = (p.gkLowerGuardrail || 3.0) / 100;
+      const upperGuardrail = (p.gkUpperGuardrail || 5.5) / 100;
+      const adjustment = (p.gkAdjustment || 10) / 100;
+      // Apply inflation first, then check guardrails
+      let proposedSpend = gkCurrentSpend * (1 + p.inflation / 100);
+      if (totalPortfolio > 0) {
+        const currentRate = proposedSpend / totalPortfolio;
+        if (currentRate < lowerGuardrail) {
+          // Prosperity rule: raise spending
+          proposedSpend = gkCurrentSpend * (1 + adjustment);
+        } else if (currentRate > upperGuardrail) {
+          // Capital preservation rule: cut spending, no inflation this year
+          proposedSpend = gkCurrentSpend * (1 - adjustment);
+        }
+      }
+      gkCurrentSpend = proposedSpend;
+      expenses = gkCurrentSpend * expMultiplier;
     } else {
       expenses = p.annualExpenses * Math.pow(1 + p.inflation / 100, yr) * expMultiplier;
     }
@@ -2550,6 +2584,11 @@ function migrateParams() {
     if (idx >= 0) state.params.withdrawalOrder.splice(idx, 0, 'cash');
     else state.params.withdrawalOrder.unshift('cash');
   }
+  // v4.2 Migration: VPW and Guyton-Klinger spending mode params
+  if (state.params.vpwFloor === undefined) state.params.vpwFloor = 0;
+  if (state.params.gkLowerGuardrail === undefined) state.params.gkLowerGuardrail = 3.0;
+  if (state.params.gkUpperGuardrail === undefined) state.params.gkUpperGuardrail = 5.5;
+  if (state.params.gkAdjustment === undefined) state.params.gkAdjustment = 10;
   // v3.0 Migration: cash events
   if (state.params.cashEvents === undefined) state.params.cashEvents = [];
   // v4.0 Migration: one-time expenses
@@ -4971,6 +5010,10 @@ function renderInputs() {
     // Retirement expense at retirement start
     const retExpAtRetire = p.expenseMode === 'percent'
       ? '(' + (p.withdrawalRate||4) + '% of portfolio)'
+      : p.expenseMode === 'vpw'
+      ? '(VPW \u2014 portfolio-based)'
+      : p.expenseMode === 'guardrails'
+      ? '(Guardrails \u2014 starts ' + fmt(Math.round(p.annualExpenses * Math.pow(1 + p.inflation/100, p.retirementAge - p.currentAge))) + ')'
       : fmt(Math.round(p.annualExpenses * Math.pow(1 + p.inflation / 100, p.retirementAge - p.currentAge)));
 
     if (!isEssentials) {
@@ -4997,12 +5040,26 @@ function renderInputs() {
         <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;line-height:1.6">
           Your annual spending in retirement. Pre-Medicare healthcare gap costs and long-term care are modeled separately and added on top — configure them in the Healthcare tab. Include routine post-Medicare costs (premiums, copays) in the amount above.
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:8px">
+        <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap">
           <button class="tab${(p.expenseMode||'fixed')==='fixed'?' active':''}" onclick="setParam('expenseMode','fixed')" style="font-size:11px;padding:4px 10px">Fixed Amount</button>
           <button class="tab${p.expenseMode==='percent'?' active':''}" onclick="setParam('expenseMode','percent')" style="font-size:11px;padding:4px 10px">% of Portfolio</button>
+          <button class="tab${p.expenseMode==='vpw'?' active':''}" onclick="setParam('expenseMode','vpw')" style="font-size:11px;padding:4px 10px">VPW</button>
+          <button class="tab${p.expenseMode==='guardrails'?' active':''}" onclick="setParam('expenseMode','guardrails')" style="font-size:11px;padding:4px 10px">Guardrails</button>
         </div>
         ${p.expenseMode === 'percent' ?
           field('Withdrawal Rate','withdrawalRate',{suffix:'%',help:'Classic 4% rule. Applied to portfolio balance each year in retirement.'})
+        : p.expenseMode === 'vpw' ?
+          `${field('Annual Expenses (today\'s $)','annualExpenses',{prefix:'$',help:'Used only for pre-retirement expenses if set. VPW withdrawals are calculated from portfolio value.'})}
+           ${field('Minimum Annual Spending (today\'s $)','vpwFloor',{prefix:'$',help:'Sets a spending floor so withdrawals never fall below this amount even in poor markets. Leave at 0 for pure VPW.'})}
+           <div style="font-size:11px;color:var(--text-dim);margin-top:6px;line-height:1.5">Withdraws a rising percentage of your portfolio each year based on remaining plan years. Spending adjusts automatically with market performance.</div>`
+        : p.expenseMode === 'guardrails' ?
+          `${field('Starting Annual Expenses (today\'s $)','annualExpenses',{prefix:'$',help:'Base spending amount. Grows with inflation unless a guardrail is triggered.'})}
+           <div class="grid-3" style="gap:8px;margin-top:4px">
+             ${field('Lower Guardrail','gkLowerGuardrail',{suffix:'%',help:'If withdrawal rate drops below this, spending increases. Typical: 3.0%'})}
+             ${field('Upper Guardrail','gkUpperGuardrail',{suffix:'%',help:'If withdrawal rate exceeds this, spending is cut. Typical: 5.5%'})}
+             ${field('Adjustment Size','gkAdjustment',{suffix:'%',help:'Percentage raise or cut when a guardrail is triggered. Typical: 10%'})}
+           </div>
+           <div style="font-size:11px;color:var(--text-dim);margin-top:6px;line-height:1.5">Starts with an inflation-adjusted base, then raises or cuts spending when your withdrawal rate drifts outside the guardrail range.</div>`
         :
           field('Annual Expenses (today\'s $)','annualExpenses',{prefix:'$',help:'Housing, food, travel, and general living costs. Grows with inflation. Include routine Medicare-era health costs here.'})
         }
