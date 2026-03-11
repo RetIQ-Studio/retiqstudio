@@ -205,8 +205,13 @@ console.log('\n⚙️  service-worker.js (→ app/):');
 const swPath = path.join(__dirname, 'service-worker.js');
 if (fs.existsSync(swPath)) {
   const swSrc = fs.readFileSync(swPath, 'utf8');
-  const swDist = minifyServiceWorker(swSrc);
+  // Inject build date into CACHE_NAME so every deploy produces a unique SW
+  // that the browser detects as changed, triggering the update banner
+  const today = new Date().toISOString().slice(0, 10);
+  const swWithDate = swSrc.replace(/("retiq-v\d+-cache-)[\d-]+(")/, `$1${today}$2`);
+  const swDist = minifyServiceWorker(swWithDate);
   fs.writeFileSync(path.join(APP_DIR, 'service-worker.js'), swDist);
+  console.log(`  Cache name: retiq-v1-cache-${today}`);
   console.log(`  ${(Buffer.byteLength(swSrc) / 1024).toFixed(1)} KB → ${(Buffer.byteLength(swDist) / 1024).toFixed(1)} KB`);
 }
 

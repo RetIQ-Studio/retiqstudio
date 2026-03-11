@@ -23,12 +23,6 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
-
-  // TRANSITIONAL: auto-activate so users running old cached pages (without
-  // the update banner) still receive this deploy.  Once all users have the
-  // banner code, REMOVE this line and bump CACHE_NAME.  Future deploys will
-  // then use the controlled "Update now" flow below.
-  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
