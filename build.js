@@ -160,7 +160,13 @@ if (!fs.existsSync(APP_DIR)) fs.mkdirSync(APP_DIR, { recursive: true });
 console.log('\n📦 app-index.html → retiq-deploy/app/index.html');
 const srcHtml = fs.readFileSync(SRC, 'utf8');
 const srcSize = Buffer.byteLength(srcHtml);
-const { output, jsCount, cssCount, jsSavedBytes, cssSavedBytes, htmlSaved } = processMainApp(srcHtml);
+let { output, jsCount, cssCount, jsSavedBytes, cssSavedBytes, htmlSaved } = processMainApp(srcHtml);
+
+// Inject build timestamp
+const buildTime = new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+output = output.replace(/__BUILD_TIMESTAMP__/g, buildTime);
+console.log(`  Build:      ${buildTime}`);
+
 const distSize = Buffer.byteLength(output);
 
 fs.writeFileSync(path.join(APP_DIR, 'index.html'), output);

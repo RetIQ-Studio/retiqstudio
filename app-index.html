@@ -414,7 +414,7 @@ button:hover { opacity: 0.88; }
   <div class="header-top">
     <div class="header-left">
       <a href="https://retirementiq.app/?landing" class="logo-text" style="text-decoration:none;color:inherit">RetIQ</a>
-      <span class="logo-badge">v4.0</span>
+      <span class="logo-badge">v4.1</span>
       <span id="regsBadge" class="logo-badge" style="opacity:0.7" title="Regulatory data year">2025</span>
       <span id="planBadge" class="plan-badge" title="Current plan">FREE</span>
       <div class="mode-toggle" id="modeToggle"></div>
@@ -431,6 +431,10 @@ button:hover { opacity: 0.88; }
           <a href="https://retirementiq.app/manual.html" target="_blank" class="header-overflow-item">Manual</a>
           <a href="https://retirementiq.app/security.html" target="_blank" class="header-overflow-item">&#128737; Security</a>
           <a class="header-overflow-item" onclick="shareRetIQ()" style="cursor:pointer">Share RetIQ</a>
+          <div style="border-top:1px solid var(--border);margin:2px 0"></div>
+          <button class="header-overflow-item" onclick="loadExample('clark')">Example: The Clarks</button>
+          <button class="header-overflow-item" onclick="loadExample('lee')">Example: The Lees</button>
+          <button class="header-overflow-item" onclick="loadExample('washington')">Example: The Washingtons</button>
           <button id="installBtn" class="header-overflow-item" style="display:none">Install App</button>
           <button id="activateBtn" class="header-overflow-item" title="Enter or manage your license">Activate</button>
         </div>
@@ -846,6 +850,7 @@ const ACA_FPL_ADDITIONAL = REGS.aca.fpl_additional;
 const ACA_FPL_INFLATE = REGS.aca.fpl_inflate;
 const IRMAA_BRACKETS_MFJ = REGS.irmaa.brackets_mfj;
 const IRMAA_BRACKETS_SINGLE = REGS.irmaa.brackets_single;
+const BUILD_TIMESTAMP = '__BUILD_TIMESTAMP__';
 
 // Pre-Medicare Healthcare Sources (v1.8)
 const HC_SOURCES = {
@@ -2323,6 +2328,156 @@ let state = {
 };
 // Store demo defaults for reset
 const DEMO_PARAMS = JSON.parse(JSON.stringify(state.params));
+
+// ── Example Plans ────────────────────────────────────────────────────
+const clarkParams = {
+  uiMode: 'essentials',
+  currentAge: 64, retirementAge: 65, endAge: 95, birthYear: 1961, birthMonth: 3, retireMonth: 0,
+  annualIncome: 110000, annualSavings: 18000, annualExpenses: 80000,
+  expenseMode: 'fixed', withdrawalRate: 4, preRetirementExpenses: 0, preRetirementExpenseInflation: 3,
+  incomeGrowth: 2, savingsGrowth: 2,
+  ssClaimAge: 67, ssAnnualIncome: 100000, ssCOLA: 2,
+  ssUseManual: true, ssManualMonthly: 2600,
+  survivorSSClaimAge: 60, useDetailedSS: false, earningsHistory: [],
+  spouseEnabled: true, spouseAge: 62, spouseBirthYear: 1963, spouseBirthMonth: 8,
+  spouseRetirementAge: 65, spouseRetireMonth: 0,
+  spouseIncome: 72000, spouseSavings: 10000, spouseIncomeGrowth: 2, spouseSavingsGrowth: 2,
+  spouseSSClaimAge: 67, spouseSSIncome: 65000,
+  spouseSSUseManual: true, spouseSSManualMonthly: 1900, spouseSurvivorSSClaimAge: 60,
+  nominalReturn: 7, inflation: 3, additionalIncome: 0, stateCode: 'FL',
+  pension: { enabled: false, annualAmount: 0, startAge: 65, cola: 0, name: 'Pension', survivorBenefit: 'none', taxablePercent: 100 },
+  spousePension: { enabled: false, annualAmount: 0, startAge: 65, cola: 0, name: 'Spouse Pension', survivorBenefit: 'none', taxablePercent: 100 },
+  preMedicareHealthcare: { enabled: false, source: 'aca', annualCost: 18000, inflation: 5, cobraDuration: 18, cobraFollowUpCost: 18000, cobraFollowUpInflation: 5, spousePlanFollowUpCost: 18000, spousePlanFollowUpInflation: 5, acaHouseholdSize: 2, acaBenchmarkOverride: 0, acaSubsidyRules: 'auto' },
+  expensePhases: { enabled: false, laterAge: 75, laterMultiplier: 85, lateAge: 85, lateMultiplier: 95 },
+  enforceContribLimits: true,
+  ssdiPrimary: { enabled: false, monthlyAmount: 0, startAge: 0, endAge: 66 },
+  ssdiSpouse: { enabled: false, monthlyAmount: 0, startAge: 0, endAge: 66 },
+  charitableGiving: { enabled: false, annualAmount: 0, schedule: [], useSchedule: false, growWithInflation: true },
+  debts: [], legacy: { enabled: false, targetAmount: 0, notes: '' },
+  longTermCare: { enabled: false, annualCost: 110000, startAge: 82, duration: 4, inflation: 5, hasInsurance: false, insuranceCoverage: 0 },
+  lifeInsurance: [],
+  withdrawalOrder: ['cash', 'hsa', 'taxable', 'pretax', 'roth'],
+  hsaAnnualContribution: 0, hsaContributionStopAge: 65, hsaCoverageType: 'self', hsaMedicalWithdrawalFraction: 1.0,
+  rothConversion: { enabled: false, strategy: 'fillBracket', fixedAmount: 40000, startAge: 65, endAge: 75, targetBracket: 0.22, targetMAGI: 200000, percentOfBalance: 10, customSchedule: [] },
+  accounts: [
+    { id: 1, name: '401(k)', type: 'pretax', balance: 800000, returnRate: 7 },
+    { id: 2, name: 'Roth IRA', type: 'roth', balance: 150000, returnRate: 7 },
+    { id: 3, name: 'Brokerage', type: 'taxable', balance: 100000, returnRate: 7 },
+  ],
+  postRetirementReturn: null, ssTrustFundReduction: { enabled: false, reductionPct: 20, startYear: 2034 },
+};
+
+const leeParams = {
+  uiMode: 'essentials',
+  currentAge: 59, retirementAge: 62, endAge: 95, birthYear: 1966, birthMonth: 7, retireMonth: 0,
+  annualIncome: 175000, annualSavings: 28000, annualExpenses: 88000,
+  expenseMode: 'fixed', withdrawalRate: 4, preRetirementExpenses: 0, preRetirementExpenseInflation: 3,
+  incomeGrowth: 2, savingsGrowth: 2,
+  ssClaimAge: 70, ssAnnualIncome: 160000, ssCOLA: 2,
+  ssUseManual: true, ssManualMonthly: 3200,
+  survivorSSClaimAge: 60, useDetailedSS: false, earningsHistory: [],
+  spouseEnabled: true, spouseAge: 57, spouseBirthYear: 1968, spouseBirthMonth: 11,
+  spouseRetirementAge: 62, spouseRetireMonth: 0,
+  spouseIncome: 92000, spouseSavings: 15000, spouseIncomeGrowth: 2, spouseSavingsGrowth: 2,
+  spouseSSClaimAge: 67, spouseSSIncome: 85000,
+  spouseSSUseManual: true, spouseSSManualMonthly: 2100, spouseSurvivorSSClaimAge: 60,
+  nominalReturn: 7, inflation: 3, additionalIncome: 0, stateCode: 'VA',
+  pension: { enabled: false, annualAmount: 0, startAge: 65, cola: 0, name: 'Pension', survivorBenefit: 'none', taxablePercent: 100 },
+  spousePension: { enabled: false, annualAmount: 0, startAge: 65, cola: 0, name: 'Spouse Pension', survivorBenefit: 'none', taxablePercent: 100 },
+  preMedicareHealthcare: { enabled: true, source: 'aca', annualCost: 18000, inflation: 5, cobraDuration: 18, cobraFollowUpCost: 18000, cobraFollowUpInflation: 5, spousePlanFollowUpCost: 18000, spousePlanFollowUpInflation: 5, acaHouseholdSize: 2, acaBenchmarkOverride: 0, acaSubsidyRules: 'auto' },
+  expensePhases: { enabled: false, laterAge: 75, laterMultiplier: 85, lateAge: 85, lateMultiplier: 95 },
+  enforceContribLimits: true,
+  ssdiPrimary: { enabled: false, monthlyAmount: 0, startAge: 0, endAge: 66 },
+  ssdiSpouse: { enabled: false, monthlyAmount: 0, startAge: 0, endAge: 66 },
+  charitableGiving: { enabled: false, annualAmount: 0, schedule: [], useSchedule: false, growWithInflation: true },
+  debts: [], legacy: { enabled: false, targetAmount: 0, notes: '' },
+  longTermCare: { enabled: false, annualCost: 110000, startAge: 82, duration: 4, inflation: 5, hasInsurance: false, insuranceCoverage: 0 },
+  lifeInsurance: [],
+  withdrawalOrder: ['cash', 'hsa', 'taxable', 'pretax', 'roth'],
+  hsaAnnualContribution: 0, hsaContributionStopAge: 65, hsaCoverageType: 'self', hsaMedicalWithdrawalFraction: 1.0,
+  rothConversion: { enabled: false, strategy: 'smartFill', fixedAmount: 40000, startAge: 62, endAge: 72, targetBracket: 0.22, targetMAGI: 200000, percentOfBalance: 10, customSchedule: [] },
+  accounts: [
+    { id: 1, name: '401(k)', type: 'pretax', balance: 820000, returnRate: 7 },
+    { id: 2, name: 'Spouse 401(k)', type: 'pretax', balance: 280000, returnRate: 7 },
+    { id: 3, name: 'Roth IRA', type: 'roth', balance: 180000, returnRate: 7 },
+    { id: 4, name: 'Brokerage', type: 'taxable', balance: 250000, returnRate: 7 },
+    { id: 5, name: 'Cash / HYS', type: 'cash', balance: 50000, returnRate: 4.5 },
+  ],
+  postRetirementReturn: null, ssTrustFundReduction: { enabled: false, reductionPct: 20, startYear: 2034 },
+};
+
+const washingtonParams = {
+  uiMode: 'full',
+  currentAge: 63, retirementAge: 65, endAge: 95, birthYear: 1962, birthMonth: 10, retireMonth: 0,
+  annualIncome: 130000, annualSavings: 20000, annualExpenses: 82000,
+  expenseMode: 'fixed', withdrawalRate: 4, preRetirementExpenses: 0, preRetirementExpenseInflation: 3,
+  incomeGrowth: 2, savingsGrowth: 2,
+  ssClaimAge: 70, ssAnnualIncome: 120000, ssCOLA: 2,
+  ssUseManual: true, ssManualMonthly: 2800,
+  survivorSSClaimAge: 60, useDetailedSS: false, earningsHistory: [],
+  spouseEnabled: true, spouseAge: 61, spouseBirthYear: 1964, spouseBirthMonth: 4,
+  spouseRetirementAge: 65, spouseRetireMonth: 0,
+  spouseIncome: 78000, spouseSavings: 12000, spouseIncomeGrowth: 2, spouseSavingsGrowth: 2,
+  spouseSSClaimAge: 67, spouseSSIncome: 70000,
+  spouseSSUseManual: true, spouseSSManualMonthly: 1700, spouseSurvivorSSClaimAge: 60,
+  nominalReturn: 7, inflation: 3, additionalIncome: 0, stateCode: 'GA',
+  pension: { enabled: true, annualAmount: 30000, startAge: 65, cola: 2, name: 'State Pension', survivorBenefit: 'joint50', taxablePercent: 100 },
+  spousePension: { enabled: false, annualAmount: 0, startAge: 65, cola: 0, name: 'Spouse Pension', survivorBenefit: 'none', taxablePercent: 100 },
+  preMedicareHealthcare: { enabled: false, source: 'aca', annualCost: 18000, inflation: 5, cobraDuration: 18, cobraFollowUpCost: 18000, cobraFollowUpInflation: 5, spousePlanFollowUpCost: 18000, spousePlanFollowUpInflation: 5, acaHouseholdSize: 2, acaBenchmarkOverride: 0, acaSubsidyRules: 'auto' },
+  expensePhases: { enabled: true, laterAge: 75, laterMultiplier: 85, lateAge: 85, lateMultiplier: 95 },
+  enforceContribLimits: true,
+  ssdiPrimary: { enabled: false, monthlyAmount: 0, startAge: 0, endAge: 66 },
+  ssdiSpouse: { enabled: false, monthlyAmount: 0, startAge: 0, endAge: 66 },
+  charitableGiving: { enabled: false, annualAmount: 0, schedule: [], useSchedule: false, growWithInflation: true },
+  debts: [
+    { id: 1, name: 'Mortgage', type: 'mortgage', monthlyPayment: 1800, startAge: 63, endAge: 72 },
+  ],
+  legacy: { enabled: true, targetAmount: 400000, notes: '' },
+  longTermCare: { enabled: false, annualCost: 110000, startAge: 82, duration: 4, inflation: 5, hasInsurance: false, insuranceCoverage: 0 },
+  lifeInsurance: [],
+  withdrawalOrder: ['cash', 'hsa', 'taxable', 'pretax', 'roth'],
+  hsaAnnualContribution: 0, hsaContributionStopAge: 65, hsaCoverageType: 'self', hsaMedicalWithdrawalFraction: 1.0,
+  rothConversion: { enabled: false, strategy: 'fillBracket', fixedAmount: 40000, startAge: 65, endAge: 75, targetBracket: 0.22, targetMAGI: 200000, percentOfBalance: 10, customSchedule: [] },
+  accounts: [
+    { id: 1, name: '401(k)', type: 'pretax', balance: 750000, returnRate: 7 },
+    { id: 2, name: 'Roth IRA', type: 'roth', balance: 200000, returnRate: 7 },
+    { id: 3, name: 'Brokerage', type: 'taxable', balance: 150000, returnRate: 7 },
+    { id: 4, name: 'Cash / HYS', type: 'cash', balance: 80000, returnRate: 4.5 },
+  ],
+  postRetirementReturn: null, ssTrustFundReduction: { enabled: false, reductionPct: 20, startYear: 2034 },
+};
+
+const exampleMeta = {
+  clark:      { name: 'The Clarks',      tagline: 'The Cost of Simplicity', params: clarkParams },
+  lee:        { name: 'The Lees',        tagline: 'The Optimization Gap', params: leeParams },
+  washington: { name: 'The Washingtons', tagline: 'The Complexity You Didn\'t Know You Had', params: washingtonParams },
+};
+
+function loadExample(key) {
+  if (proGuard()) return;
+  const ex = exampleMeta[key];
+  if (!ex) return;
+  if (!confirm('Load "' + ex.name + ' \u2014 ' + ex.tagline + '" example?\n\nThis will replace your current plan.')) return;
+  state.params = JSON.parse(JSON.stringify(ex.params));
+  migrateParams();
+  state.activeExample = key;
+  state.tab = 'dashboard';
+  state.mcResults = null;
+  state.rothOptResults = null;
+  saveState();
+  render();
+}
+
+function clearExample() {
+  if (!confirm('Reset to the default demo plan (The Johnsons)?')) return;
+  state.params = JSON.parse(JSON.stringify(DEMO_PARAMS));
+  state.activeExample = null;
+  state.tab = 'dashboard';
+  state.mcResults = null;
+  state.rothOptResults = null;
+  saveState();
+  render();
+}
 
 function isPro() { return localStorage.getItem('retiq_pro') === 'true' && !!localStorage.getItem('retiq_license'); }
 function proGate(featureName, teaser) {
@@ -7137,7 +7292,7 @@ function render() {
     case 'scenarios': html = renderScenarios(proj); break;
     case 'validation': html = renderValidation(); break;
   }
-  html += '<div class="footer">RetIQ v4.0 &#183; Build ' + new Date().toLocaleDateString('en-CA') + ' &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a> &#183; <a href="mailto:support@retirementiq.app" style="color:inherit;opacity:0.6;text-decoration:none;">support@retirementiq.app</a></div>';
+  html += '<div class="footer">RetIQ v4.1 &#183; Build ' + BUILD_TIMESTAMP + ' &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a> &#183; <a href="mailto:support@retirementiq.app" style="color:inherit;opacity:0.6;text-decoration:none;">support@retirementiq.app</a></div>';
   document.getElementById('app').innerHTML = html;
   renderDollarToggle();
   updateHeaderHeight();
