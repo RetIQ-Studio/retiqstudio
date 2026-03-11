@@ -7715,12 +7715,13 @@ document.getElementById("activateBtn")?.addEventListener("click", () => openActi
   const installBtn = document.getElementById("installBtn");
   if(!installBtn) return;
 
-  // Hide install button if already installed/standalone
+  // Hide install button if already installed/standalone, otherwise show it
   const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
   if(isStandalone) {
     installBtn.style.display = "none";
     return;
   }
+  installBtn.style.display = "";
 
   // Minimal modal (created on demand)
   function openInstallModal(canPrompt){

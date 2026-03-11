@@ -377,6 +377,7 @@
       <a href="/manual.html">Manual</a>
       <a href="/privacy.html">Privacy</a>
       <a href="mailto:support@retirementiq.app">Support</a>
+      <a href="#" id="installNavBtn" style="display:none" onclick="event.preventDefault();openInstallModal()">Install App</a>
     </div>
   </div>
 </nav>
@@ -789,6 +790,98 @@ const io = new IntersectionObserver(
   { threshold: 0.08 }
 );
 document.querySelectorAll('.r0:not(.hero .r0)').forEach(el => io.observe(el));
+
+// ---------- PWA Install ----------
+(function(){
+  const installNavBtn = document.getElementById("installNavBtn");
+  if(!installNavBtn) return;
+
+  const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  if(isStandalone) return;
+
+  // Show install link in nav (always visible when not standalone)
+  installNavBtn.style.display = "";
+
+  window.__retiqDeferredPrompt = null;
+  window.addEventListener("beforeinstallprompt",(e)=>{
+    e.preventDefault();
+    window.__retiqDeferredPrompt = e;
+  });
+
+  window.openInstallModal = function(){
+    const canPrompt = !!window.__retiqDeferredPrompt;
+    const existing = document.getElementById("retiqInstallModal");
+    if(existing) existing.remove();
+
+    const overlay = document.createElement("div");
+    overlay.id = "retiqInstallModal";
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;";
+
+    const card = document.createElement("div");
+    card.style.cssText = "max-width:520px;width:100%;background:#0b1220;color:#e5e7eb;border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:16px 16px 14px;box-shadow:0 10px 30px rgba(0,0,0,.35);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;";
+
+    const title = document.createElement("div");
+    title.style.cssText = "font-weight:800;font-size:16px;margin-bottom:8px;";
+    title.textContent = "Install RetIQ";
+
+    const body = document.createElement("div");
+    body.style.cssText = "font-size:13px;line-height:1.5;color:#cbd5e1;margin-bottom:12px;";
+
+    const ua = navigator.userAgent;
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    const isMacSafari = /^((?!chrome|android).)*safari/i.test(ua) && /Mac/i.test(ua);
+    const isChromium = /Chrome|Edg/i.test(ua);
+
+    if(canPrompt){
+      body.innerHTML = "Your browser supports one-click install. Click <b>Install now</b>.";
+    } else if(isIOS){
+      body.innerHTML = "On iPhone/iPad: tap <b>Share</b> → <b>Add to Home Screen</b>.";
+    } else if(isMacSafari){
+      body.innerHTML = "On Safari (macOS): use <b>File</b> → <b>Add to Dock</b> (or Share → Add to Dock).";
+    } else if(isChromium){
+      body.innerHTML = "In Chrome/Edge: open the browser menu → <b>Install app</b> (or the install icon in the address bar).";
+    } else {
+      body.innerHTML = "Use your browser's install option (often in the menu) to install this app.";
+    }
+
+    const actions = document.createElement("div");
+    actions.style.cssText = "display:flex;gap:10px;justify-content:flex-end;";
+
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "Close";
+    closeBtn.style.cssText = "padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:transparent;color:#e5e7eb;cursor:pointer;";
+    closeBtn.onclick = ()=>overlay.remove();
+    actions.appendChild(closeBtn);
+
+    if(canPrompt){
+      const doBtn = document.createElement("button");
+      doBtn.textContent = "Install now";
+      doBtn.style.cssText = "padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:#2563eb;color:white;cursor:pointer;";
+      doBtn.onclick = async ()=>{
+        try{
+          await window.__retiqDeferredPrompt.prompt();
+          window.__retiqDeferredPrompt = null;
+          overlay.remove();
+        }catch(e){
+          overlay.remove();
+          alert("Install prompt could not be shown. Use the browser menu to install.");
+        }
+      };
+      actions.insertBefore(doBtn, closeBtn);
+    }
+
+    card.appendChild(title);
+    card.appendChild(body);
+    card.appendChild(actions);
+    overlay.appendChild(card);
+    overlay.addEventListener("click",(e)=>{ if(e.target===overlay) overlay.remove();});
+    document.body.appendChild(overlay);
+  };
+
+  window.addEventListener("appinstalled", ()=>{
+    installNavBtn.style.display = "none";
+  });
+})();
 </script>
 </body>
 </html>
