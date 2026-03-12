@@ -187,7 +187,6 @@ button:hover { opacity: 0.88; }
 .tip-icon:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
 .tip-bubble { display: none; position: fixed; background: var(--tooltip-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 12px; font-weight: 400; color: var(--text); line-height: 1.55; width: max-content; max-width: min(260px, calc(100vw - 32px)); z-index: 200; box-shadow: 0 4px 16px rgba(0,0,0,0.25); pointer-events: auto; }
 .tip-bubble::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: var(--border); }
-.tip-wrap.tip-open .tip-bubble { display: block; }
 /* Keep bubble on-screen on narrow viewports */
 @media (max-width: 700px) {
   .tip-bubble { left: auto; right: -8px; transform: none; max-width: 240px; }
@@ -390,8 +389,8 @@ button:hover { opacity: 0.88; }
 </head>
 <body>
 
-<div id="tip-backdrop" style="display:none;position:fixed;inset:0;z-index:9998;background:transparent;-webkit-tap-highlight-color:transparent"></div>
-<div id="tip-overlay" style="display:none;position:fixed;z-index:9999;background:var(--tooltip-bg);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;font-weight:400;color:var(--text);line-height:1.55;max-width:260px;width:max-content;box-shadow:0 4px 16px rgba(0,0,0,0.25);cursor:pointer;text-transform:none;letter-spacing:normal"></div>
+<div id="tip-backdrop" style="display:none;position:fixed;inset:0;z-index:9998;background:transparent"></div>
+<div id="tip-overlay" style="display:none;position:fixed;z-index:9999;background:var(--tooltip-bg);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;font-weight:400;color:var(--text);line-height:1.55;max-width:260px;width:max-content;box-shadow:0 4px 16px rgba(0,0,0,0.25);text-transform:none;letter-spacing:normal"></div>
 
 <div id="trustLine" style="
   text-align:center;
@@ -3769,77 +3768,42 @@ const _tipBackdrop = () => document.getElementById('tip-backdrop');
 
 function tipDismiss() {
   document.querySelectorAll('.tip-open').forEach(t => t.classList.remove('tip-open'));
-  const overlay = _tipOverlay();
-  const backdrop = _tipBackdrop();
-  if (overlay) overlay.style.display = 'none';
-  if (backdrop) backdrop.style.display = 'none';
+  const ov = _tipOverlay(); if (ov) ov.style.display = 'none';
+  const bd = _tipBackdrop(); if (bd) bd.style.display = 'none';
 }
-
-(function() {
-  function _backdropDismiss(e) {
-    e.stopPropagation();
-    e.preventDefault();
-    tipDismiss();
-  }
-  document.addEventListener('DOMContentLoaded', function() {
-    const bd = document.getElementById('tip-backdrop');
-    if (bd) {
-      bd.addEventListener('touchstart', _backdropDismiss, { passive: false });
-      bd.addEventListener('click', _backdropDismiss);
-    }
-    const ov = document.getElementById('tip-overlay');
-    if (ov) {
-      ov.addEventListener('touchstart', _backdropDismiss, { passive: false });
-      ov.addEventListener('click', _backdropDismiss);
-    }
-  });
-})();
 
 function tipToggle(e, el) {
   if (e && e.stopPropagation) e.stopPropagation();
   if (e && e.preventDefault) e.preventDefault();
-  const overlay = _tipOverlay();
-  const backdrop = _tipBackdrop();
+  const ov = _tipOverlay();
+  const bd = _tipBackdrop();
   const bubble = el.querySelector('.tip-bubble');
   if (!bubble) return;
-
-  // If already open, close it
-  if (el.classList.contains('tip-open')) {
-    tipDismiss();
-    return;
-  }
-
-  // Close any other open tips first
+  const wasOpen = el.classList.contains('tip-open');
   tipDismiss();
-
+  if (wasOpen) return; // was open, now closed — done
   // Open this tip
   el.classList.add('tip-open');
-  overlay.innerHTML = bubble.innerHTML;
-  overlay.style.display = 'block';
-  if (backdrop) backdrop.style.display = 'block';
-
-  // Position overlay above/below the icon, clamped to viewport
+  ov.innerHTML = bubble.innerHTML;
+  ov.style.display = 'block';
+  if (bd) bd.style.display = 'block';
+  // Position above icon, clamped to viewport
   const iconRect = el.querySelector('.tip-icon').getBoundingClientRect();
   const PAD = 16;
-  overlay.style.left = '-9999px';
-  overlay.style.top = '-9999px';
-
+  ov.style.left = '-9999px'; ov.style.top = '-9999px';
   requestAnimationFrame(() => {
-    const ow = overlay.offsetWidth;
-    const oh = overlay.offsetHeight;
+    const ow = ov.offsetWidth, oh = ov.offsetHeight;
     let left = iconRect.left + iconRect.width / 2 - ow / 2;
     left = Math.max(PAD, Math.min(left, window.innerWidth - ow - PAD));
     let top = iconRect.top - oh - 10;
     if (top < PAD) top = iconRect.bottom + 10;
-    overlay.style.left = left + 'px';
-    overlay.style.top = top + 'px';
+    ov.style.left = left + 'px'; ov.style.top = top + 'px';
   });
 }
 
 function tipShow(el) {
   if (window.matchMedia('(hover: none)').matches) return;
-  const bubble = el.querySelector('.tip-bubble');
-  if (!bubble || el.classList.contains('tip-open')) return;
+  if (!el.querySelector('.tip-bubble') || el.classList.contains('tip-open')) return;
   tipToggle(null, el);
 }
 
@@ -3848,11 +3812,22 @@ function tipHide(el) {
   tipDismiss();
 }
 
-// Fallback: dismiss on input focus (e.g. user taps a field while tip is open)
-document.addEventListener('focus', function(e) {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+// Backdrop and overlay dismiss — wired via JS so stopPropagation works
+window.addEventListener('DOMContentLoaded', function() {
+  function bdHandler(e) {
+    e.stopPropagation();
+    e.preventDefault();
     tipDismiss();
   }
+  const bd = document.getElementById('tip-backdrop');
+  const ov = document.getElementById('tip-overlay');
+  if (bd) { bd.addEventListener('touchstart', bdHandler, {passive:false}); bd.addEventListener('click', bdHandler); }
+  if (ov) { ov.addEventListener('touchstart', bdHandler, {passive:false}); ov.addEventListener('click', bdHandler); }
+});
+
+// Dismiss when user focuses an input
+document.addEventListener('focus', function(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') tipDismiss();
 }, true);
 
 function field(label, key, opts = {}) {
