@@ -184,23 +184,37 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <tr><td>Spouse Income / Savings</td><td>Same fields for spouse if enabled.</td></tr>
       <tr><td>Income Growth Rate</td><td>Annual raise percentage. Applied to both spouses. Typical: 2-5%.</td></tr>
       <tr><td>Savings Growth Rate</td><td>Annual increase in savings amount. Match income growth or set higher to model increasing savings rate.</td></tr>
-      <tr><td>Other Annual Income</td><td>Additional income (rental, part-time, annuities). Separate from pensions which have their own tab. Use Start Age / End Age to control when this income is active (defaults to retirement age through end of plan). Income is included in tax and MAGI calculations.</td></tr>
     </table>
     <p>The tab shows a preview of projected income at retirement age based on current values and growth rates.</p>
 
-    <h3>One-Time Cash Events (Full mode)</h3>
-    <p>Model large one-time inflows such as selling a home or rental property. Each event specifies:</p>
+    <h3>Recurring Income Streams (Full mode)</h3>
+    <p>Model multiple ongoing income sources beyond employment. Each stream specifies:</p>
     <ul>
-      <li><strong>Age at Sale:</strong> When the event occurs in your projection.</li>
-      <li><strong>Gross Amount:</strong> Sale price before costs.</li>
-      <li><strong>Net After Selling Costs:</strong> Percentage remaining after agent fees, closing costs, repairs (e.g., 90%).</li>
-      <li><strong>Cost Basis:</strong> Original purchase price plus improvements. Used to compute capital gains.</li>
-      <li><strong>Property Type:</strong> <em>Investment Property</em> (full cap gains apply) or <em>Primary Home</em> (Section 121 exclusion: $250K single / $500K married filing jointly).</li>
-      <li><strong>Deposit To:</strong> Brokerage (taxable) or Cash/HYS account.</li>
+      <li><strong>Annual Amount:</strong> Income per year in today&rsquo;s dollars.</li>
+      <li><strong>Annual Growth:</strong> Inflation rate for the stream (e.g., 2&ndash;3% for rental income).</li>
+      <li><strong>Start / End Age:</strong> Active date range (can begin before retirement for pre-retirement side income).</li>
+      <li><strong>Tax Treatment:</strong> <em>Ordinary Income</em> (rental, consulting, royalties, annuities), <em>Qualified Dividend</em> (US stock/ETF dividends at 0%/15%/20% LTCG rates), or <em>Non-Qualified Dividend</em> (REITs, money market, foreign dividends at ordinary rates).</li>
+      <li><strong>Whose Income:</strong> Primary, Spouse, or Both/Joint. Joint income stops when either person dies.</li>
     </ul>
-    <p>Capital gains from cash events are taxed in the event year. The info boxes show your projected net proceeds and estimated capital gains.</p>
-    <div class="tip"><strong>Example &mdash; Home Downsizing:</strong> Selling a $600K primary home at age 72 with 90% net and $200K cost basis. For a married couple, the $340K net gain minus $500K exclusion = $0 taxable. Proceeds go to brokerage for continued growth.</div>
-    <div class="tip"><strong>Example &mdash; Rental Property:</strong> Selling a $400K rental at age 75 with 87% net and $150K basis. Net proceeds: $348K with $198K in taxable capital gains (no Section 121 exclusion for investment property).</div>
+    <p>For rental income, enter net after operating expenses. For consulting, enter after self-employment tax (~14.1%). State tax may differ from federal treatment shown for dividends.</p>
+    <div class="tip"><strong>Example:</strong> $24,000/yr rental income, ages 65&ndash;85, 2% growth, ordinary income. At age 75 the stream grows to ~$29,250/yr.</div>
+
+    <h3>One-Time Income Events (Full mode)</h3>
+    <p>Two event types for large one-time inflows:</p>
+    <p><strong>Asset Sales</strong> (home, investment property):</p>
+    <ul>
+      <li><strong>Age at Sale, Gross Amount, Net After Selling Costs, Cost Basis, Property Type, Deposit To</strong> &mdash; same as before.</li>
+      <li><strong>Whose Sale:</strong> Primary, Spouse, or Both/Joint (shown when spouse is enabled).</li>
+    </ul>
+    <p><strong>Ordinary Income Events</strong> (severance, bonus, inheritance, settlement):</p>
+    <ul>
+      <li><strong>Age Received:</strong> When the income occurs.</li>
+      <li><strong>Amount:</strong> Full amount received.</li>
+      <li><strong>Whose Income:</strong> Primary, Spouse, or Both/Joint.</li>
+      <li><strong>Deposit To:</strong> Cash/HYS or Brokerage (taxable).</li>
+    </ul>
+    <p>Asset sales are taxed as capital gains; ordinary income events are taxed at marginal rates. Both support person attribution &mdash; events are skipped when the attributed person (or either person for joint) has died.</p>
+    <div class="tip"><strong>Example &mdash; Severance:</strong> $150K severance at age 60, deposited to cash. Taxed as ordinary income in that year, raising your federal and state tax.</div>
   </div>
 
   <!-- 6 -->
@@ -752,7 +766,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
   <!-- 25 -->
   <div class="sec" id="validation">
     <h2>25. Validation Report</h2>
-    <p>RetIQ includes a built-in Validation tab that runs 276 automated tests against every calculation in the engine. Each test compares the engine's output to values derived from authoritative sources:</p>
+    <p>RetIQ includes a built-in Validation tab that runs 276+ automated tests against every calculation in the engine. Each test compares the engine's output to values derived from authoritative sources:</p>
     <ul>
       <li><strong>IRS:</strong> Rev. Proc. 2024-40 (2025 tax brackets, standard deduction, capital gains thresholds), Pub 590-B (RMD Uniform Lifetime Table), Pub 915 (SS taxation worksheets), Notice 2024-80 (QCD limits, contribution limits), IRC &sect;1411 (NIIT).</li>
       <li><strong>SSA:</strong> 2025 bend points and wage base, FRA schedules (POMS RS 00615.003), early reduction rates (RS 00615.301), delayed retirement credits (RS 00615.304), retirement earnings test limits (Pub 05-10069).</li>
@@ -808,7 +822,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Use the <strong>Strategy Report Card</strong> on the Dashboard. It automatically tests alternative SS timing, Roth conversion, and retirement age strategies against your current plan. Choose your goal (max net worth, min taxes, etc.) and the table ranks every alternative. Click Apply on any row to adopt it instantly. For deeper Roth analysis, use the <a href="#rothconv">Roth Optimizer</a>. For stress-testing, use <a href="#scenarios">Scenario Comparison</a> and <a href="#montecarlo">Monte Carlo</a>.</p>
 
     <h3>How can I verify the calculations are correct?</h3>
-    <p>Open the <strong>Validation</strong> tab in the app's main navigation. It displays 276 automated tests grouped by category, each showing the expected value (from IRS/SSA/CMS sources), the engine's actual result, and a pass/fail status. You can also right-click the app and select View Page Source to inspect the calculation code directly. See the <a href="#validation">Validation Report</a> section for details on sources and methodology.</p>
+    <p>Open the <strong>Validation</strong> tab in the app's main navigation. It displays 276+ automated tests grouped by category, each showing the expected value (from IRS/SSA/CMS sources), the engine's actual result, and a pass/fail status. You can also right-click the app and select View Page Source to inspect the calculation code directly. See the <a href="#validation">Validation Report</a> section for details on sources and methodology.</p>
 
     <h3>What happens to my spouse's benefits if I'm on SSDI and die?</h3>
     <p>Your SSDI payments stop, but your surviving spouse can claim a survivor benefit based on your Social Security work record. RetIQ calculates this from your PIA (or your SSDI amount if no separate SS income was entered). The survivor receives the higher of their own SS benefit or the survivor benefit &mdash; not both.</p>

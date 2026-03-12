@@ -1014,27 +1014,6 @@ function estimateSS(params) {
   return { annual: adjusted * 12, monthly: adjusted, fra, aime: Math.round(aime), piaMonthly: Math.floor(piaMonthly) };
 }
 
-// Spousal benefit: up to 50% of worker's PIA at FRA
-function calcSpousalBenefit(workerPIA, spouseOwnPIA) {
-  const spousalMax = workerPIA * 0.5;
-  return Math.max(0, Math.round((spousalMax - spouseOwnPIA) * 12));
-}
-
-// SS claiming age comparison table
-function ssClaimTable(avgIncome, birthYear = 1960) {
-  const ages = [62, 63, 64, 65, 66, 67, 68, 69, 70];
-  return ages.map(age => {
-    const r = estimateSS({ avgIncome, claimAge: age, birthYear });
-    // Breakeven vs age 62
-    const at62 = estimateSS({ avgIncome, claimAge: 62, birthYear });
-    const diff = r.annual - at62.annual;
-    const yearsCollected62 = age - 62;
-    const lostFrom62 = at62.annual * yearsCollected62;
-    const breakeven = diff > 0 ? Math.round(age + lostFrom62 / diff) : null;
-    return { age, ...r, breakeven };
-  });
-}
-
 // SS Retirement Earnings Test: SSA withholds benefits when claiming before FRA with earnings above exempt amount
 // 2025 rules: $1/$2 under FRA; $1/$3 in FRA year; nothing at/after FRA. Does NOT apply to SSDI.
 // TODO v1.8: Model FRA benefit recalculation (SSA increases monthly benefit at FRA to credit withheld months)
@@ -1533,7 +1512,6 @@ function runProjection(p) {
         // Ordinary income: full amount taxed as ordinary income, deposited to destination
         const amt = Math.round(ev.amount || 0);
         ordinaryIncomeEvents += amt;
-        cashEventNet += amt;
         if (ev.destination === 'cash') cash += amt;
         else { taxableInv += amt; if (taxableBasis !== null) taxableBasis += amt; }
       } else {
@@ -1566,7 +1544,7 @@ function runProjection(p) {
       if (age < (s.startAge || 0) || age > (s.endAge || p.endAge)) continue;
       if (s.whose === 'spouse' && (!p.spouseEnabled || spouseDead)) continue;
       if (s.whose === 'primary' && primaryDead) continue;
-      if (s.whose === 'joint' && primaryDead && spouseDead) continue;
+      if (s.whose === 'joint' && (primaryDead || spouseDead)) continue;
       const yrs = age - (s.startAge || 0);
       const amt = Math.round((s.amount || 0) * Math.pow(1 + (s.inflation || 0) / 100, yrs));
       if (s.taxTreatment === 'qualified_dividend') {
@@ -2294,7 +2272,7 @@ function runMonteCarlo(p, n = 500, retStd = 6, infStd = 1.5, model = 'normal', c
       inflationSeq.push(inf);
     }
 
-    const mp = { ...p, _returnSeq: returnSeq, _inflationSeq: inflationSeq, _mcRetStd: retStd };
+    const mp = { ...p, _returnSeq: returnSeq, _inflationSeq: inflationSeq };
     const proj = runProjection(mp);
     results.push({ final: proj[proj.length - 1].netWorth, proj,
       bustAge: proj.find(y => y.netWorth <= 0)?.age || null });
@@ -4487,7 +4465,6 @@ function exportDashboardSummary() {
 function renderThisYear(proj, p, bust) {
   if (!proj || proj.length < 2) return '';
   const y = proj[0];
-  const y1 = proj[1];
   const collapsed = state.thisYearCollapsed;
   const titleLabel = y.retired
     ? `This Year's Retirement Plan (Age ${y.age})`
