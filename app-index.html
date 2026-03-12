@@ -390,8 +390,8 @@ button:hover { opacity: 0.88; }
 </head>
 <body>
 
-<div id="tip-backdrop" onclick="tipDismiss()" ontouchstart="tipDismiss()" style="display:none;position:fixed;inset:0;z-index:9998;background:transparent;-webkit-tap-highlight-color:transparent"></div>
-<div id="tip-overlay" onclick="tipDismiss()" ontouchstart="tipDismiss()" style="display:none;position:fixed;z-index:9999;background:var(--tooltip-bg);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;font-weight:400;color:var(--text);line-height:1.55;max-width:260px;width:max-content;box-shadow:0 4px 16px rgba(0,0,0,0.25);cursor:pointer"></div>
+<div id="tip-backdrop" style="display:none;position:fixed;inset:0;z-index:9998;background:transparent;-webkit-tap-highlight-color:transparent"></div>
+<div id="tip-overlay" style="display:none;position:fixed;z-index:9999;background:var(--tooltip-bg);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;font-weight:400;color:var(--text);line-height:1.55;max-width:260px;width:max-content;box-shadow:0 4px 16px rgba(0,0,0,0.25);cursor:pointer;text-transform:none;letter-spacing:normal"></div>
 
 <div id="trustLine" style="
   text-align:center;
@@ -3774,6 +3774,26 @@ function tipDismiss() {
   if (overlay) overlay.style.display = 'none';
   if (backdrop) backdrop.style.display = 'none';
 }
+
+(function() {
+  function _backdropDismiss(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    tipDismiss();
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    const bd = document.getElementById('tip-backdrop');
+    if (bd) {
+      bd.addEventListener('touchstart', _backdropDismiss, { passive: false });
+      bd.addEventListener('click', _backdropDismiss);
+    }
+    const ov = document.getElementById('tip-overlay');
+    if (ov) {
+      ov.addEventListener('touchstart', _backdropDismiss, { passive: false });
+      ov.addEventListener('click', _backdropDismiss);
+    }
+  });
+})();
 
 function tipToggle(e, el) {
   if (e && e.stopPropagation) e.stopPropagation();
