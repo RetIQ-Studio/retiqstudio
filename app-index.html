@@ -3785,35 +3785,29 @@ function tipPosition(el) {
   bubble.style.top = (top > 0 ? top : r.bottom + 8) + 'px';
   bubble.style.visibility = '';
 }
-let _closeTips_skipEl = null;
 function tipToggle(e, el) {
-  if (e && e.stopPropagation) e.stopPropagation();
-  _closeTips_skipEl = el;
+  if (e && e.preventDefault) e.preventDefault();
   document.querySelectorAll('.tip-open').forEach(t => { if (t !== el) t.classList.remove('tip-open'); }); el.classList.toggle('tip-open'); if (el.classList.contains('tip-open')) tipPosition(el); }
-function _closeTips(skipEl) {
-  document.querySelectorAll('.tip-open').forEach(t => {
-    if (t !== skipEl) t.classList.remove('tip-open');
-  });
-  // If no tips remain open, hide overlay
-  if (!document.querySelector('.tip-open')) {
-    const overlay = typeof _tipOverlay === 'function' ? _tipOverlay() : null;
-    if (overlay) overlay.style.display = 'none';
-  }
+function _dismissAllTips() {
+  document.querySelectorAll('.tip-open').forEach(t => t.classList.remove('tip-open'));
+  const overlay = typeof _tipOverlay === 'function' ? _tipOverlay() : null;
+  if (overlay) overlay.style.display = 'none';
 }
-document.addEventListener('click', function() { _closeTips(null); });
+// Use touchstart for reliable dismiss on iOS WKWebView
 document.addEventListener('touchstart', function(e) {
-  const skip = _closeTips_skipEl;
-  _closeTips_skipEl = null;
-  if (!e.target.closest('.tip-wrap')) {
-    _closeTips(null);
-  } else {
-    _closeTips(skip);
+  if (!e.target.closest('.tip-icon')) {
+    _dismissAllTips();
   }
 }, { passive: true });
-// Also close when user taps into an input field
+// Keep click as fallback for desktop/simulator
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.tip-icon')) {
+    _dismissAllTips();
+  }
+});
 document.addEventListener('focus', function(e) {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
-    _closeTips(null);
+    _dismissAllTips();
   }
 }, true);
 
