@@ -455,7 +455,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>This tab has two sections that work together: the <strong>Strategy</strong> (your active plan) and the <strong>Optimizer</strong> (a research tool). Understanding the relationship between them is key.</p>
 
     <h3>Roth Conversion Strategy (your active plan)</h3>
-    <p>Whatever you configure here is your <em>live</em> conversion plan &mdash; it feeds directly into the Dashboard, Projection table, Monte Carlo, and Scenarios. Toggle the checkbox to enable or disable conversions entirely.</p>
+    <p>Whatever you configure here is your <em>live</em> conversion plan &mdash; it feeds directly into the Dashboard, Projection table, Monte Carlo, and Scenarios. Toggle the checkbox to enable or disable conversions entirely. When conversions are spread over multiple years, this is often called a <strong>Roth Conversion Ladder</strong> &mdash; each year&rsquo;s conversion starts its own 5-year clock before penalty-free access (if under 59&frac12;).</p>
     <p>Six strategy types:</p>
     <ul>
       <li><strong>Fixed Amount:</strong> Convert a set dollar amount each year (e.g., $50K/yr).</li>
@@ -465,7 +465,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <li><strong>% of Pre-Tax Balance:</strong> Convert a percentage of remaining pre-tax balance each year. The amount naturally decreases as the balance shrinks.</li>
       <li><strong>Custom Schedule:</strong> Set a specific conversion amount for each year in the conversion window. Use the Generate Optimal button to auto-fill amounts based on greedy per-year optimization.</li>
     </ul>
-    <p><strong>Start / End Age</strong> defines the conversion window. The sweet spot is typically between retirement (when earned income drops) and RMD start age (when forced distributions begin).</p>
+    <p><strong>Start / End Age</strong> defines the conversion window. The sweet spot is typically between retirement (when earned income drops) and RMD start age (when forced distributions begin). If you plan to access converted funds before 59&frac12;, start your ladder at least 5 years early &mdash; each conversion year begins a separate 5-year waiting period for penalty-free withdrawal. Conversions after 59&frac12; are accessible immediately.</p>
 
     <h3>Impact Analysis</h3>
     <p>Directly below the strategy inputs, this section compares your current strategy against doing no conversions at all. It shows total converted, tax cost, lifetime tax delta, RMD reduction, IRMAA impact, final net worth change, and breakeven age.</p>
@@ -478,8 +478,17 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     </ul>
     <p>This section updates instantly whenever you change any strategy parameter.</p>
 
+    <h3>5-Year Rule Tracker</h3>
+    <p>Below the Impact Analysis, the <strong>5-Year Rule Tracker</strong> shows every conversion year in your ladder with the amount converted and the exact age and calendar year each tranche becomes penalty-free. Each Roth conversion starts its own 5-year clock &mdash; converted amounts withdrawn before the clock expires (and before age 59&frac12;) may incur a 10% early withdrawal penalty.</p>
+    <ul>
+      <li><strong>Green &#10003;</strong> conversions whose 5-year clock has already expired and you are past 59&frac12; &mdash; penalty-free now.</li>
+      <li><strong>Amber</strong> conversions made before 59&frac12; that require <em>both</em> the 5-year clock to expire <em>and</em> reaching age 59&frac12; for penalty-free access.</li>
+      <li>Conversions after 59&frac12; only need the 5-year clock (no age gate).</li>
+    </ul>
+    <div class="tip"><strong>Note:</strong> Roth <em>contributions</em> (not conversions) can always be withdrawn penalty-free at any time. Roth <em>earnings</em> are tax- and penalty-free after age 59&frac12; with a 5-year-old account. The tracker applies only to the converted amounts.</div>
+
     <h3>Roth Conversion Optimizer (research tool)</h3>
-    <p>Click <strong>Find Optimal Strategy</strong> to test ~200+ combinations of fixed amounts ($5K&ndash;$200K), fill-bracket targets (12%/22%/24%), Smart Fill targets (IRMAA-aware bracket fill), and age windows. The optimizer ranks the top 8 results by a composite score that weighs tax savings, IRMAA impact, and net worth gain.</p>
+    <p>Click <strong>Find Optimal Strategy</strong> to test ~200+ Roth Conversion Ladder combinations of fixed amounts ($5K&ndash;$200K), fill-bracket targets (12%/22%/24%), Smart Fill targets (IRMAA-aware bracket fill), and age windows. The optimizer ranks the top 8 results by a composite score that weighs tax savings, IRMAA impact, and net worth gain.</p>
     <p>The optimizer does <em>not</em> change your plan automatically. It shows you what could work better and lets you decide.</p>
     <p>Click <strong>Apply</strong> on any row to load that strategy into your active plan. The Strategy section updates with the new settings, the Impact Analysis re-computes, and all other tabs (Dashboard, Projection, Monte Carlo) reflect the change. The optimizer table stays visible with a &ldquo;&#10003; Applied&rdquo; marker so you can compare.</p>
 

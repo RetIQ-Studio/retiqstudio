@@ -5995,6 +5995,8 @@ function renderInputs() {
       <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
         Converting pre-tax (401k/Traditional IRA) funds to Roth means paying taxes now in exchange for tax-free growth and withdrawals later.
         The optimal window is typically between retirement and RMD start age, when taxable income is lower.
+        When conversions are spread over multiple years, this is often called a <strong style="color:var(--cyan)">Roth Conversion Ladder</strong> &mdash;
+        each year's conversion starts its own 5-year clock before penalty-free access (if under 59&frac12;).
       </div>
 
       <div style="margin-bottom:14px">
@@ -6089,6 +6091,23 @@ function renderInputs() {
               <input type="number" class="field-input" value="${rc.endAge||72}" onchange="setRothConv('endAge',Number(this.value))">
               <div class="field-help">Before RMDs start</div></div>
           </div>
+          <div style="font-size:11px;color:var(--text-faint);line-height:1.6;margin-top:6px;padding:8px 10px;background:var(--bg-base);border-radius:6px;border-left:3px solid var(--cyan)">
+            <strong style="color:var(--cyan)">&#128712; Ladder timing:</strong> If you plan to access converted funds before 59&frac12;, start your ladder at least 5 years early &mdash;
+            each conversion year begins a separate 5-year waiting period for penalty-free withdrawal. Conversions after 59&frac12; are accessible immediately.
+          </div>
+          ${(() => {
+            const retAge = p.retirementAge || 65;
+            const startAge = rc.startAge || 65;
+            if (startAge < 59.5 || retAge < 59.5) {
+              return '<div style="font-size:11px;color:var(--amber);line-height:1.6;margin-top:6px;padding:8px 10px;background:var(--bg-base);border-radius:6px;border-left:3px solid var(--amber)">' +
+                '<strong>&#9888; Early retirement note:</strong> ' +
+                (retAge < 59.5 ? 'You retire before 59&frac12;. ' : '') +
+                'Roth conversions before 59&frac12; are subject to a 5-year waiting period before the converted amount can be withdrawn penalty-free. ' +
+                'Plan your ladder start accordingly &mdash; convert early enough that the 5-year clock expires when you need the funds.' +
+                '</div>';
+            }
+            return '';
+          })()}
         </div>
 
         <div>
@@ -6103,11 +6122,48 @@ function renderInputs() {
     ${impactHtml}
 
     ${(() => {
+      // 5-Year Rule Tracker
+      if (!rc.enabled || !projWith) return '';
+      const convYears = projWith.filter(y => y.rothConv > 0);
+      if (convYears.length === 0) return '';
+      const currentAge = p.age || 65;
+      const birthYear = new Date().getFullYear() - currentAge;
+      const rows = convYears.map(y => {
+        const convYear = birthYear + y.age;
+        const accessYear = convYear + 5;
+        const accessAge = y.age + 5;
+        const under59 = y.age < 59.5;
+        const penaltyFreeAge = under59 ? Math.max(accessAge, 59.5) : y.age;
+        const penaltyFreeYear = under59 ? Math.max(accessYear, birthYear + Math.ceil(59.5)) : convYear;
+        const isMature = currentAge >= penaltyFreeAge;
+        return `<tr>
+          <td style="text-align:center;color:var(--text)">${y.age}</td>
+          <td style="text-align:center;color:var(--text-faint)">${convYear}</td>
+          <td style="text-align:right;color:var(--cyan)">${fmt(y.rothConv)}</td>
+          <td style="text-align:center;color:${isMature ? 'var(--green)' : under59 ? 'var(--amber)' : 'var(--text-dim)'}">
+            ${isMature ? '&#10003; Now' : under59 ? 'Age ' + Math.ceil(penaltyFreeAge) + ' (' + penaltyFreeYear + ')' : 'Age ' + accessAge + ' (' + accessYear + ')'}
+          </td>
+        </tr>`;
+      }).join('');
+      return `<div class="card" data-accent="cyan"><div class="card-title">5-Year Rule Tracker</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.5">
+          Each Roth conversion starts its own 5-year clock. Converted amounts withdrawn before the clock expires (and before age 59&frac12;) may incur a 10% early withdrawal penalty.
+          <em>Roth contributions (not conversions) and earnings after 59&frac12; with a 5-year-old account are always penalty- and tax-free.</em>
+        </div>
+        <div style="overflow-x:auto"><table class="proj-table" style="font-size:12px">
+          <thead><tr><th>Conv. Age</th><th>Year</th><th style="text-align:right">Amount</th><th>Penalty-Free Access</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+        ${convYears.some(y => y.age < 59.5) ? '<div style="font-size:10px;color:var(--amber);margin-top:8px;line-height:1.5">&#9888; Conversions before age 59&frac12; require both the 5-year clock AND reaching 59&frac12; for penalty-free access to the converted amount.</div>' : ''}
+      </div>`;
+    })()}
+
+    ${(() => {
       // Optimizer section
       const opt = state.rothOptResults;
       let optHtml = `<div class="card" data-accent="green"><div class="card-title">Roth Conversion Optimizer</div>
         <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
-          Tests hundreds of conversion strategies &mdash; varying amounts, bracket targets (with and without IRMAA awareness), and timing windows &mdash; then ranks
+          Tests hundreds of Roth Conversion Ladder strategies &mdash; varying amounts, bracket targets (with and without IRMAA awareness), and timing windows &mdash; then ranks
           the top results by a composite score of lifetime tax savings, IRMAA reduction, and net worth gain.
         </div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
