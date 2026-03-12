@@ -1480,8 +1480,6 @@ function runProjection(p) {
       ss = Math.round(ss * reductionFactor);
     }
 
-    const otherStartAge = p.additionalIncomeStartAge || p.retirementAge;
-    const otherEndAge = p.additionalIncomeEndAge || p.endAge;
     let ordinaryIncomeEvents = 0; // populated in cashEvents loop below
 
     // Pension / Annuity income — survivor-benefit-aware (v2.0)
@@ -1554,9 +1552,32 @@ function runProjection(p) {
         else { taxableInv += net; if (taxableBasis !== null) taxableBasis += net; }
       }
     }
-    const other = ((age >= otherStartAge && age <= otherEndAge && !primaryDead)
-      ? (p.additionalIncome || 0) : 0) + ordinaryIncomeEvents;
-    const totalInc = earned + ss + ssdiIncome + other + pensionIncome;
+    // Recurring income streams (replaces additionalIncome)
+    let other = ordinaryIncomeEvents; // ordinary_income cashEvents already computed above
+    let qualifiedDividends = 0;       // taxed at LTCG rates
+    let streams = p.incomeStreams || [];
+    // Backward compat: if no streams but legacy additionalIncome exists, create virtual stream
+    if (streams.length === 0 && (p.additionalIncome || 0) > 0) {
+      streams = [{ name: 'Additional Income', amount: p.additionalIncome,
+        startAge: p.additionalIncomeStartAge || p.retirementAge, endAge: p.additionalIncomeEndAge || p.endAge,
+        whose: 'primary', taxTreatment: 'ordinary', inflation: 0 }];
+    }
+    for (const s of streams) {
+      if (age < (s.startAge || 0) || age > (s.endAge || p.endAge)) continue;
+      if (s.whose === 'spouse' && (!p.spouseEnabled || spouseDead)) continue;
+      if (s.whose === 'primary' && primaryDead) continue;
+      if (s.whose === 'joint' && primaryDead && spouseDead) continue;
+      const yrs = age - (s.startAge || 0);
+      const amt = Math.round((s.amount || 0) * Math.pow(1 + (s.inflation || 0) / 100, yrs));
+      if (s.taxTreatment === 'qualified_dividend') {
+        qualifiedDividends += amt;
+      } else if (s.taxTreatment === 'nonqualified_dividend') {
+        other += amt;
+      } else {
+        other += amt;
+      }
+    }
+    const totalInc = earned + ss + ssdiIncome + other + pensionIncome + qualifiedDividends;
 
     // Expense phases (new): active -> later -> late retirement
     let expMultiplier = 1;
@@ -2003,7 +2024,7 @@ function runProjection(p) {
     }
 
     // Add cash event capital gains to the capGains total (taxes computed below)
-    capGains += cashEventGains;
+    capGains += cashEventGains + qualifiedDividends;
 
     // Cash/HYS interest income: taxable as ordinary income every year
     // Interest = current cash balance × return rate (this IS what the growth function adds to balance)
@@ -2213,6 +2234,7 @@ function runProjection(p) {
       rothConv: Math.round(rothConv), conversionTax: Math.round(conversionTax),
       irmaa: Math.round(irmaa.surcharge), medicareCost: Math.round(medicareCost),
       irmaaBracket: irmaa.bracketIdx, isSingle, magi: Math.round(magi),
+      qualifiedDividends: Math.round(qualifiedDividends),
       cashEventNet: Math.round(cashEventNet), cashEventGains: Math.round(cashEventGains),
       lifeInsPremiums: Math.round(lifeInsPremiums), lifeInsBenefit: Math.round(lifeInsBenefit),
       wdOrder: wdOrder,
@@ -2625,6 +2647,22 @@ function migrateParams() {
   // v2.2 Migration: add income window fields
   if (state.params.additionalIncomeStartAge === undefined) state.params.additionalIncomeStartAge = null;
   if (state.params.additionalIncomeEndAge === undefined) state.params.additionalIncomeEndAge = null;
+  // v4.x Migration: income streams (replaces additionalIncome)
+  if (state.params.incomeStreams === undefined) {
+    state.params.incomeStreams = [];
+    if ((state.params.additionalIncome || 0) > 0) {
+      state.params.incomeStreams.push({
+        id: Date.now(),
+        name: 'Additional Income',
+        amount: state.params.additionalIncome,
+        startAge: state.params.additionalIncomeStartAge || state.params.retirementAge,
+        endAge: state.params.additionalIncomeEndAge || state.params.endAge,
+        whose: 'primary',
+        taxTreatment: 'ordinary',
+        inflation: 0,
+      });
+    }
+  }
   // v4.2 Migration: brokerage gains fraction fallback
   if (state.params.brokerageGainsFraction === undefined) state.params.brokerageGainsFraction = 0.5;
   // brokerageCostBasis intentionally NOT defaulted — absence means "not set"
@@ -2733,7 +2771,8 @@ function getActiveAdvancedFeatures(p) {
   }
   if (p.oneTimeExpenses && p.oneTimeExpenses.length > 0) active.push('One-Time Expenses (' + p.oneTimeExpenses.length + ')');
   if (p.lifeInsurance && p.lifeInsurance.length > 0) active.push('Life Insurance (' + p.lifeInsurance.length + ')');
-  if ((p.additionalIncome || 0) > 0) active.push('Additional Retirement Income');
+  if (p.incomeStreams && p.incomeStreams.length > 0) active.push('Income Streams (' + p.incomeStreams.length + ')');
+  if ((p.additionalIncome || 0) > 0 && !(p.incomeStreams && p.incomeStreams.length > 0)) active.push('Additional Retirement Income');
   if (p.preRetirementExpenses > 0) active.push('Pre-Retirement Expenses');
   if (p.postRetirementReturn !== null && p.postRetirementReturn !== undefined) active.push('Post-Retirement Return Rate');
   if (p.ssTrustFundReduction && p.ssTrustFundReduction.enabled) active.push('SS Trust Fund Reduction');
@@ -3149,6 +3188,28 @@ function updateCashEvent(id, key, val) {
 function removeCashEvent(id) {
   if (proGuard()) return;
   state.params.cashEvents = (state.params.cashEvents || []).filter(e => e.id !== id);
+  state.mcResults = null; saveState(); render();
+}
+// Recurring Income Streams
+function addIncomeStream() {
+  if (proGuard()) return;
+  if (!state.params.incomeStreams) state.params.incomeStreams = [];
+  state.params.incomeStreams.push({
+    id: Date.now(), name: 'Rental Income', amount: 24000,
+    startAge: state.params.retirementAge || 65,
+    endAge: state.params.endAge || 90,
+    whose: 'primary', taxTreatment: 'ordinary', inflation: 2,
+  });
+  state.mcResults = null; saveState(); render();
+}
+function updateIncomeStream(id, key, val) {
+  if (proGuard()) return;
+  const s = (state.params.incomeStreams || []).find(s => s.id === id);
+  if (s) { s[key] = val; state.mcResults = null; state.rothOptResults = null; saveState(); render(); }
+}
+function removeIncomeStream(id) {
+  if (proGuard()) return;
+  state.params.incomeStreams = (state.params.incomeStreams || []).filter(s => s.id !== id);
   state.mcResults = null; saveState(); render();
 }
 // One-Time Expenses (home repairs, medical, travel, etc.)
@@ -4449,6 +4510,7 @@ function renderThisYear(proj, p, bust) {
     // Income
     const incomeRows = [];
     if (y.earned > 0) incomeRows.push({ label: 'Employment Income', value: y.earned, color: 'var(--text)' });
+    if (y.qualifiedDividends > 0) incomeRows.push({ label: 'Qualified Dividends', value: y.qualifiedDividends, color: 'var(--amber)', note: 'taxed at LTCG rates' });
     if (y.ss > 0 || y.ssWithheld > 0) incomeRows.push({ label: 'Social Security' + (y.ssWithheld > 0 ? ' (\u2212' + d(y.ssWithheld) + ' withheld)' : ''), value: y.ss, color: 'var(--green)' });
     if (y.ssdi > 0) incomeRows.push({ label: 'SSDI Benefits', value: y.ssdi, color: 'var(--blue)' });
     if (y.pension > 0) {
@@ -5064,17 +5126,68 @@ function renderInputs() {
           ${(p.spouseEnabled || p.spouseAge > 0) ? ' &#183; Spouse: <strong style="color:var(--text)">' + fmt(Math.round((p.spouseIncome||0) * Math.pow(1 + (p.incomeGrowth||0) / 100, p.spouseRetirementAge - p.spouseAge))) + '</strong>' : ''}
         </div>
       </div>
-      ${!isEssentials ? `<div class="card"><div class="card-title">Additional Retirement Income</div>
-        ${field('Other Annual Income','additionalIncome',{prefix:'$',help:'Rental income, part-time work, consulting, annuities, etc.'})}
-        <div class="grid-2" style="margin-top:8px">
-          ${field('Starts at Age','additionalIncomeStartAge',{help:'Default: retirement age (' + p.retirementAge + '). Set earlier for income that begins before retirement.',placeholder:p.retirementAge})}
-          ${field('Ends at Age','additionalIncomeEndAge',{help:'Default: end of plan (age ' + p.endAge + '). Set earlier for temporary income like consulting or rental property you plan to sell.',placeholder:p.endAge})}
-        </div>
-        <div style="font-size:12px;color:var(--text-dim);margin-top:8px;line-height:1.6">
-          Taxed as ordinary income. Pensions have their own dedicated tab.
-          ${(p.additionalIncome || 0) > 0 ? ' Active from age ' + (p.additionalIncomeStartAge || p.retirementAge) + ' to ' + (p.additionalIncomeEndAge || p.endAge) + '.' : ''}
-        </div>
-      </div>` : ''}
+      ${!isEssentials ? (() => {
+        const streams = p.incomeStreams || [];
+        const treatLabels = { ordinary: 'Ordinary Income', qualified_dividend: 'Qualified Dividend', nonqualified_dividend: 'Non-Qualified Dividend' };
+        const treatColors = { ordinary: 'var(--text-dim)', qualified_dividend: 'var(--amber)', nonqualified_dividend: 'var(--red)' };
+        const treatHelp = {
+          ordinary: 'Rental income, consulting fees, royalties, annuities, part-time work. Taxed at marginal rate.',
+          qualified_dividend: 'Dividends from US stocks/ETFs held >60 days. Taxed at 0%/15%/20% (same as long-term capital gains).',
+          nonqualified_dividend: 'REITs, money market funds, short-term bond funds, foreign dividends. Taxed as ordinary income.'
+        };
+        return `<div class="card" data-accent="cyan"><div class="card-title">Recurring Income Streams</div>
+          <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
+            Model ongoing income beyond employment: rental income, consulting, dividends, royalties,
+            part-time work, or any recurring cash flow. Each stream has its own tax treatment,
+            date range, and optional inflation rate.
+            <span style="font-size:11px;display:block;margin-top:4px">For rental income, enter net after operating expenses. For consulting, enter after self-employment tax (~14.1%). State tax may differ from federal treatment shown.</span>
+          </div>
+          ${streams.map(s => {
+            const treat = s.taxTreatment || 'ordinary';
+            const whoseOptions = '<option value="primary"' + ((s.whose||'primary')==='primary'?' selected':'') + '>Primary</option>'
+              + (p.spouseEnabled ? '<option value="spouse"' + (s.whose==='spouse'?' selected':'') + '>Spouse</option>'
+              + '<option value="joint"' + (s.whose==='joint'?' selected':'') + '>Both / Joint</option>' : '');
+            return '<div style="padding:14px;margin-bottom:10px;background:var(--bg-base);border:1px solid var(--border);border-radius:8px">'
+              + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+              + '<input type="text" value="' + (s.name||'') + '" onchange="updateIncomeStream(' + s.id + ',\'name\',this.value)" style="background:transparent;border:none;color:var(--text);font-size:14px;font-weight:600;flex:1">'
+              + '<button onclick="removeIncomeStream(' + s.id + ')" style="background:none;border:none;color:var(--red);font-size:16px;cursor:pointer;padding:4px 8px">\u00d7</button>'
+              + '</div>'
+              + '<div class="grid-2">'
+              + '<div class="field"><label class="field-label">Annual Amount (today\'s $)</label><div class="field-wrap"><span class="field-prefix">$</span>'
+              + '<input type="text" inputmode="decimal" class="field-input has-prefix" value="' + fmtC(s.amount||0) + '" onfocus="this.value=this.value.replace(/,/g,\'\')" onblur="this.value=fmtC(parseC(this.value))" onchange="updateIncomeStream(' + s.id + ',\'amount\',parseC(this.value))">'
+              + '</div></div>'
+              + '<div class="field"><label class="field-label">Annual Growth</label><div class="field-wrap">'
+              + '<input type="number" class="field-input has-suffix" value="' + (s.inflation||0) + '" min="0" max="20" step="0.5" onchange="updateIncomeStream(' + s.id + ',\'inflation\',Number(this.value))">'
+              + '<span class="field-suffix">%</span></div>'
+              + '<div class="field-help">0% = fixed. Use 2\u20133% for rent growth.</div></div>'
+              + '</div>'
+              + '<div class="grid-2">'
+              + '<div class="field"><label class="field-label">Start Age</label>'
+              + '<input type="number" class="field-input" value="' + (s.startAge||p.retirementAge) + '" onchange="updateIncomeStream(' + s.id + ',\'startAge\',Number(this.value))"></div>'
+              + '<div class="field"><label class="field-label">End Age</label>'
+              + '<input type="number" class="field-input" value="' + (s.endAge||p.endAge) + '" onchange="updateIncomeStream(' + s.id + ',\'endAge\',Number(this.value))"></div>'
+              + '</div>'
+              + '<div class="grid-2">'
+              + '<div class="field"><label class="field-label">Tax Treatment</label>'
+              + '<select class="field-input" onchange="updateIncomeStream(' + s.id + ',\'taxTreatment\',this.value)" style="cursor:pointer">'
+              + '<option value="ordinary"' + (treat==='ordinary'?' selected':'') + '>Ordinary Income</option>'
+              + '<option value="qualified_dividend"' + (treat==='qualified_dividend'?' selected':'') + '>Qualified Dividend</option>'
+              + '<option value="nonqualified_dividend"' + (treat==='nonqualified_dividend'?' selected':'') + '>Non-Qualified Dividend</option>'
+              + '</select>'
+              + '<div class="field-help">' + treatHelp[treat] + '</div></div>'
+              + '<div class="field"><label class="field-label">Whose Income</label>'
+              + '<select class="field-input" onchange="updateIncomeStream(' + s.id + ',\'whose\',this.value)" style="cursor:pointer">' + whoseOptions + '</select></div>'
+              + '</div>'
+              + '<div class="grid-2" style="margin-top:8px">'
+              + '<div class="info-box"><div class="info-box-label">At Start Age (' + (s.startAge||p.retirementAge) + ')</div>'
+              + '<div class="info-box-value" style="color:var(--green)">' + fmt(s.amount||0) + '</div></div>'
+              + '<div class="info-box"><div class="info-box-label">Tax Rate</div>'
+              + '<div class="info-box-value" style="color:' + treatColors[treat] + '">' + treatLabels[treat] + '</div></div>'
+              + '</div></div>';
+          }).join('')}
+          <button onclick="addIncomeStream()" style="background:var(--bg-base);border:1px dashed var(--border);border-radius:8px;color:var(--text-dim);padding:10px 16px;font-size:13px;width:100%;cursor:pointer">+ Add Income Stream</button>
+        </div>`;
+      })() : ''}
       ${!isEssentials ? (() => {
         const evts = p.cashEvents || [];
         return `<div class="card" data-accent="amber"><div class="card-title">One-Time Income Events</div>
