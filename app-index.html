@@ -444,7 +444,7 @@ button:hover { opacity: 0.88; }
 function renderKeepScroll() { const sy = window.scrollY; render(); requestAnimationFrame(function() { window.scrollTo(0, sy); }); }
 function toggleThisYear() { state.thisYearCollapsed = !state.thisYearCollapsed; renderKeepScroll(); }
 function toggleRetYear() { state.retYearCollapsed = !state.retYearCollapsed; renderKeepScroll(); }
-function toggleStrategyReport() { state.strategyReportCollapsed = !state.strategyReportCollapsed; render(); }
+function toggleStrategyReport() { state.strategyReportCollapsed = !state.strategyReportCollapsed; renderKeepScroll(); }
 
 function toggleTheme() {
   const html = document.documentElement;
