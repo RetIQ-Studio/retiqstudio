@@ -685,7 +685,8 @@ function renderDollarToggle() {
   const el = document.getElementById('dollarToggle'); if (!el) return;
   el.innerHTML = `<button class="${showRealDollars?'active':''}" onclick="showRealDollars=true;render()">Today's $</button>
     <button class="${!showRealDollars?'active':''}" onclick="showRealDollars=false;render()">Future $</button>
-    ${showRealDollars ? '<input type=number value="'+realDollarRate+'" step=0.5 min=0 max=10 style="width:50px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:2px 4px;font-size:11px;text-align:center" onchange="realDollarRate=Number(this.value);render()"><span style="font-size:10px">% infl.</span>' : ''}`;
+    ${showRealDollars ? '<input type=number value="'+realDollarRate+'" step=0.5 min=0 max=10 style="width:50px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:2px 4px;font-size:11px;text-align:center" onchange="realDollarRate=Number(this.value);render()"><span style="font-size:10px">% infl.</span>' : ''}
+    <div style="font-size:10px;color:var(--text-faint);margin-top:4px">Future $: nominal (inflated) dollars &bull; Today's $: purchasing power in today's terms</div>`;
 }
 
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
@@ -1200,7 +1201,6 @@ function calcEmployerMatch(matchCfg, salary, employeeContrib, yearsOfService, li
 
 function runProjection(p) {
   const hasSequences = p._returnSeq && p._inflationSeq;
-  const baseRealRet = (1 + p.nominalReturn / 100) / (1 + p.inflation / 100) - 1;
   const years = [];
   let preTax = p.accounts.filter(a => a.type === 'pretax').reduce((s, a) => s + a.balance, 0);
   let roth = p.accounts.filter(a => a.type === 'roth').reduce((s, a) => s + a.balance, 0);
@@ -2116,16 +2116,14 @@ function runProjection(p) {
     // Historical shocks are centered on the historical mean (~11.8%), so the user's expected
     // return is preserved as the average. volScale dampens shocks for low-return accounts.
     const growAcct = (bal, nomRet) => {
-      let nr, inf;
+      let nr;
       if (hasSequences) {
         const volScale = Math.max(0.1, Math.min(1.5, nomRet / Math.max(p.nominalReturn, 1)));
         nr = nomRet + (p._returnSeq[yr] !== undefined ? p._returnSeq[yr] * volScale : 0);
-        inf = p._inflationSeq[yr] !== undefined ? p._inflationSeq[yr] : p.inflation;
       } else {
         nr = nomRet;
-        inf = p.inflation;
       }
-      return bal * (1 + (1 + nr / 100) / (1 + inf / 100) - 1);
+      return bal * (1 + nr / 100);
     };
     const bearOvr = p._bearOverrides?.[yr];
     const usePostRetRet = retired && p.postRetirementReturn != null;
@@ -7612,6 +7610,7 @@ function render() {
   renderNav();
   renderModeToggle();
   const proj = runProjection(state.params);
+  realDollarRate = state.params.inflation || 3.0;
   let html = '';
   switch (state.tab) {
     case 'dashboard': html = renderDashboard(proj); break;
