@@ -77,13 +77,12 @@ button:hover { opacity: 0.88; }
 .header {
   position: sticky; top: 0; z-index: 100;
   background: var(--header-bg); backdrop-filter: blur(12px);
-  width: 100%; box-sizing: border-box;
-  padding-top: max(env(safe-area-inset-top), 20px);
+  max-width: 1280px; margin: 0 auto; box-sizing: border-box;
+  padding-top: env(safe-area-inset-top);
 }
 .header-top {
   display: flex; align-items: center; justify-content: space-between;
   padding: 8px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); gap: 8px;
-  max-width: 1280px; margin: 0 auto;
 }
 .header-left { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .header-right { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
