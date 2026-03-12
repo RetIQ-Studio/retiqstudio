@@ -195,7 +195,7 @@ for (const file of SITE_FILES) {
 }
 
 // 3b. Copy select site files to app/ for Capacitor in-app viewing (iOS)
-const APP_INFO_FILES = ['features.html', 'manual.html', 'security.html'];
+const APP_INFO_FILES = ['features.html', 'manual.html', 'security.html', 'privacy.html'];
 for (const file of APP_INFO_FILES) {
   const src = path.join(DEPLOY, file);
   if (fs.existsSync(src)) {

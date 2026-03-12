@@ -185,7 +185,7 @@ button:hover { opacity: 0.88; }
 .tip-wrap { position: relative; display: inline-flex; align-items: center; }
 .tip-icon { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; background: var(--bg-hover); color: var(--text-muted); font-size: 10px; font-weight: 600; font-style: normal; cursor: help; margin-left: 4px; flex-shrink: 0; border: 1px solid var(--border); transition: all 0.15s; user-select: none; line-height: 1; }
 .tip-icon:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
-.tip-bubble { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--tooltip-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 12px; font-weight: 400; color: var(--text); line-height: 1.55; width: max-content; max-width: 280px; z-index: 200; box-shadow: 0 4px 16px rgba(0,0,0,0.25); pointer-events: auto; }
+.tip-bubble { display: none; position: fixed; background: var(--tooltip-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 12px; font-weight: 400; color: var(--text); line-height: 1.55; width: max-content; max-width: min(260px, calc(100vw - 32px)); z-index: 200; box-shadow: 0 4px 16px rgba(0,0,0,0.25); pointer-events: auto; }
 .tip-bubble::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: var(--border); }
 .tip-wrap.tip-open .tip-bubble { display: block; }
 /* Keep bubble on-screen on narrow viewports */
@@ -332,10 +332,10 @@ button:hover { opacity: 0.88; }
   .logo-text { font-size: 15px; }
   .header-icon-btn { width: 28px; height: 28px; font-size: 14px; display: none; }
   #overflowBtn { display: inline-flex !important; }
-  #buyBtn { display: none !important; }
-  .header-upgrade-btn { padding: 4px 10px; font-size: 11px; }
   .header-nav { padding: 0 8px; }
   .nav-tab { padding: 6px 12px; font-size: 12px; }
+
+  .header-overflow-item { font-size: 13px; padding: 9px 15px; }
 
   /* Sub-nav (input tabs) - horizontal scroll */
   .sub-nav { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 2px; padding: 6px 0; }
@@ -405,33 +405,29 @@ button:hover { opacity: 0.88; }
 <div class="header">
   <div class="header-top">
     <div class="header-left">
-      <a href="https://retirementiq.app/?landing" class="logo-text" style="text-decoration:none;color:inherit">RetIQ</a>
-      <span class="logo-badge">v4.1</span>
+      <span class="logo-text">RetIQ</span>
       <span id="regsBadge" class="logo-badge" style="opacity:0.7" title="Regulatory data year">2025</span>
-      <span id="planBadge" class="plan-badge" title="Current plan">FREE</span>
       <div class="mode-toggle" id="modeToggle"></div>
     </div>
     <div class="header-right">
-      <button class="header-icon-btn hide-mobile" onclick="exportHTML()" title="Save as HTML snapshot">&#10515;</button>
-      <button class="header-icon-btn hide-mobile" onclick="document.getElementById('importFile').click()" title="Load plan from JSON or HTML snapshot">&#10514;</button>
       <input type="file" id="importFile" accept=".json,.html,.htm" onchange="importData(event)" style="display:none">
       <button class="header-icon-btn hide-mobile" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">&#9790;</button>
       <div style="position:relative;display:inline-flex">
         <button class="header-icon-btn" onclick="toggleOverflowMenu()" title="More" id="overflowBtn">•••</button>
         <div id="overflowMenu" class="header-overflow-panel" style="display:none">
-          <a href="https://retirementiq.app/features.html" target="_blank" class="header-overflow-item">Features</a>
-          <a href="https://retirementiq.app/manual.html" target="_blank" class="header-overflow-item">Manual</a>
-          <a href="https://retirementiq.app/security.html" target="_blank" class="header-overflow-item">&#128737; Security</a>
-          <a class="header-overflow-item" onclick="shareRetIQ()" style="cursor:pointer">Share RetIQ</a>
+          <button class="header-overflow-item" onclick="exportHTML();document.getElementById('overflowMenu').style.display='none'">&#128190; Save Plan</button>
+          <button class="header-overflow-item" onclick="document.getElementById('importFile').click();document.getElementById('overflowMenu').style.display='none'">&#128194; Load Plan</button>
           <div style="border-top:1px solid var(--border);margin:2px 0"></div>
-          <button class="header-overflow-item" onclick="loadExample('clark')">Example: The Clarks</button>
-          <button class="header-overflow-item" onclick="loadExample('lee')">Example: The Lees</button>
-          <button class="header-overflow-item" onclick="loadExample('washington')">Example: The Washingtons</button>
-          <button id="installBtn" class="header-overflow-item" style="display:none">Install App</button>
-          <button id="activateBtn" class="header-overflow-item" title="Enter or manage your license">Activate</button>
+          <button class="header-overflow-item" onclick="showInfoPage('manual.html','Manual');document.getElementById('overflowMenu').style.display='none'">Manual</button>
+          <button class="header-overflow-item" onclick="loadExample('clark');document.getElementById('overflowMenu').style.display='none'">Example: The Clarks</button>
+          <button class="header-overflow-item" onclick="loadExample('lee');document.getElementById('overflowMenu').style.display='none'">Example: The Lees</button>
+          <button class="header-overflow-item" onclick="loadExample('washington');document.getElementById('overflowMenu').style.display='none'">Example: The Washingtons</button>
+          <button class="header-overflow-item" onclick="state.tab='validation';render();document.getElementById('overflowMenu').style.display='none'">Validation</button>
+          <button class="header-overflow-item" onclick="showInfoPage('security.html','Security');document.getElementById('overflowMenu').style.display='none'">&#128737; Security</button>
+          <div style="border-top:1px solid var(--border);margin:2px 0"></div>
+          <button class="header-overflow-item" onclick="shareRetIQ();document.getElementById('overflowMenu').style.display='none'">Share RetIQ</button>
         </div>
       </div>
-      <button id="buyBtn" class="header-upgrade-btn" style="white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis" title="Pro unlocks: Save HTML snapshots, future Pro features">Upgrade</button>
     </div>
   </div>
   <nav class="header-nav" id="mainNav"></nav>
@@ -446,6 +442,7 @@ button:hover { opacity: 0.88; }
 
 function toggleThisYear() { state.thisYearCollapsed = !state.thisYearCollapsed; render(); }
 function toggleRetYear() { state.retYearCollapsed = !state.retYearCollapsed; render(); }
+function toggleStrategyReport() { state.strategyReportCollapsed = !state.strategyReportCollapsed; render(); }
 
 function toggleTheme() {
   const html = document.documentElement;
@@ -479,6 +476,29 @@ function toggleOverflowMenu() {
     };
     setTimeout(() => document.addEventListener('click', close), 0);
   }
+}
+
+function showInfoPage(file, title) {
+  document.getElementById('overflowMenu').style.display = 'none';
+  const overlay = document.createElement('div');
+  overlay.id = 'infoPageOverlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:var(--bg-base);display:flex;flex-direction:column';
+  overlay.innerHTML = '<div style="display:flex;align-items:center;padding:env(safe-area-inset-top,12px) 16px 12px;gap:12px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg-card)">'
+    + '<button onclick="document.getElementById(\'infoPageOverlay\').remove()" style="background:none;border:none;color:var(--blue);font-size:15px;cursor:pointer;padding:4px 8px">\u2190 Back</button>'
+    + '<span style="font-weight:600;color:var(--text);font-size:15px">' + title + '</span></div>'
+    + '<div style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:0" id="infoPageContent">'
+    + '<p style="text-align:center;padding:40px;color:var(--text)">Loading...</p></div>';
+  document.body.appendChild(overlay);
+  fetch(file).then(r => r.text()).then(html => {
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'width:100%;height:100%;border:none;background:var(--bg-base)';
+    iframe.srcdoc = html.replace('</head>', '<style>.top-bar{display:none!important}</style></head>').replace('</body>', '<script>document.addEventListener("click",function(e){var a=e.target.closest("a[href^=\\"#\\"]");if(a){e.preventDefault();var t=document.querySelector(a.getAttribute("href"));if(t)t.scrollIntoView({behavior:"smooth"});}});<\/script></body>');
+    const container = document.getElementById('infoPageContent');
+    container.innerHTML = '';
+    container.appendChild(iframe);
+  }).catch(() => {
+    document.getElementById('infoPageContent').innerHTML = '<p style="text-align:center;padding:40px;color:var(--text)">Could not load ' + title + '.</p>';
+  });
 }
 
 function showExportOverlay(html) {
@@ -528,7 +548,7 @@ function shareRetIQ() {
     navigator.clipboard.writeText(url + ' — ' + text).then(() => {
       const chip = document.querySelector('.share-chip');
       if (chip) { const orig = chip.textContent; chip.textContent = 'Link copied!'; setTimeout(() => chip.textContent = orig, 2000); }
-    }).catch(() => { window.open(url, '_blank'); });
+    }).catch(() => {});
   }
 }
 
@@ -2360,7 +2380,7 @@ const fmtK = (n, yr) => {
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
 
 let state = {
-  tab: 'dashboard', inputTab: 'personal', projChartKeys: ['netWorth'], projShowTable: false, mcResults: null, scenario: null, rothOptResults: null, scenarioChartKeys: ['netWorth'], thisYearCollapsed: false, retYearCollapsed: false, bearMarket: { equityPct: 70, crashPct: 30, onsetYr: 1, durationYrs: 3, active: false }, hcInflation: null,
+  tab: 'dashboard', inputTab: 'personal', projChartKeys: ['netWorth'], projShowTable: false, mcResults: null, scenario: null, rothOptResults: null, scenarioChartKeys: ['netWorth'], thisYearCollapsed: true, retYearCollapsed: true, strategyReportCollapsed: true, bearMarket: { equityPct: 70, crashPct: 30, onsetYr: 1, durationYrs: 3, active: false }, hcInflation: null,
   optScoreMode: 'balanced',
   reportGoal: 'netWorth',
   mcConfig: { numSims: 500, returnStdDev: 6, inflationStdDev: 1.5, model: 'normal', confidenceThreshold: 90 },
@@ -2614,8 +2634,8 @@ function loadExample(key) {
 }
 
 function clearExample() {
-  if (!confirm('Reset to the default demo plan (The Johnsons)?')) return;
-  state.params = JSON.parse(JSON.stringify(DEMO_PARAMS));
+  if (!confirm('Reset to your saved plan?')) return;
+  try { const s = localStorage.getItem('retiq_v1'); if (s) { state.params = JSON.parse(s); migrateParams(); } } catch(e) { state.params = JSON.parse(JSON.stringify(DEMO_PARAMS)); }
   state.activeExample = null;
   state.importedPlanInfo = null;
   state.tab = 'dashboard';
@@ -2625,7 +2645,7 @@ function clearExample() {
   render();
 }
 
-function isPro() { return localStorage.getItem('retiq_pro') === 'true' && !!localStorage.getItem('retiq_license'); }
+function isPro() { return true; }
 function proGate(featureName, teaser) {
   return `<div class="pro-gate"><div style="opacity:0.25;pointer-events:none;filter:blur(2px)">${teaser}</div>
     <div class="pro-gate-overlay"><div class="pro-gate-box">
@@ -2863,7 +2883,7 @@ function calcBirthYearFromAge(age, birthMonth) {
   if (now.getMonth() < (birthMonth || 0)) by--;
   return by;
 }
-function proGuard() { if (!isPro()) { document.getElementById('buyBtn').click(); return true; } return false; }
+function proGuard() { return false; }
 function setAge(val) {
   if (proGuard()) return;
   const p = state.params;
@@ -3707,7 +3727,7 @@ function cLeave(id) { document.getElementById(id+'_h').setAttribute('visibility'
 
 function renderNav() {
   const isEssentials = state.params.uiMode === 'essentials';
-  const allTabs = [['dashboard','Dashboard'],['inputs','Inputs'],['projection','Projection'],['montecarlo','Monte Carlo'],['scenarios','Scenarios'],['validation','Validation']];
+  const allTabs = [['dashboard','Dashboard'],['inputs','Inputs'],['projection','Projection'],['montecarlo','Monte Carlo'],['scenarios','Scenarios']];
   const tabs = isEssentials ? allTabs.filter(([k]) => !['scenarios'].includes(k)) : allTabs;
   document.getElementById('mainNav').innerHTML = tabs.map(([k,v]) =>
     `<button class="nav-tab${state.tab===k?' active':''}" onclick="state.tab='${k}';render()">${v}</button>`).join('');
@@ -3729,9 +3749,30 @@ function renderModeToggle() {
 function tip(text) {
   return `<span class="tip-wrap" onmouseenter="tipShow(this)" onmouseleave="tipHide(this)"><i class="tip-icon" onclick="tipToggle(event,this.parentNode)" aria-label="Info">i</i><span class="tip-bubble">${text}</span></span>`;
 }
-function tipShow(el) { if (!('ontouchstart' in window)) el.classList.add('tip-open'); }
+function tipShow(el) { if (!('ontouchstart' in window)) { el.classList.add('tip-open'); tipPosition(el); } }
 function tipHide(el) { if (!('ontouchstart' in window)) el.classList.remove('tip-open'); }
-function tipToggle(e, el) { e.stopPropagation(); document.querySelectorAll('.tip-open').forEach(t => { if (t !== el) t.classList.remove('tip-open'); }); el.classList.toggle('tip-open'); }
+function tipPosition(el) {
+  const bubble = el.querySelector('.tip-bubble');
+  if (!bubble) return;
+  const icon = el.querySelector('.tip-icon');
+  if (!icon) return;
+  const r = icon.getBoundingClientRect();
+  const PAD = 16;
+  bubble.style.bottom = 'auto';
+  bubble.style.left = '0';
+  bubble.style.top = '0';
+  bubble.style.visibility = 'hidden';
+  bubble.style.display = 'block';
+  const bw = bubble.offsetWidth;
+  const bh = bubble.offsetHeight;
+  let left = r.left + r.width / 2 - bw / 2;
+  left = Math.max(PAD, Math.min(left, window.innerWidth - bw - PAD));
+  const top = r.top - bh - 8;
+  bubble.style.left = left + 'px';
+  bubble.style.top = (top > 0 ? top : r.bottom + 8) + 'px';
+  bubble.style.visibility = '';
+}
+function tipToggle(e, el) { e.stopPropagation(); document.querySelectorAll('.tip-open').forEach(t => { if (t !== el) t.classList.remove('tip-open'); }); el.classList.toggle('tip-open'); if (el.classList.contains('tip-open')) tipPosition(el); }
 document.addEventListener('click', () => document.querySelectorAll('.tip-open').forEach(t => t.classList.remove('tip-open')));
 
 function field(label, key, opts = {}) {
@@ -4190,26 +4231,33 @@ function buildStrategyReport(proj) {
     </div>`;
   }
 
+  const srCollapsed = state.strategyReportCollapsed;
+  const srChevron = srCollapsed ? '\u25B6' : '\u25BC';
+
   if (alts.length === 0) {
     return `<div class="card" data-accent="green">
-      <div class="card-title">Strategy Report Card <span class="badge" style="background:rgba(16,185,129,0.15);color:var(--green)">What-If</span></div>
-      <div style="font-size:13px;color:var(--text-dim);line-height:1.7">No alternative strategies to test for your current configuration. Add retirement accounts or adjust your retirement age to enable comparisons.</div>
+      <div class="card-title" onclick="toggleStrategyReport()" style="cursor:pointer">Strategy Report Card <span class="badge" style="background:rgba(16,185,129,0.15);color:var(--green)">What-If</span> <span class="ty-chevron">${srChevron}</span></div>
+      <div class="ty-body${srCollapsed ? ' collapsed' : ''}">
+        <div style="font-size:13px;color:var(--text-dim);line-height:1.7">No alternative strategies to test for your current configuration. Add retirement accounts or adjust your retirement age to enable comparisons.</div>
+      </div>
     </div>`;
   }
 
   return `<div class="card" data-accent="green" style="max-width:600px;margin-left:auto;margin-right:auto">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-      <div class="card-title" style="margin:0">Strategy Report Card <span class="badge" style="background:rgba(16,185,129,0.15);color:var(--green)">What-If</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:${srCollapsed ? '0' : '10px'};cursor:pointer" onclick="toggleStrategyReport()">
+      <div class="card-title" style="margin:0">Strategy Report Card <span class="badge" style="background:rgba(16,185,129,0.15);color:var(--green)">What-If</span> <span class="ty-chevron">${srChevron}</span></div>
       <div style="font-size:11px;color:var(--text-dim)">${alts.length} alternatives tested</div>
     </div>
-    <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.5">
-      Select a goal — each card shows a full projection. <strong style="color:var(--text-dim)">&Delta;</strong> = difference in ${gc.label.toLowerCase()} vs. your current plan.
+    <div class="ty-body${srCollapsed ? ' collapsed' : ''}">
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.5">
+        Select a goal — each card shows a full projection. <strong style="color:var(--text-dim)">&Delta;</strong> = difference in ${gc.label.toLowerCase()} vs. your current plan.
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${goalBtns}</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${cards}
+      </div>
+      ${insight}
     </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${goalBtns}</div>
-    <div style="display:flex;flex-direction:column;gap:6px">
-      ${cards}
-    </div>
-    ${insight}
   </div>`;
 }
 
@@ -4722,7 +4770,7 @@ function renderDashboard(proj) {
 
     ${state.activeExample && exampleMeta[state.activeExample] ? `<div style="background:linear-gradient(135deg,rgba(168,85,247,0.12),rgba(236,72,153,0.12));border:1px solid rgba(168,85,247,0.3);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <div style="font-size:13px;color:var(--text)"><strong>&#128203; Example Plan</strong> &mdash; ${exampleMeta[state.activeExample].name}: ${exampleMeta[state.activeExample].tagline} <span style="color:var(--text-dim)">This is not your personal plan.</span></div>
-      <button onclick="clearExample()" style="background:transparent;border:1px solid rgba(168,85,247,0.4);border-radius:6px;padding:4px 14px;font-size:11px;color:var(--text-dim);cursor:pointer">Reset to Demo</button>
+      <button onclick="clearExample()" style="background:transparent;border:1px solid rgba(168,85,247,0.4);border-radius:6px;padding:4px 14px;font-size:11px;color:var(--text-dim);cursor:pointer">Clear Example</button>
     </div>` : ''}
 
     ${state.importedPlanInfo ? `<div style="background:linear-gradient(135deg,rgba(34,197,94,0.12),rgba(59,130,246,0.12));border:1px solid rgba(34,197,94,0.3);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
@@ -7814,7 +7862,7 @@ function renderValidation() {
     </div>
     <div style="font-size:12px;color:var(--text-faint);margin-bottom:18px;line-height:1.6">
       Every calculation in RetIQ's engine is tested against authoritative government sources. This report runs automatically before each release.
-      For methodology details, see the <a href="https://retirementiq.app/manual.html#validation" target="_blank" style="color:var(--blue);text-decoration:none">User Manual &sect;23</a>.
+      For methodology details, see the <a href="#" onclick="showInfoPage('manual.html','Manual');return false" style="color:var(--blue);text-decoration:none">User Manual</a>.
     </div>`;
 
   // Category summary bar
@@ -7873,7 +7921,7 @@ function render() {
     case 'scenarios': html = renderScenarios(proj); break;
     case 'validation': html = renderValidation(); break;
   }
-  html += '<div class="footer">RetIQ v4.1 &#183; Build ' + BUILD_TIMESTAMP + ' &#183; All data local &#183; Not financial advice &#183; Save/Load to keep your plan &#183; <a href="https://retirementiq.app/security.html" target="_blank" style="color:var(--green);text-decoration:none">&#128737; Privacy &amp; Security</a> &#183; <a href="mailto:support@retirementiq.app" style="color:inherit;opacity:0.6;text-decoration:none;">support@retirementiq.app</a></div>';
+  html += '<div class="footer"><a href="#" onclick="showInfoPage(\'privacy.html\',\'Privacy\');return false" style="color:inherit;opacity:0.7;text-decoration:none">Privacy</a> &nbsp;&#183;&nbsp; <a href="#" onclick="showInfoPage(\'security.html\',\'Security\');return false" style="color:inherit;opacity:0.7;text-decoration:none">Security</a></div>';
   document.getElementById('app').innerHTML = html;
   renderDollarToggle();
   updateHeaderHeight();
@@ -8000,19 +8048,7 @@ function requirePro(reason){
   return false;
 }
 
-// Gate exportHTML behind Pro
-(function gateExport(){
-  // exportHTML is a function already defined in this file
-  if(typeof window.exportHTML === "function"){
-    const original = window.exportHTML;
-    window.exportHTML = function(){
-      if(localStorage.getItem("retiq_pro") !== "true"){
-        return requirePro("Saving an HTML snapshot is a Pro feature.");
-      }
-      return original.apply(this, arguments);
-    };
-  }
-})();
+
 
 // ---- Upgrade ----
 document.getElementById("buyBtn")?.addEventListener("click", async ()=>{
