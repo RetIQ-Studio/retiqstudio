@@ -1206,6 +1206,9 @@ function runProjection(p) {
   let roth = p.accounts.filter(a => a.type === 'roth').reduce((s, a) => s + a.balance, 0);
   let cash = p.accounts.filter(a => a.type === 'taxable' && a.subtype === 'cash').reduce((s, a) => s + a.balance, 0);
   let taxableInv = p.accounts.filter(a => a.type === 'taxable' && a.subtype !== 'cash').reduce((s, a) => s + a.balance, 0);
+  let taxableBasis = (p.brokerageCostBasis !== undefined)
+    ? Math.min(p.brokerageCostBasis, taxableInv)  // clamp: basis can't exceed balance
+    : null;  // null = not tracking, use fallback fraction
   let taxable = cash + taxableInv; // combined for backward compat
   let hsa = p.accounts.filter(a => a.type === 'hsa').reduce((s, a) => s + a.balance, 0);
   let gkCurrentSpend = null; // Guyton-Klinger: tracks nominal spending, initialized at retirement
@@ -1534,7 +1537,7 @@ function runProjection(p) {
         }
         cashEventNet += net;
         if (ev.destination === 'cash') cash += net;
-        else taxableInv += net;
+        else { taxableInv += net; if (taxableBasis !== null) taxableBasis += net; }
       }
     }
 
@@ -1691,12 +1694,16 @@ function runProjection(p) {
         const shortfall = targetSavings - cashAfterExpenses;
         if (shortfall > 0 && cashAfterExpenses >= 0) {
           const fromCash = Math.min(shortfall, cash); cash -= fromCash;
-          const fromInv = Math.min(shortfall - fromCash, taxableInv); taxableInv -= fromInv;
+          const fromInv = Math.min(shortfall - fromCash, taxableInv);
+          if (taxableBasis !== null && taxableInv > 0) taxableBasis = Math.max(0, taxableBasis * ((taxableInv - fromInv) / taxableInv));
+          taxableInv -= fromInv;
           preRetWithdrawal = fromCash + fromInv;
         } else if (cashAfterExpenses < 0) {
           const need = Math.abs(cashAfterExpenses) + targetSavings;
           const fromCash = Math.min(need, cash); cash -= fromCash;
-          const fromInv = Math.min(need - fromCash, taxableInv); taxableInv -= fromInv;
+          const fromInv = Math.min(need - fromCash, taxableInv);
+          if (taxableBasis !== null && taxableInv > 0) taxableBasis = Math.max(0, taxableBasis * ((taxableInv - fromInv) / taxableInv));
+          taxableInv -= fromInv;
           preRetWithdrawal = fromCash + fromInv;
           actualSavings = Math.max(0, preRetWithdrawal - Math.abs(cashAfterExpenses));
         }
@@ -1726,6 +1733,7 @@ function runProjection(p) {
         // If no taxable account, overflow back to pre-tax / roth if room
         if (!hasTaxable) { const overflow = Math.max(0, savAmt - toPT - toRoth); toPT += Math.min(overflow, Math.max(0, limit401k + catchUp - toPT)); }
         preTax += toPT; roth += toRoth; taxableInv += toTaxable; saved = toPT + toRoth + toTaxable;
+        if (taxableBasis !== null) taxableBasis += toTaxable;
         // Employer match: primary
         if (hasPreTax) {
           const emMatch = calcEmployerMatch(p.employerMatch, primaryEarned, toPT, yr, limInf);
@@ -1742,6 +1750,7 @@ function runProjection(p) {
           let spR = Math.min(spSavAmt * 0.25, hasRoth ? limitIRA + spCatchUpIRA : 0);
           let spT = hasTaxable ? Math.max(0, spSavAmt - spPT - spR) : 0;
           preTax += spPT; roth += spR; taxableInv += spT; saved += spPT + spR + spT;
+          if (taxableBasis !== null) taxableBasis += spT;
           // Employer match: spouse
           if (hasPreTax) {
             const spEmMatch = calcEmployerMatch(p.spouseEmployerMatch, spouseEarned, spPT, yr, limInf);
@@ -1753,7 +1762,7 @@ function runProjection(p) {
         let wPT = hasPreTax ? 0.6 : 0, wR = hasRoth ? 0.25 : 0, wT = hasTaxable ? 0.15 : 0;
         const total = wPT + wR + wT;
         if (total > 0) { wPT /= total; wR /= total; wT /= total; }
-        const allocate = (amount) => { preTax += amount * wPT; roth += amount * wR; taxableInv += amount * wT; };
+        const allocate = (amount) => { preTax += amount * wPT; roth += amount * wR; taxableInv += amount * wT; if (taxableBasis !== null) taxableBasis += amount * wT; };
         const savRatio = targetSavings > 0 ? actualSavings / targetSavings : 0;
         const savAmt = (partialRetire ? savingsAtYear * (retireMonth / 12) : savingsAtYear) * savRatio;
         allocate(savAmt); saved = savAmt;
@@ -1787,6 +1796,7 @@ function runProjection(p) {
       if (p.enforceContribLimits !== false && p.hsaAnnualContribution > hsaLimit) {
         const excess = p.hsaAnnualContribution - hsaLimit;
         taxableInv += excess;
+        if (taxableBasis !== null) taxableBasis += excess;
       }
     }
 
@@ -1878,6 +1888,7 @@ function runProjection(p) {
       if (wasActive) {
         const benefit = li.deathBenefit || 0;
         taxableInv += benefit;
+        if (taxableBasis !== null) taxableBasis += benefit;
         lifeInsBenefit += benefit;
       }
     }
@@ -1928,9 +1939,17 @@ function runProjection(p) {
           const w = Math.min(remaining, cash); cash -= w; remaining -= w;
           withdrawal += w;
         } else if (src === 'taxable') {
-          // Investment/brokerage: 50% cost basis → capital gains
-          const w = Math.min(remaining, taxableInv); taxableInv -= w; remaining -= w;
-          capGains += w * 0.5;
+          // Investment/brokerage: dynamic cost basis tracking or fallback fraction
+          const w = Math.min(remaining, taxableInv);
+          if (w > 0) {
+            const gainFrac = taxableBasis !== null
+              ? Math.max(0, (taxableInv - taxableBasis) / taxableInv)
+              : (p.brokerageGainsFraction !== undefined ? p.brokerageGainsFraction : 0.5);
+            capGains += w * gainFrac;
+            if (taxableBasis !== null) taxableBasis = Math.max(0, taxableBasis * ((taxableInv - w) / taxableInv));
+            taxableInv -= w;
+          }
+          remaining -= w;
           withdrawal += w;
         } else if (src === 'hsa') {
           const w = Math.min(remaining, hsa); hsa -= w; remaining -= w;
@@ -1951,14 +1970,18 @@ function runProjection(p) {
         }
       }
       // Step 3: Any RMD cash not used for spending gets reinvested into taxable investment
-      if (rmdCash > 0) { taxableInv += rmdCash; withdrawal += rmdCash; rmdCash = 0; }
+      if (rmdCash > 0) {
+        if (taxableBasis !== null) taxableBasis += rmdCash;
+        taxableInv += rmdCash; withdrawal += rmdCash; rmdCash = 0;
+      }
       // Step 4: Save surplus earned income (partial retirement year / working spouse)
       if (earned > 0) {
         const surplus = Math.max(0, totalInc - expenses);
-        if (surplus > 0) { taxableInv += surplus; saved += surplus; }
+        if (surplus > 0) { taxableInv += surplus; saved += surplus; if (taxableBasis !== null) taxableBasis += surplus; }
       }
     } else if (rmdCash > 0) {
       // Not retired but RMD required — reinvest into taxable investment
+      if (taxableBasis !== null) taxableBasis += rmdCash;
       taxableInv += rmdCash; withdrawal += rmdCash; rmdCash = 0;
     }
 
@@ -2143,7 +2166,11 @@ function runProjection(p) {
       const amt = exp.amount || 0;
       if (exp.source === 'pretax') preTax = Math.max(0, preTax - amt);
       else if (exp.source === 'roth') roth = Math.max(0, roth - amt);
-      else taxableInv = Math.max(0, taxableInv - amt);
+      else {
+        const oldInv = taxableInv;
+        taxableInv = Math.max(0, taxableInv - amt);
+        if (taxableBasis !== null && oldInv > 0) taxableBasis = Math.max(0, taxableBasis * (taxableInv / oldInv));
+      }
     }
 
     taxable = cash + taxableInv; // combined for output
@@ -2581,6 +2608,9 @@ function migrateParams() {
   // v2.2 Migration: add income window fields
   if (state.params.additionalIncomeStartAge === undefined) state.params.additionalIncomeStartAge = null;
   if (state.params.additionalIncomeEndAge === undefined) state.params.additionalIncomeEndAge = null;
+  // v4.2 Migration: brokerage gains fraction fallback
+  if (state.params.brokerageGainsFraction === undefined) state.params.brokerageGainsFraction = 0.5;
+  // brokerageCostBasis intentionally NOT defaulted — absence means "not set"
   // v3.0 Migration: UI mode
   if (state.params.uiMode === undefined) {
     const hasSavedState = localStorage.getItem('retiq_v1') !== null;
@@ -2679,6 +2709,7 @@ function getActiveAdvancedFeatures(p) {
   if (p.postRetirementReturn !== null && p.postRetirementReturn !== undefined) active.push('Post-Retirement Return Rate');
   if (p.ssTrustFundReduction && p.ssTrustFundReduction.enabled) active.push('SS Trust Fund Reduction');
   if ((p.employerMatch && p.employerMatch.enabled) || (p.spouseEmployerMatch && p.spouseEmployerMatch.enabled)) active.push('Employer 401(k) Match');
+  if (p.brokerageCostBasis !== undefined) active.push('Brokerage Cost Basis Tracking ($' + Math.round(p.brokerageCostBasis / 1000) + 'K)');
   return active;
 }
 function isSimplePlan(p) { return getActiveAdvancedFeatures(p).length === 0; }
@@ -5343,6 +5374,37 @@ function renderInputs() {
         </div>` : ''}
       </div>
     </div>`;
+    // Brokerage Cost Basis card — only if user has brokerage investment accounts
+    const hasBrokerageInv = p.accounts.some(a => a.type === 'taxable' && a.subtype !== 'cash');
+    if (hasBrokerageInv) {
+      const taxableInvBalance = p.accounts.filter(a => a.type === 'taxable' && a.subtype !== 'cash').reduce((s, a) => s + a.balance, 0);
+      const hasBasis = p.brokerageCostBasis !== undefined;
+      const clampedBasis = hasBasis ? Math.min(p.brokerageCostBasis, taxableInvBalance) : 0;
+      const gainAmt = hasBasis ? Math.max(0, taxableInvBalance - clampedBasis) : 0;
+      const gainPct = hasBasis && taxableInvBalance > 0 ? Math.round(gainAmt / taxableInvBalance * 100) : 0;
+      const gainColor = gainPct < 30 ? 'var(--green)' : gainPct < 70 ? 'var(--amber)' : '#f97316';
+      content += `<div class="card" style="margin-top:14px"><div class="card-title">Brokerage Cost Basis <span style="font-weight:400;color:var(--text-dim);font-size:12px">(optional)</span></div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px;line-height:1.6">
+          Your total cost basis across all brokerage investment accounts &mdash; what you originally paid. Check your brokerage's cost basis report or 1099-B. Leave blank to use the estimated gains fraction instead.
+        </div>
+        <div style="font-size:11px;color:var(--text-faint);margin-bottom:10px">Total Brokerage Balance: <strong style="color:var(--text)">$${taxableInvBalance.toLocaleString()}</strong></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <label class="field-label" style="margin:0;white-space:nowrap">Total Cost Basis</label>
+          <div style="position:relative;flex:1;max-width:200px">
+            <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text-faint);font-size:13px">$</span>
+            <input type="text" inputmode="decimal" value="${hasBasis ? Math.round(p.brokerageCostBasis).toLocaleString() : ''}"
+              placeholder="Not set"
+              onchange="setParam('brokerageCostBasis', this.value ? parseC(this.value) : undefined)"
+              style="width:100%;padding:6px 8px 6px 20px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px" />
+          </div>
+          ${hasBasis ? '<button onclick="setParam(\'brokerageCostBasis\',undefined)" style="background:transparent;border:none;color:var(--text-faint);cursor:pointer;font-size:11px;text-decoration:underline">Clear</button>' : ''}
+        </div>
+        <div style="font-size:10px;color:var(--text-faint);margin-bottom:10px;line-height:1.5">What you originally paid for your current brokerage holdings. Found on your brokerage's Tax Documents page or 1099-B. Leave blank to use the estimated gains fraction (${Math.round((p.brokerageGainsFraction ?? 0.5) * 100)}% default).</div>
+        ${hasBasis && taxableInvBalance > 0 ? `<div style="font-size:12px;color:${gainColor};padding:8px 12px;background:var(--bg-base);border-radius:6px;border:1px solid var(--border);line-height:1.6">
+          Estimated unrealized gain: <strong>$${gainAmt.toLocaleString()}</strong> (${gainPct}% of balance). The engine tracks this fraction dynamically as your portfolio grows and you make withdrawals.
+        </div>` : ''}
+      </div>`;
+    }
     } // end Full Control accounts
   }
 
@@ -6821,7 +6883,11 @@ function renderInputs() {
         ${(p.withdrawalOrder || ['cash','hsa','taxable','pretax','roth']).map((src, i, arr) => {
           const labels = { cash: 'Cash / HYS', taxable: 'Brokerage', pretax: 'Pre-Tax (401k/IRA)', roth: 'Roth', hsa: 'HSA' };
           const colors = { cash: 'var(--cyan)', taxable: 'var(--amber)', pretax: 'var(--blue)', roth: 'var(--green)', hsa: '#8b5cf6' };
-          const notes = { cash: 'Zero capital gains — pure principal return', taxable: 'Gains taxed at capital gains rate (50% cost basis)', pretax: 'Taxable as ordinary income', roth: 'Tax-free withdrawals', hsa: 'Tax-free (qualified medical); ordinary income after 65 (non-medical)' };
+          const _tInvBal = p.accounts.filter(a => a.type === 'taxable' && a.subtype !== 'cash').reduce((s,a)=>s+a.balance,0);
+          const _gainPct = p.brokerageCostBasis !== undefined && _tInvBal > 0
+            ? Math.round(Math.max(0, _tInvBal - Math.min(p.brokerageCostBasis, _tInvBal)) / _tInvBal * 100)
+            : Math.round((p.brokerageGainsFraction ?? 0.5) * 100);
+          const notes = { cash: 'Zero capital gains — pure principal return', taxable: 'Gains taxed at capital gains rate (' + _gainPct + '% estimated gain' + (p.brokerageCostBasis !== undefined ? ' — tracked dynamically' : '') + ')', pretax: 'Taxable as ordinary income', roth: 'Tax-free withdrawals', hsa: 'Tax-free (qualified medical); ordinary income after 65 (non-medical)' };
           return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px">'
             + '<span style="font-size:13px;font-weight:700;color:var(--text-muted);width:18px;text-align:center">' + (i + 1) + '</span>'
             + '<div style="flex:1">'
