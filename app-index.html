@@ -739,9 +739,17 @@ let realDollarRate = 3.0;
 function deflate(v, yr) { return (!showRealDollars || yr <= 0) ? v : Math.round(v / Math.pow(1 + realDollarRate / 100, yr)); }
 function renderDollarToggle() {
   const el = document.getElementById('dollarToggle'); if (!el) return;
-  el.innerHTML = `<button class="${showRealDollars?'active':''}" onclick="showRealDollars=true;render()">Today's $</button>
-    <button class="${!showRealDollars?'active':''}" onclick="showRealDollars=false;render()">Future $</button>
-    ${showRealDollars ? '<input type=number value="'+realDollarRate+'" step=0.5 min=0 max=10 style="width:50px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:2px 4px;font-size:11px;text-align:center" onchange="realDollarRate=Number(this.value);render()"><span style="font-size:10px">% infl.</span>' : ''}
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:4px;flex-wrap:nowrap">
+      <button class="${showRealDollars?'active':''}" onclick="showRealDollars=true;render()">Today's $</button>
+      <button class="${!showRealDollars?'active':''}" onclick="showRealDollars=false;render()">Future $</button>
+    </div>
+    ${showRealDollars ? `<div style="display:flex;align-items:center;gap:4px;margin-top:4px">
+      <input type="number" value="${realDollarRate}" step="0.5" min="0" max="10"
+        style="width:44px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:2px 4px;font-size:16px;text-align:center"
+        onchange="realDollarRate=Number(this.value);render()">
+      <span style="font-size:10px;color:var(--text-dim)">% infl.</span>
+    </div>` : ''}
     <div style="font-size:10px;color:var(--text-faint);margin-top:4px">Future $: nominal (inflated) dollars &bull; Today's $: purchasing power in today's terms</div>`;
 }
 
@@ -3777,19 +3785,35 @@ function tipPosition(el) {
   bubble.style.top = (top > 0 ? top : r.bottom + 8) + 'px';
   bubble.style.visibility = '';
 }
-function tipToggle(e, el) { e.stopPropagation(); document.querySelectorAll('.tip-open').forEach(t => { if (t !== el) t.classList.remove('tip-open'); }); el.classList.toggle('tip-open'); if (el.classList.contains('tip-open')) tipPosition(el); }
-function _closeTips() {
-  document.querySelectorAll('.tip-open').forEach(t => t.classList.remove('tip-open'));
+let _closeTips_skipEl = null;
+function tipToggle(e, el) {
+  if (e && e.stopPropagation) e.stopPropagation();
+  _closeTips_skipEl = el;
+  document.querySelectorAll('.tip-open').forEach(t => { if (t !== el) t.classList.remove('tip-open'); }); el.classList.toggle('tip-open'); if (el.classList.contains('tip-open')) tipPosition(el); }
+function _closeTips(skipEl) {
+  document.querySelectorAll('.tip-open').forEach(t => {
+    if (t !== skipEl) t.classList.remove('tip-open');
+  });
+  // If no tips remain open, hide overlay
+  if (!document.querySelector('.tip-open')) {
+    const overlay = typeof _tipOverlay === 'function' ? _tipOverlay() : null;
+    if (overlay) overlay.style.display = 'none';
+  }
 }
-document.addEventListener('click', _closeTips);
+document.addEventListener('click', function() { _closeTips(null); });
 document.addEventListener('touchstart', function(e) {
-  // Close if touch is outside any tip-wrap
-  if (!e.target.closest('.tip-wrap')) _closeTips();
+  const skip = _closeTips_skipEl;
+  _closeTips_skipEl = null;
+  if (!e.target.closest('.tip-wrap')) {
+    _closeTips(null);
+  } else {
+    _closeTips(skip);
+  }
 }, { passive: true });
 // Also close when user taps into an input field
 document.addEventListener('focus', function(e) {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
-    _closeTips();
+    _closeTips(null);
   }
 }, true);
 
@@ -7278,14 +7302,14 @@ function renderProjectionTable(proj) {
   const chartLabels = selCats.map(c => c.label);
   const showTable = state.projShowTable || false;
   let html = `<div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-      <div style="font-size:12px;font-weight:600;color:var(--text)">Select up to 3 categories:</div>
-      <div style="display:flex;align-items:center;gap:8px">
+    <div style="margin-bottom:12px">
+      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Select up to 3 categories:</div>
+      <div style="display:flex;align-items:flex-start;flex-wrap:wrap;gap:8px">
         <div class="dollar-toggle" id="dollarToggle"></div>
-        <label style="font-size:12px;color:var(--text-dim);display:flex;align-items:center;gap:6px;cursor:pointer">
+        <label style="font-size:12px;color:var(--text-dim);display:flex;align-items:center;gap:6px;cursor:pointer;margin-top:4px">
           <input type="checkbox" ${showTable?'checked':''} onchange="state.projShowTable=this.checked;render()" style="accent-color:var(--blue)"> Show data table
         </label>
-        <button onclick="exportProjectionCSV()" style="font-size:11px;padding:4px 10px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-dim);cursor:pointer" title="Export projection to CSV">&#x1F4BE; CSV</button>
+        <button onclick="exportProjectionCSV()" style="font-size:11px;padding:4px 10px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-dim);cursor:pointer;margin-top:2px" title="Export projection to CSV">&#x1F4BE; CSV</button>
       </div>
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:6px 12px;margin-bottom:10px">${checkboxes}</div>
