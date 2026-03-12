@@ -425,7 +425,7 @@ button:hover { opacity: 0.88; }
           <button class="header-overflow-item" onclick="state.tab='validation';render();document.getElementById('overflowMenu').style.display='none'">Validation</button>
           <button class="header-overflow-item" onclick="showInfoPage('security.html','Security');document.getElementById('overflowMenu').style.display='none'">&#128737; Security</button>
           <div style="border-top:1px solid var(--border);margin:2px 0"></div>
-          <button class="header-overflow-item" onclick="shareRetIQ();document.getElementById('overflowMenu').style.display='none'">Share RetIQ</button>
+          <button class="header-overflow-item" onclick="shareRetIQ()">Share RetIQ</button>
         </div>
       </div>
     </div>
@@ -541,15 +541,20 @@ function showExportOverlay(html) {
 
 function shareRetIQ() {
   const url = 'https://retirementiq.app';
+  const title = 'RetIQ — Retirement Planning';
   const text = 'RetIQ — Privacy-first retirement planner with Roth optimization, Monte Carlo simulation, and tax modeling. No subscriptions.';
-  if (navigator.share) {
-    navigator.share({ title: 'RetIQ — Retirement Planning', text: text, url: url }).catch(() => {});
-  } else {
-    navigator.clipboard.writeText(url + ' — ' + text).then(() => {
-      const chip = document.querySelector('.share-chip');
-      if (chip) { const orig = chip.textContent; chip.textContent = 'Link copied!'; setTimeout(() => chip.textContent = orig, 2000); }
-    }).catch(() => {});
-  }
+  // Close the overflow menu first, then share after a tick
+  const menu = document.getElementById('overflowMenu');
+  if (menu) menu.style.display = 'none';
+  setTimeout(function() {
+    if (navigator.share) {
+      navigator.share({ title: title, text: text, url: url }).catch(function() {});
+    } else {
+      navigator.clipboard.writeText(url).then(function() {
+        alert('Link copied to clipboard!');
+      }).catch(function() {});
+    }
+  }, 50);
 }
 
 // &#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;&#226;*&#144;
@@ -3773,7 +3778,20 @@ function tipPosition(el) {
   bubble.style.visibility = '';
 }
 function tipToggle(e, el) { e.stopPropagation(); document.querySelectorAll('.tip-open').forEach(t => { if (t !== el) t.classList.remove('tip-open'); }); el.classList.toggle('tip-open'); if (el.classList.contains('tip-open')) tipPosition(el); }
-document.addEventListener('click', () => document.querySelectorAll('.tip-open').forEach(t => t.classList.remove('tip-open')));
+function _closeTips() {
+  document.querySelectorAll('.tip-open').forEach(t => t.classList.remove('tip-open'));
+}
+document.addEventListener('click', _closeTips);
+document.addEventListener('touchstart', function(e) {
+  // Close if touch is outside any tip-wrap
+  if (!e.target.closest('.tip-wrap')) _closeTips();
+}, { passive: true });
+// Also close when user taps into an input field
+document.addEventListener('focus', function(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+    _closeTips();
+  }
+}, true);
 
 function field(label, key, opts = {}) {
   const { prefix, suffix, help, val } = opts;
@@ -8380,13 +8398,42 @@ document.getElementById("activateBtn")?.addEventListener("click", () => openActi
   });
 })();
 
-// iOS keyboard dismiss — reset viewport zoom
+// iOS keyboard handling — prevent scroll behind Dynamic Island
 if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-  document.addEventListener('blur', function(e) {
+  let _savedScrollY = 0;
+
+  // On focus: save scroll position, prevent page from jumping
+  document.addEventListener('focus', function(e) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
-      setTimeout(function() { window.scrollTo(0, window.scrollY); }, 50);
+      _savedScrollY = window.scrollY;
+      // Small delay to let iOS keyboard animation start
+      setTimeout(function() {
+        // Scroll the input into view within its container, not the whole page
+        e.target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }, 100);
     }
   }, true);
+
+  // On blur: restore scroll position after keyboard dismisses
+  document.addEventListener('blur', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+      setTimeout(function() {
+        window.scrollTo({ top: _savedScrollY, behavior: 'instant' });
+      }, 100);
+    }
+  }, true);
+
+  // Use visualViewport if available (more reliable on modern iOS)
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', function() {
+      // When keyboard opens, viewport shrinks — prevent body from scrolling up
+      document.body.style.height = window.visualViewport.height + 'px';
+    });
+    window.visualViewport.addEventListener('scroll', function() {
+      // Counteract any viewport scroll
+      document.body.style.transform = 'translateY(' + window.visualViewport.offsetTop + 'px)';
+    });
+  }
 }
 
 </script>
