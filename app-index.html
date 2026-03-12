@@ -2709,7 +2709,7 @@ function getActiveAdvancedFeatures(p) {
   if (p.postRetirementReturn !== null && p.postRetirementReturn !== undefined) active.push('Post-Retirement Return Rate');
   if (p.ssTrustFundReduction && p.ssTrustFundReduction.enabled) active.push('SS Trust Fund Reduction');
   if ((p.employerMatch && p.employerMatch.enabled) || (p.spouseEmployerMatch && p.spouseEmployerMatch.enabled)) active.push('Employer 401(k) Match');
-  if (p.brokerageCostBasis !== undefined) active.push('Brokerage Cost Basis Tracking ($' + Math.round(p.brokerageCostBasis / 1000) + 'K)');
+  if (p.brokerageCostBasis !== undefined) active.push('Brokerage Cost Basis Tracking (' + (p.brokerageCostBasis >= 1000 ? '$' + Math.round(p.brokerageCostBasis / 1000) + 'K' : '$' + Math.round(p.brokerageCostBasis)) + ')');
   return active;
 }
 function isSimplePlan(p) { return getActiveAdvancedFeatures(p).length === 0; }

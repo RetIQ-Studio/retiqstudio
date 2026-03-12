@@ -242,12 +242,21 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
       <li><strong>Type:</strong> Pre-Tax (traditional 401k/IRA), Roth (Roth 401k/IRA), Cash/HYS (savings, checking, CDs), Brokerage (taxable investment accounts), or HSA (Health Savings Account).</li>
       <li><strong>Balance:</strong> Current balance.</li>
     </ul>
-    <p>Cash/HYS and Brokerage are tracked as separate buckets with different tax treatment. Cash/HYS earns interest taxed as ordinary income, but withdrawals are tax-free (principal return). Brokerage withdrawals trigger capital gains at 50% estimated cost basis.</p>
+    <p>Cash/HYS and Brokerage are tracked as separate buckets with different tax treatment. Cash/HYS earns interest taxed as ordinary income, but withdrawals are tax-free (principal return). Brokerage withdrawals trigger capital gains based on your actual cost basis (if entered in the Accounts tab) or an estimated gain fraction. The engine tracks the basis dynamically &mdash; it grows with new contributions and shrinks proportionally with withdrawals.</p>
 
     <h3>Contribution Limits</h3>
     <p>A checkbox at the bottom of the Accounts tab toggles contribution limit enforcement. When enabled, annual savings respect 401(k) limits ($23,500 in 2025), plus $7,500 catch-up at 50+, plus the enhanced $11,250 catch-up for ages 60&ndash;63 (SECURE Act 2.0). IRA limits ($7,000 + catch-up) also apply. Savings are allocated in order: pre-tax up to limit, then Roth up to limit, then overflow to brokerage.</p>
 
     <p>In retirement, withdrawals follow a configurable 5-bucket order (default: Cash/HYS &rarr; HSA &rarr; Brokerage &rarr; Pre-Tax &rarr; Roth). Reorder in the Assumptions tab using the arrow buttons. RMDs are always taken from pre-tax regardless of withdrawal order.</p>
+
+    <h3>Brokerage Cost Basis</h3>
+    <p>In Full Control mode, an optional card appears below the accounts list when you have brokerage investment accounts. Enter your total cost basis &mdash; what you originally paid for your current holdings (found on your brokerage&rsquo;s Tax Documents page or 1099-B). The engine then tracks the basis dynamically through the projection:</p>
+    <ul>
+      <li><strong>Growth:</strong> Balance grows at the nominal return rate, but basis stays flat. Unrealized gains accumulate above your basis.</li>
+      <li><strong>Withdrawals:</strong> Basis shrinks proportionally. The capital gains fraction is <code>(balance &minus; basis) / balance</code>, so older portfolios with more appreciation pay more tax on withdrawals.</li>
+      <li><strong>Contributions:</strong> New savings, RMD reinvestment, surplus income, and other inflows arrive at cost &mdash; they increase the basis dollar-for-dollar.</li>
+    </ul>
+    <p>If cost basis is not set, the engine uses a static estimated gain fraction (default 50%). For high-appreciation portfolios (e.g. basis $50K on a $400K account), entering the actual basis significantly increases projected capital gains taxes &mdash; revealing the true tax exposure of brokerage withdrawals.</p>
 
     <h3>Employer 401(k) Match</h3>
     <p>Model your employer&rsquo;s 401(k) matching contribution. The employer match is <em>separate</em> from the employee contribution limit &mdash; your own salary deferrals are capped at $23,500 (2025), but employer contributions can push the combined total up to the IRC &sect;415(c) annual addition limit of $70,000 (2025). All limits are inflation-indexed in projections.</p>
@@ -569,7 +578,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <ul>
       <li><strong>Cash / HYS:</strong> Zero capital gains &mdash; pure principal return. Interest is taxed annually as ordinary income regardless of withdrawals.</li>
       <li><strong>HSA:</strong> Tax-free for qualified medical expenses; taxed as ordinary income for non-medical withdrawals after 65 (income + 20% penalty before 65).</li>
-      <li><strong>Brokerage:</strong> Gains taxed at capital gains rate (estimated 50% cost basis).</li>
+      <li><strong>Brokerage:</strong> Gains taxed at capital gains rate. If you enter your cost basis, the gain fraction is tracked dynamically; otherwise an estimated fraction (default 50%) is used.</li>
       <li><strong>Pre-Tax (401k/IRA):</strong> Fully taxable as ordinary income.</li>
       <li><strong>Roth:</strong> Tax-free withdrawals.</li>
     </ul>
@@ -778,7 +787,7 @@ td{padding:8px 10px;border:1px solid var(--border);color:var(--dim)}
     <p>Yes. RetIQ is fully responsive. Install it as a PWA on iOS or Android for the best mobile experience.</p>
 
     <h3>What is the difference between Cash/HYS and Brokerage?</h3>
-    <p>Cash/HYS accounts (high-yield savings, CDs, checking) earn interest taxed as ordinary income each year, but withdrawals are tax-free because you are withdrawing principal. Brokerage accounts hold investments whose withdrawals trigger capital gains taxes on the appreciated portion (modeled at 50% cost basis). RetIQ tracks them as separate buckets with independent return rates, withdrawal priorities, and tax treatment.</p>
+    <p>Cash/HYS accounts (high-yield savings, CDs, checking) earn interest taxed as ordinary income each year, but withdrawals are tax-free because you are withdrawing principal. Brokerage accounts hold investments whose withdrawals trigger capital gains taxes on the appreciated portion. If you enter your cost basis in the Accounts tab, the engine tracks it dynamically through the projection; otherwise it uses an estimated gain fraction (default 50%). RetIQ tracks them as separate buckets with independent return rates, withdrawal priorities, and tax treatment.</p>
 
     <h3>How do I reset all my data?</h3>
     <p>Clear your browser's local storage for retirementiq.app, or use your browser's developer tools (Application &gt; Local Storage &gt; Clear). A fresh reload will start with default values.</p>
