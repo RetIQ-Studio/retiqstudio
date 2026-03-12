@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-03-11T19:24:49.700Z",
+  "timestamp": "2026-03-12T00:49:55.547Z",
   "summary": {
     "total": 276,
     "passed": 276,
@@ -1617,8 +1617,8 @@
           "category": "Integration",
           "name": "Account balances sum to net worth",
           "source": "Engine accounting identity",
-          "actual": 0,
-          "expected": 0,
+          "actual": 6222101,
+          "expected": 6222101,
           "tolerance": 2,
           "pass": true
         },
@@ -1644,7 +1644,7 @@
           "category": "Integration",
           "name": "Roth-first order depletes Roth faster",
           "source": "Engine: Roth-first spends Roth before other accounts",
-          "actual": 0,
+          "actual": 1,
           "expected": 1,
           "tolerance": 1,
           "pass": true
