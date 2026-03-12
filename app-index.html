@@ -74,11 +74,14 @@ select { -webkit-appearance: none; }
 button { cursor: pointer; font-family: inherit; }
 button:hover { opacity: 0.88; }
 
-.header {
+.header-outer {
   position: sticky; top: 0; z-index: 100;
+  width: 100%;
   background: var(--header-bg); backdrop-filter: blur(12px);
-  max-width: 1280px; margin: 0 auto; box-sizing: border-box;
   padding-top: env(safe-area-inset-top);
+}
+.header {
+  max-width: 1280px; margin: 0 auto; box-sizing: border-box;
 }
 .header-top {
   display: flex; align-items: center; justify-content: space-between;
@@ -403,7 +406,7 @@ button:hover { opacity: 0.88; }
 </div>
 
 
-<div class="header">
+<div class="header-outer"><div class="header">
   <div class="header-top">
     <div class="header-left">
       <span class="logo-text">RetIQ</span>
@@ -432,7 +435,7 @@ button:hover { opacity: 0.88; }
     </div>
   </div>
   <nav class="header-nav" id="mainNav"></nav>
-</div>
+</div></div>
 
 <div class="main" id="app"></div>
 
@@ -7987,7 +7990,7 @@ function render() {
   showModePrompt();
 }
 function updateHeaderHeight() {
-  const hdr = document.querySelector('.header');
+  const hdr = document.querySelector('.header-outer');
   if (hdr) document.documentElement.style.setProperty('--header-h', hdr.offsetHeight + 'px');
 }
 window.addEventListener('resize', updateHeaderHeight);
