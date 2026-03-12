@@ -1482,7 +1482,7 @@ function runProjection(p) {
 
     const otherStartAge = p.additionalIncomeStartAge || p.retirementAge;
     const otherEndAge = p.additionalIncomeEndAge || p.endAge;
-    const other = (age >= otherStartAge && age <= otherEndAge && !primaryDead) ? (p.additionalIncome || 0) : 0;
+    let ordinaryIncomeEvents = 0; // populated in cashEvents loop below
 
     // Pension / Annuity income — survivor-benefit-aware (v2.0)
     let pensionIncome = 0;
@@ -1519,13 +1519,27 @@ function runProjection(p) {
     pensionIncome = Math.round(pensionIncome);
     pensionTaxable = Math.round(pensionTaxable);
 
-    const totalInc = earned + ss + ssdiIncome + other + pensionIncome;
-
-    // One-Time Cash Events (real estate sale, etc.)
+    // One-Time Income Events (asset sales + ordinary income)
     let cashEventGains = 0, cashEventNet = 0;
     const events = p.cashEvents || [];
     for (const ev of events) {
-      if (age === ev.age && !primaryDead) {
+      if (age !== ev.age) continue;
+      // Whose check: skip if person is dead or not applicable
+      const isSpouseEvent = ev.whose === 'spouse';
+      const isJoint = ev.whose === 'joint';
+      if (isSpouseEvent && !p.spouseEnabled) continue;
+      if (!isSpouseEvent && !isJoint && primaryDead) continue;
+      if (isSpouseEvent && spouseDead) continue;
+      if (isJoint && (primaryDead || spouseDead)) continue;
+      if ((ev.eventCategory || 'asset_sale') === 'ordinary_income') {
+        // Ordinary income: full amount taxed as ordinary income, deposited to destination
+        const amt = Math.round(ev.amount || 0);
+        ordinaryIncomeEvents += amt;
+        cashEventNet += amt;
+        if (ev.destination === 'cash') cash += amt;
+        else { taxableInv += amt; if (taxableBasis !== null) taxableBasis += amt; }
+      } else {
+        // Asset sale: existing logic unchanged
         const net = Math.round((ev.grossAmount || 0) * (ev.netPercent || 100) / 100);
         if (ev.costBasis !== undefined) {
           let gain = Math.max(0, net - (ev.costBasis || 0));
@@ -1540,6 +1554,9 @@ function runProjection(p) {
         else { taxableInv += net; if (taxableBasis !== null) taxableBasis += net; }
       }
     }
+    const other = ((age >= otherStartAge && age <= otherEndAge && !primaryDead)
+      ? (p.additionalIncome || 0) : 0) + ordinaryIncomeEvents;
+    const totalInc = earned + ss + ssdiIncome + other + pensionIncome;
 
     // Expense phases (new): active -> later -> late retirement
     let expMultiplier = 1;
@@ -2638,6 +2655,11 @@ function migrateParams() {
   if (state.params.withdrawalOrderSchedule === undefined) state.params.withdrawalOrderSchedule = [];
   // v3.0 Migration: cash events
   if (state.params.cashEvents === undefined) state.params.cashEvents = [];
+  // v4.x Migration: income event category and whose
+  (state.params.cashEvents || []).forEach(ev => {
+    if (ev.eventCategory === undefined) ev.eventCategory = 'asset_sale';
+    if (ev.whose === undefined) ev.whose = 'primary';
+  });
   // v4.0 Migration: one-time expenses
   if (state.params.oneTimeExpenses === undefined) state.params.oneTimeExpenses = [];
   // v3.2 Migration: life insurance
@@ -2701,7 +2723,14 @@ function getActiveAdvancedFeatures(p) {
     active.push('Pension Advanced Settings');
   if (p.spousePension && p.spousePension.enabled && (p.spousePension.survivorBenefit !== 'none' || p.spousePension.taxablePercent !== 100 || (p.spousePension.cola && p.spousePension.cola !== 0)))
     active.push('Spouse Pension Advanced Settings');
-  if (p.cashEvents && p.cashEvents.length > 0) active.push('Cash Events (' + p.cashEvents.length + ')');
+  if (p.cashEvents && p.cashEvents.length > 0) {
+    const sales = p.cashEvents.filter(e => (e.eventCategory||'asset_sale') === 'asset_sale').length;
+    const ordinary = p.cashEvents.filter(e => e.eventCategory === 'ordinary_income').length;
+    const parts = [];
+    if (sales > 0) parts.push(sales + ' sale' + (sales > 1 ? 's' : ''));
+    if (ordinary > 0) parts.push(ordinary + ' income event' + (ordinary > 1 ? 's' : ''));
+    active.push('Income Events (' + parts.join(', ') + ')');
+  }
   if (p.oneTimeExpenses && p.oneTimeExpenses.length > 0) active.push('One-Time Expenses (' + p.oneTimeExpenses.length + ')');
   if (p.lifeInsurance && p.lifeInsurance.length > 0) active.push('Life Insurance (' + p.lifeInsurance.length + ')');
   if ((p.additionalIncome || 0) > 0) active.push('Additional Retirement Income');
@@ -3092,11 +3121,24 @@ function setLegacy(key, val) {
   if (!state.params.legacy) state.params.legacy = { enabled: false, targetAmount: 500000, notes: '' };
   state.params.legacy[key] = val; state.mcResults = null; saveState(); render();
 }
-// Cash Events (real estate sale, etc.)
+// Income Events (asset sales + ordinary income)
 function addCashEvent() {
   if (proGuard()) return;
   if (!state.params.cashEvents) state.params.cashEvents = [];
-  state.params.cashEvents.push({ id: Date.now(), name: 'Property Sale', age: 75, grossAmount: 400000, netPercent: 90, type: 'investment', costBasis: 150000, destination: 'taxable' });
+  state.params.cashEvents.push({
+    id: Date.now(), eventCategory: 'asset_sale', whose: 'primary',
+    name: 'Property Sale', age: 75, grossAmount: 400000,
+    netPercent: 90, type: 'investment', costBasis: 150000, destination: 'taxable'
+  });
+  state.mcResults = null; saveState(); render();
+}
+function addOrdinaryIncomeEvent() {
+  if (proGuard()) return;
+  if (!state.params.cashEvents) state.params.cashEvents = [];
+  state.params.cashEvents.push({
+    id: Date.now(), eventCategory: 'ordinary_income', whose: 'primary',
+    name: 'Severance', age: state.params.retirementAge || 60, amount: 100000, destination: 'cash'
+  });
   state.mcResults = null; saveState(); render();
 }
 function updateCashEvent(id, key, val) {
@@ -5035,59 +5077,93 @@ function renderInputs() {
       </div>` : ''}
       ${!isEssentials ? (() => {
         const evts = p.cashEvents || [];
-        return `<div class="card" data-accent="amber"><div class="card-title">One-Time Cash Events</div>
+        return `<div class="card" data-accent="amber"><div class="card-title">One-Time Income Events</div>
         <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
-          Model large one-time inflows like selling a home, rental property, or other assets.
-          Proceeds are deposited into the selected account and capital gains are taxed in that year.
+          Model large one-time inflows: asset sales (home, investment property) or ordinary income
+          (severance, bonus, inheritance, settlement). Each is taxed appropriately in the year it occurs.
         </div>
         ${evts.map(ev => {
-          const net = Math.round((ev.grossAmount||0) * (ev.netPercent||100) / 100);
-          let gain = Math.max(0, net - (ev.costBasis||0));
-          if (ev.type === 'primary_home') {
-            const excl = (p.spouseEnabled ? 500000 : 250000);
-            gain = Math.max(0, gain - excl);
+          const cat = ev.eventCategory || 'asset_sale';
+          const whoseOptions = '<option value="primary"' + ((ev.whose||'primary')==='primary'?' selected':'') + '>Primary</option>'
+            + (p.spouseEnabled ? '<option value="spouse"' + (ev.whose==='spouse'?' selected':'') + '>Spouse</option>'
+            + '<option value="joint"' + (ev.whose==='joint'?' selected':'') + '>Both / Joint</option>' : '');
+          if (cat === 'ordinary_income') {
+            return '<div style="padding:14px;margin-bottom:10px;background:var(--bg-base);border:1px solid var(--border);border-radius:8px">'
+              + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+              + '<input type="text" value="' + (ev.name||'') + '" onchange="updateCashEvent(' + ev.id + ',\'name\',this.value)" style="background:transparent;border:none;color:var(--text);font-size:14px;font-weight:600;flex:1">'
+              + '<button onclick="removeCashEvent(' + ev.id + ')" style="background:none;border:none;color:var(--red);font-size:16px;cursor:pointer;padding:4px 8px" title="Remove">\u00d7</button>'
+              + '</div>'
+              + '<div class="grid-2">'
+              + '<div class="field"><label class="field-label">Age Received</label>'
+              + '<input type="number" class="field-input" value="' + (ev.age||60) + '" onchange="updateCashEvent(' + ev.id + ',\'age\',Number(this.value))"></div>'
+              + '<div class="field"><label class="field-label">Amount</label><div class="field-wrap"><span class="field-prefix">$</span>'
+              + '<input type="text" inputmode="decimal" class="field-input has-prefix" value="' + fmtC(ev.amount||0) + '" onfocus="this.value=this.value.replace(/,/g,\'\')" onblur="this.value=fmtC(parseC(this.value))" onchange="updateCashEvent(' + ev.id + ',\'amount\',parseC(this.value))">'
+              + '</div></div></div>'
+              + '<div class="grid-2">'
+              + '<div class="field"><label class="field-label">Whose Income</label>'
+              + '<select class="field-input" onchange="updateCashEvent(' + ev.id + ',\'whose\',this.value)" style="cursor:pointer">' + whoseOptions + '</select></div>'
+              + '<div class="field"><label class="field-label">Deposit To</label>'
+              + '<select class="field-input" onchange="updateCashEvent(' + ev.id + ',\'destination\',this.value)" style="cursor:pointer">'
+              + '<option value="cash"' + ((ev.destination||'cash')==='cash'?' selected':'') + '>Cash / HYS</option>'
+              + '<option value="taxable"' + (ev.destination==='taxable'?' selected':'') + '>Brokerage (Taxable)</option>'
+              + '</select></div></div>'
+              + '<div class="grid-2" style="margin-top:8px">'
+              + '<div class="info-box"><div class="info-box-label">Tax Treatment</div><div class="info-box-value" style="color:var(--amber)">Ordinary Income</div></div>'
+              + '<div class="info-box"><div class="info-box-label">Est. Amount</div><div class="info-box-value" style="color:var(--green)">' + fmt(ev.amount||0) + '</div></div>'
+              + '</div>'
+              + '<div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5">'
+              + 'Taxed as ordinary income in the year received. Use for: severance, bonus, consulting payout, pre-tax inheritance, lawsuit settlement. No capital gains treatment.'
+              + '</div></div>';
+          } else {
+            const net = Math.round((ev.grossAmount||0) * (ev.netPercent||100) / 100);
+            let gain = Math.max(0, net - (ev.costBasis||0));
+            if (ev.type === 'primary_home') {
+              const excl = (p.spouseEnabled ? 500000 : 250000);
+              gain = Math.max(0, gain - excl);
+            }
+            return '<div style="padding:14px;margin-bottom:10px;background:var(--bg-base);border:1px solid var(--border);border-radius:8px">'
+              + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+              + '<input type="text" value="' + (ev.name||'') + '" onchange="updateCashEvent(' + ev.id + ',\'name\',this.value)" style="background:transparent;border:none;color:var(--text);font-size:14px;font-weight:600;flex:1">'
+              + '<button onclick="removeCashEvent(' + ev.id + ')" style="background:none;border:none;color:var(--red);font-size:16px;cursor:pointer;padding:4px 8px" title="Remove">\u00d7</button>'
+              + '</div>'
+              + '<div class="grid-2">'
+              + '<div class="field"><label class="field-label">Age at Sale</label>'
+              + '<input type="number" class="field-input" value="' + (ev.age||75) + '" onchange="updateCashEvent(' + ev.id + ',\'age\',Number(this.value))"></div>'
+              + '<div class="field"><label class="field-label">Gross Amount</label><div class="field-wrap"><span class="field-prefix">$</span>'
+              + '<input type="text" inputmode="decimal" class="field-input has-prefix" value="' + fmtC(ev.grossAmount||0) + '" onfocus="this.value=this.value.replace(/,/g,\'\')" onblur="this.value=fmtC(parseC(this.value))" onchange="updateCashEvent(' + ev.id + ',\'grossAmount\',parseC(this.value))">'
+              + '</div></div></div>'
+              + '<div class="grid-2">'
+              + '<div class="field"><label class="field-label">Net After Selling Costs</label><div class="field-wrap">'
+              + '<input type="number" class="field-input has-suffix" value="' + (ev.netPercent||90) + '" min="0" max="100" onchange="updateCashEvent(' + ev.id + ',\'netPercent\',Number(this.value))">'
+              + '<span class="field-suffix">%</span></div>'
+              + '<div class="field-help">After agent fees, closing costs, repairs</div></div>'
+              + '<div class="field"><label class="field-label">Cost Basis</label><div class="field-wrap"><span class="field-prefix">$</span>'
+              + '<input type="text" inputmode="decimal" class="field-input has-prefix" value="' + fmtC(ev.costBasis||0) + '" onfocus="this.value=this.value.replace(/,/g,\'\')" onblur="this.value=fmtC(parseC(this.value))" onchange="updateCashEvent(' + ev.id + ',\'costBasis\',parseC(this.value))">'
+              + '</div><div class="field-help">Original purchase price + improvements</div></div></div>'
+              + '<div class="grid-2">'
+              + '<div class="field"><label class="field-label">Property Type</label>'
+              + '<select class="field-input" onchange="updateCashEvent(' + ev.id + ',\'type\',this.value)" style="cursor:pointer">'
+              + '<option value="investment"' + (ev.type==='investment'?' selected':'') + '>Investment Property</option>'
+              + '<option value="primary_home"' + (ev.type==='primary_home'?' selected':'') + '>Primary Home</option>'
+              + '</select>'
+              + '<div class="field-help">' + (ev.type==='primary_home' ? 'Section 121 exclusion: $'+(p.spouseEnabled?'500':'250')+'K cap gains exempt' : 'Full capital gains apply') + '</div></div>'
+              + '<div class="field"><label class="field-label">Deposit To</label>'
+              + '<select class="field-input" onchange="updateCashEvent(' + ev.id + ',\'destination\',this.value)" style="cursor:pointer">'
+              + '<option value="taxable"' + ((ev.destination||'taxable')==='taxable'?' selected':'') + '>Brokerage (Taxable)</option>'
+              + '<option value="cash"' + (ev.destination==='cash'?' selected':'') + '>Cash / HYS</option>'
+              + '</select></div></div>'
+              + (p.spouseEnabled ? '<div class="field" style="margin-top:8px"><label class="field-label">Whose Sale</label>'
+              + '<select class="field-input" onchange="updateCashEvent(' + ev.id + ',\'whose\',this.value)" style="cursor:pointer">' + whoseOptions + '</select></div>' : '')
+              + '<div class="grid-2" style="margin-top:8px">'
+              + '<div class="info-box"><div class="info-box-label">Net Proceeds</div><div class="info-box-value" style="color:var(--green)">' + fmt(net) + '</div></div>'
+              + '<div class="info-box"><div class="info-box-label">Est. Capital Gains</div><div class="info-box-value" style="color:' + (gain > 0 ? 'var(--amber)' : 'var(--green)') + '">' + fmt(gain) + '</div></div>'
+              + '</div></div>';
           }
-          return `<div style="padding:14px;margin-bottom:10px;background:var(--bg-base);border:1px solid var(--border);border-radius:8px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-              <input type="text" value="${ev.name||''}" onchange="updateCashEvent(${ev.id},'name',this.value)" style="background:transparent;border:none;color:var(--text);font-size:14px;font-weight:600;flex:1">
-              <button onclick="removeCashEvent(${ev.id})" style="background:none;border:none;color:var(--red);font-size:16px;cursor:pointer;padding:4px 8px" title="Remove">x</button>
-            </div>
-            <div class="grid-2">
-              <div class="field"><label class="field-label">Age at Sale</label>
-                <input type="number" class="field-input" value="${ev.age||75}" onchange="updateCashEvent(${ev.id},'age',Number(this.value))"></div>
-              <div class="field"><label class="field-label">Gross Amount</label><div class="field-wrap"><span class="field-prefix">$</span>
-                <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(ev.grossAmount||0)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="updateCashEvent(${ev.id},'grossAmount',parseC(this.value))">
-              </div></div>
-            </div>
-            <div class="grid-2">
-              <div class="field"><label class="field-label">Net After Selling Costs</label><div class="field-wrap">
-                <input type="number" class="field-input has-suffix" value="${ev.netPercent||90}" min="0" max="100" onchange="updateCashEvent(${ev.id},'netPercent',Number(this.value))">
-                <span class="field-suffix">%</span></div>
-                <div class="field-help">After agent fees, closing costs, repairs</div></div>
-              <div class="field"><label class="field-label">Cost Basis</label><div class="field-wrap"><span class="field-prefix">$</span>
-                <input type="text" inputmode="decimal" class="field-input has-prefix" value="${fmtC(ev.costBasis||0)}" onfocus="this.value=this.value.replace(/,/g,'')" onblur="this.value=fmtC(parseC(this.value))" onchange="updateCashEvent(${ev.id},'costBasis',parseC(this.value))">
-              </div><div class="field-help">Original purchase price + improvements</div></div>
-            </div>
-            <div class="grid-2">
-              <div class="field"><label class="field-label">Property Type</label>
-                <select class="field-input" onchange="updateCashEvent(${ev.id},'type',this.value)" style="cursor:pointer">
-                  <option value="investment"${ev.type==='investment'?' selected':''}>Investment Property</option>
-                  <option value="primary_home"${ev.type==='primary_home'?' selected':''}>Primary Home</option>
-                </select>
-                <div class="field-help">${ev.type==='primary_home' ? 'Section 121 exclusion: $'+(p.spouseEnabled?'500':'250')+'K cap gains exempt' : 'Full capital gains apply'}</div></div>
-              <div class="field"><label class="field-label">Deposit To</label>
-                <select class="field-input" onchange="updateCashEvent(${ev.id},'destination',this.value)" style="cursor:pointer">
-                  <option value="taxable"${(ev.destination||'taxable')==='taxable'?' selected':''}>Brokerage (Taxable)</option>
-                  <option value="cash"${ev.destination==='cash'?' selected':''}>Cash / HYS</option>
-                </select></div>
-            </div>
-            <div class="grid-2" style="margin-top:8px">
-              <div class="info-box"><div class="info-box-label">Net Proceeds</div><div class="info-box-value" style="color:var(--green)">${fmt(net)}</div></div>
-              <div class="info-box"><div class="info-box-label">Est. Capital Gains</div><div class="info-box-value" style="color:${gain > 0 ? 'var(--amber)' : 'var(--green)'}">${fmt(gain)}</div></div>
-            </div>
-          </div>`;
         }).join('')}
-        <button onclick="addCashEvent()" style="background:var(--bg-base);border:1px dashed var(--border);border-radius:8px;color:var(--text-dim);padding:10px 16px;font-size:13px;width:100%;cursor:pointer">+ Add Cash Event</button>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button onclick="addCashEvent()" style="background:var(--bg-base);border:1px dashed var(--border);border-radius:8px;color:var(--text-dim);padding:10px 16px;font-size:13px;flex:1;cursor:pointer">+ Asset Sale</button>
+          <button onclick="addOrdinaryIncomeEvent()" style="background:var(--bg-base);border:1px dashed var(--border);border-radius:8px;color:var(--text-dim);padding:10px 16px;font-size:13px;flex:1;cursor:pointer">+ Ordinary Income</button>
+        </div>
       </div>`;
       })() : ''}`;
   }
