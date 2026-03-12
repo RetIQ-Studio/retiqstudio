@@ -4225,8 +4225,8 @@ function exportDashboardSummary() {
   const parts = [`Primary age ${p.currentAge}`];
   if (p.spouseAge) parts.push(`Spouse age ${p.spouseAge}`);
   parts.push(`Retire at ${p.retirementAge}`, `Through age ${p.endAge}`,
-    `${p.returnRate || 7}% return`, `${p.inflation || 3}% inflation`);
-  if (p.state) parts.push(p.state);
+    `${p.nominalReturn || 7}% return`, `${p.inflation || 3}% inflation`);
+  if (p.stateCode) parts.push(p.stateCode);
   const assumeLine = parts.join(' &nbsp;|&nbsp; ');
 
   // SS claim
@@ -4385,115 +4385,108 @@ function renderThisYear(proj, p, bust) {
   if (!proj || proj.length < 2) return '';
   const y = proj[0];
   const y1 = proj[1];
-  const yr = 0; // year offset for deflate
-  const d = (v) => fmtD(v, yr);
   const collapsed = state.thisYearCollapsed;
   const titleLabel = y.retired
     ? `This Year's Retirement Plan (Age ${y.age})`
     : `This Year's Plan (Age ${y.age} &mdash; Still Working)`;
 
-  // Compute withdrawal-by-source from balance deltas + known flows
-  // Balance change = growth + contributions - withdrawals - conversions
-  // For pre-tax: delta = growth - withdrawal - rothConv + savings(pretax)
-  // We approximate: withdrawal from source ≈ max(0, prev_balance + growth - new_balance - conversions)
-  // Use the actual resolved order from the engine (per-year, respects phase schedule)
-  const wdOrder = y.wdOrder || (p.withdrawalOrder || ['cash','hsa','taxable','pretax','roth']);
-  const wdLabels = { cash:'Cash / HYS', taxable:'Brokerage', pretax:'Pre-Tax', roth:'Roth', hsa:'HSA' };
-  const wdColors = { cash:'var(--cyan)', taxable:'var(--amber)', pretax:'var(--blue)', roth:'var(--green)', hsa:'#8b5cf6' };
+  // Step 1 — Detect upcoming retirement year
+  const retYrIndex = p.retirementAge - p.currentAge;
+  const showRetirementCard = p.currentAge < p.retirementAge
+    && p.retirementAge - p.currentAge <= 5
+    && retYrIndex < proj.length;
+  const yRet = showRetirementCard ? proj[retYrIndex] : null;
 
-  // Build line items as arrays of {label, value, color}
-  const sections = [];
-
-  // Income
-  const incomeRows = [];
-  if (y.earned > 0) incomeRows.push({ label: 'Employment Income', value: y.earned, color: 'var(--text)' });
-  if (y.ss > 0 || y.ssWithheld > 0) incomeRows.push({ label: 'Social Security' + (y.ssWithheld > 0 ? ' (\u2212' + d(y.ssWithheld) + ' withheld)' : ''), value: y.ss, color: 'var(--green)' });
-  if (y.ssdi > 0) incomeRows.push({ label: 'SSDI Benefits', value: y.ssdi, color: 'var(--blue)' });
-  if (y.pension > 0) {
-    const penLabel = (() => {
-      const pen1 = p.pension || {}, pen2 = p.spousePension || {};
-      const labels = { joint50: 'J&50%', joint75: 'J&75%', joint100: 'J&100%' };
-      const parts = [];
-      if (pen1.enabled && pen1.survivorBenefit && pen1.survivorBenefit !== 'none') parts.push(labels[pen1.survivorBenefit]);
-      if (pen2.enabled && pen2.survivorBenefit && pen2.survivorBenefit !== 'none') parts.push(labels[pen2.survivorBenefit]);
-      return parts.length > 0 ? 'Pension Income (' + parts.join(', ') + ')' : 'Pension Income';
-    })();
-    incomeRows.push({ label: penLabel, value: y.pension, color: 'var(--text)' });
-    if (y.pensionTaxable !== undefined && y.pensionTaxable !== y.pension) {
-      incomeRows.push({ label: 'Pension Taxable Portion', value: y.pensionTaxable, color: 'var(--text-dim)', note: 'used for tax calculations' });
-    }
-  }
-  if (y.other > 0) incomeRows.push({ label: 'Other Income', value: y.other, color: 'var(--text)' });
-  if (y.cashEventNet > 0) incomeRows.push({ label: 'Cash Event Proceeds', value: y.cashEventNet, color: 'var(--amber)', note: y.cashEventGains > 0 ? fmt(y.cashEventGains) + ' capital gains' : 'no taxable gains' });
-  if (y.lifeInsBenefit > 0) incomeRows.push({ label: 'Life Insurance Benefit', value: y.lifeInsBenefit, color: 'var(--green)', note: 'tax-free' });
-  if (incomeRows.length > 0) sections.push({ label: 'Income', rows: incomeRows });
-
-  // Savings / Employer Match
-  const savRows = [];
-  if (y.savings > 0) savRows.push({ label: 'Your Savings', value: y.savings, color: 'var(--green)' });
-  if (y.employerMatch > 0) savRows.push({ label: 'Employer 401(k) Match', value: y.employerMatch, color: 'var(--green)', note: 'added to pre-tax accounts' });
-  if (y.hsaContrib > 0) savRows.push({ label: 'HSA Contribution', value: y.hsaContrib, color: '#8b5cf6', note: 'tax-deductible' });
-  if (savRows.length > 0) sections.push({ label: 'Savings', rows: savRows });
-
-  // Withdrawals
-  const wdRows = [];
-  if (y.withdrawal > 0) {
-    wdRows.push({ label: 'Portfolio Withdrawals', value: y.withdrawal, color: 'var(--amber)' });
-    // Show RMD if applicable
-    if (y.rmd > 0) wdRows.push({ label: 'Required Minimum Distribution (RMD)', value: y.rmd, color: 'var(--purple)', note: 'included in pre-tax withdrawal' });
-  }
-  if (wdRows.length > 0) sections.push({ label: 'Withdrawals', rows: wdRows });
-
-  // Roth Conversions
-  if (y.rothConv > 0) {
-    const rcRows = [
-      { label: 'Roth Conversion', value: y.rothConv, color: 'var(--cyan)' },
-    ];
-    if (y.conversionTax > 0) rcRows.push({ label: 'Tax on Conversion', value: y.conversionTax, color: 'var(--red)', negative: true });
-    sections.push({ label: 'Roth Conversions', rows: rcRows });
-  }
-
-  // Taxes & Medicare
-  const taxRows = [];
-  if (y.fedTax > 0) taxRows.push({ label: 'Estimated Federal Tax', value: y.fedTax, color: 'var(--red)' });
-  if (y.stateTax > 0) taxRows.push({ label: 'Estimated State Tax', value: y.stateTax, color: 'var(--red)' });
-  if (y.medicareCost > 0 && y.age >= 65) taxRows.push({ label: 'Medicare Premium', value: y.medicareCost, color: 'var(--pink)' });
-  if (y.irmaa > 0) taxRows.push({ label: 'Medicare Surcharge (IRMAA)', value: y.irmaa, color: 'var(--pink)' });
-  if (taxRows.length > 0) sections.push({ label: 'Taxes & Medicare', rows: taxRows });
-
-  // Expenses
-  const expRows = [];
-  if (y.expenses > 0) expRows.push({ label: 'Total Living Expenses', value: y.expenses, color: 'var(--text)' });
-  if (y.healthcare > 0) {
-    const srcLabel = y.healthcareSource && HC_SOURCES[y.healthcareSource] ? HC_SOURCES[y.healthcareSource].label : 'Pre-Medicare';
-    if (y.healthcareSource === 'aca' && y.acaSubsidy > 0) {
-      expRows.push({ label: `Healthcare (${srcLabel})`, value: y.healthcare, color: 'var(--pink)', note: `${d(y.acaBenchmark)} benchmark \u2212 ${d(y.acaSubsidy)} subsidy \u00B7 ${y.acaFPLPercent}% FPL` });
-    } else {
-      expRows.push({ label: `Healthcare (${srcLabel})`, value: y.healthcare, color: 'var(--pink)', note: 'included in living expenses' });
-    }
-  }
-  if (y.charityTotal > 0) expRows.push({ label: 'Charitable Giving', value: y.charityTotal, color: 'var(--amber)' });
-  if (y.qcd > 0) expRows.push({ label: 'Qualified Charitable Distribution (QCD)', value: y.qcd, color: 'var(--amber)', note: 'included in charitable giving' });
-  if (y.debtPayments > 0) expRows.push({ label: 'Debt/Liability Payments', value: y.debtPayments, color: 'var(--red)' });
-  if (y.lifeInsPremiums > 0) expRows.push({ label: 'Life Insurance Premiums', value: y.lifeInsPremiums, color: 'var(--text-dim)' });
-  if (expRows.length > 0) sections.push({ label: 'Expenses', rows: expRows });
-
-  // Bottom line
-  const totalIn = y.earned + y.ss + y.ssdi + (y.pension || 0) + (y.other || 0) + y.withdrawal;
-  const totalOut = y.expenses + y.tax + y.debtPayments + (y.healthcare || 0) + (y.medicareCost || 0);
   const moneyLastsAge = bust ? bust : p.endAge + '+';
   const moneyLastsColor = bust ? 'var(--red)' : 'var(--green)';
 
-  const sectionsHtml = sections.map(s => `
-    <div class="ty-section">
-      <div class="ty-section-label">${s.label}</div>
-      ${s.rows.map(r => `<div class="ty-row">
-        <span class="ty-row-label">${r.label}${r.note ? ' <span style="font-size:10px;color:var(--text-faint)">(' + r.note + ')</span>' : ''}</span>
-        <span class="ty-row-value" style="color:${r.color}">${d(r.value)}</span>
-      </div>`).join('')}
-    </div>`).join('<hr class="ty-divider">');
+  // Step 2 — Reusable card-builder helpers
+  function buildCardSections(y, yr) {
+    const d = (v) => fmtD(v, yr);
+    const sections = [];
+    // Income
+    const incomeRows = [];
+    if (y.earned > 0) incomeRows.push({ label: 'Employment Income', value: y.earned, color: 'var(--text)' });
+    if (y.ss > 0 || y.ssWithheld > 0) incomeRows.push({ label: 'Social Security' + (y.ssWithheld > 0 ? ' (\u2212' + d(y.ssWithheld) + ' withheld)' : ''), value: y.ss, color: 'var(--green)' });
+    if (y.ssdi > 0) incomeRows.push({ label: 'SSDI Benefits', value: y.ssdi, color: 'var(--blue)' });
+    if (y.pension > 0) {
+      const penLabel = (() => {
+        const pen1 = p.pension || {}, pen2 = p.spousePension || {};
+        const labels = { joint50: 'J&50%', joint75: 'J&75%', joint100: 'J&100%' };
+        const parts = [];
+        if (pen1.enabled && pen1.survivorBenefit && pen1.survivorBenefit !== 'none') parts.push(labels[pen1.survivorBenefit]);
+        if (pen2.enabled && pen2.survivorBenefit && pen2.survivorBenefit !== 'none') parts.push(labels[pen2.survivorBenefit]);
+        return parts.length > 0 ? 'Pension Income (' + parts.join(', ') + ')' : 'Pension Income';
+      })();
+      incomeRows.push({ label: penLabel, value: y.pension, color: 'var(--text)' });
+      if (y.pensionTaxable !== undefined && y.pensionTaxable !== y.pension) {
+        incomeRows.push({ label: 'Pension Taxable Portion', value: y.pensionTaxable, color: 'var(--text-dim)', note: 'used for tax calculations' });
+      }
+    }
+    if (y.other > 0) incomeRows.push({ label: 'Other Income', value: y.other, color: 'var(--text)' });
+    if (y.cashEventNet > 0) incomeRows.push({ label: 'Cash Event Proceeds', value: y.cashEventNet, color: 'var(--amber)', note: y.cashEventGains > 0 ? fmt(y.cashEventGains) + ' capital gains' : 'no taxable gains' });
+    if (y.lifeInsBenefit > 0) incomeRows.push({ label: 'Life Insurance Benefit', value: y.lifeInsBenefit, color: 'var(--green)', note: 'tax-free' });
+    if (incomeRows.length > 0) sections.push({ label: 'Income', rows: incomeRows });
+    // Savings
+    const savRows = [];
+    if (y.savings > 0) savRows.push({ label: 'Your Savings', value: y.savings, color: 'var(--green)' });
+    if (y.employerMatch > 0) savRows.push({ label: 'Employer 401(k) Match', value: y.employerMatch, color: 'var(--green)', note: 'added to pre-tax accounts' });
+    if (y.hsaContrib > 0) savRows.push({ label: 'HSA Contribution', value: y.hsaContrib, color: '#8b5cf6', note: 'tax-deductible' });
+    if (savRows.length > 0) sections.push({ label: 'Savings', rows: savRows });
+    // Withdrawals
+    const wdRows = [];
+    if (y.withdrawal > 0) {
+      wdRows.push({ label: 'Portfolio Withdrawals', value: y.withdrawal, color: 'var(--amber)' });
+      if (y.rmd > 0) wdRows.push({ label: 'Required Minimum Distribution (RMD)', value: y.rmd, color: 'var(--purple)', note: 'included in pre-tax withdrawal' });
+    }
+    if (wdRows.length > 0) sections.push({ label: 'Withdrawals', rows: wdRows });
+    // Roth Conversions
+    if (y.rothConv > 0) {
+      const rcRows = [{ label: 'Roth Conversion', value: y.rothConv, color: 'var(--cyan)' }];
+      if (y.conversionTax > 0) rcRows.push({ label: 'Tax on Conversion', value: y.conversionTax, color: 'var(--red)', negative: true });
+      sections.push({ label: 'Roth Conversions', rows: rcRows });
+    }
+    // Taxes & Medicare
+    const taxRows = [];
+    if (y.fedTax > 0) taxRows.push({ label: 'Estimated Federal Tax', value: y.fedTax, color: 'var(--red)' });
+    if (y.stateTax > 0) taxRows.push({ label: 'Estimated State Tax', value: y.stateTax, color: 'var(--red)' });
+    if (y.medicareCost > 0 && y.age >= 65) taxRows.push({ label: 'Medicare Premium', value: y.medicareCost, color: 'var(--pink)' });
+    if (y.irmaa > 0) taxRows.push({ label: 'Medicare Surcharge (IRMAA)', value: y.irmaa, color: 'var(--pink)' });
+    if (taxRows.length > 0) sections.push({ label: 'Taxes & Medicare', rows: taxRows });
+    // Expenses
+    const expRows = [];
+    if (y.expenses > 0) expRows.push({ label: 'Total Living Expenses', value: y.expenses, color: 'var(--text)' });
+    if (y.healthcare > 0) {
+      const srcLabel = y.healthcareSource && HC_SOURCES[y.healthcareSource] ? HC_SOURCES[y.healthcareSource].label : 'Pre-Medicare';
+      if (y.healthcareSource === 'aca' && y.acaSubsidy > 0) {
+        expRows.push({ label: `Healthcare (${srcLabel})`, value: y.healthcare, color: 'var(--pink)', note: `${d(y.acaBenchmark)} benchmark \u2212 ${d(y.acaSubsidy)} subsidy \u00B7 ${y.acaFPLPercent}% FPL` });
+      } else {
+        expRows.push({ label: `Healthcare (${srcLabel})`, value: y.healthcare, color: 'var(--pink)', note: 'included in living expenses' });
+      }
+    }
+    if (y.charityTotal > 0) expRows.push({ label: 'Charitable Giving', value: y.charityTotal, color: 'var(--amber)' });
+    if (y.qcd > 0) expRows.push({ label: 'Qualified Charitable Distribution (QCD)', value: y.qcd, color: 'var(--amber)', note: 'included in charitable giving' });
+    if (y.debtPayments > 0) expRows.push({ label: 'Debt/Liability Payments', value: y.debtPayments, color: 'var(--red)' });
+    if (y.lifeInsPremiums > 0) expRows.push({ label: 'Life Insurance Premiums', value: y.lifeInsPremiums, color: 'var(--text-dim)' });
+    if (expRows.length > 0) sections.push({ label: 'Expenses', rows: expRows });
+    return sections;
+  }
+  function renderSectionsHtml(sections, yr) {
+    const d = (v) => fmtD(v, yr);
+    return sections.map(s => `
+      <div class="ty-section">
+        <div class="ty-section-label">${s.label}</div>
+        ${s.rows.map(r => `<div class="ty-row">
+          <span class="ty-row-label">${r.label}${r.note ? ' <span style="font-size:10px;color:var(--text-faint)">(' + r.note + ')</span>' : ''}</span>
+          <span class="ty-row-value" style="color:${r.color}">${d(r.value)}</span>
+        </div>`).join('')}
+      </div>`).join('<hr class="ty-divider">');
+  }
 
-  return `<div class="ty-card">
+  // --- Card 1: This Year (current age) ---
+  const sections1 = buildCardSections(y, 0);
+  const sectionsHtml1 = renderSectionsHtml(sections1, 0);
+  const card1 = `<div class="ty-card">
     <div class="ty-header" onclick="toggleThisYear()">
       <span class="ty-title">${titleLabel}</span>
       <div class="ty-actions">
@@ -4502,11 +4495,11 @@ function renderThisYear(proj, p, bust) {
       </div>
     </div>
     <div class="ty-body${collapsed ? ' collapsed' : ''}">
-      ${sectionsHtml}
+      ${sectionsHtml1}
       <div class="ty-bottom">
         <div class="ty-bottom-row">
           <span class="ty-bottom-label">Net Worth</span>
-          <span class="ty-bottom-value" style="color:${y.netWorth > 0 ? 'var(--blue)' : 'var(--red)'}">${d(y.netWorth)}</span>
+          <span class="ty-bottom-value" style="color:${y.netWorth > 0 ? 'var(--blue)' : 'var(--red)'}">${fmtD(y.netWorth, 0)}</span>
         </div>
         <div style="font-size:12px;color:var(--text-faint);margin-top:6px">
           Your money lasts through <strong style="color:${moneyLastsColor}">age ${moneyLastsAge}</strong>
@@ -4515,6 +4508,34 @@ function renderThisYear(proj, p, bust) {
       </div>
     </div>
   </div>`;
+
+  // --- Card 2: Retirement Year (only when upcoming within 5 years) ---
+  let card2 = '';
+  if (showRetirementCard && yRet) {
+    const retireMonthName = ['January','February','March','April','May','June','July','August','September','October','November','December'][p.retireMonth - 1] || '';
+    const retMonthLabel = p.retireMonth > 0 ? ` &mdash; Retiring ${retireMonthName}` : '';
+    const retTitleLabel = `Retirement Year Preview (Age ${yRet.age}${retMonthLabel})`;
+    const sections2 = buildCardSections(yRet, retYrIndex);
+    const sectionsHtml2 = renderSectionsHtml(sections2, retYrIndex);
+    card2 = `<div class="ty-card" style="margin-top:16px;border-color:var(--green);opacity:0.92">
+      <div class="ty-header">
+        <span class="ty-title" style="color:var(--green)">${retTitleLabel}</span>
+      </div>
+      <div class="ty-body">
+        ${sectionsHtml2}
+        <div class="ty-bottom">
+          <div class="ty-bottom-row">
+            <span class="ty-bottom-label">Net Worth</span>
+            <span class="ty-bottom-value" style="color:${yRet.netWorth > 0 ? 'var(--blue)' : 'var(--red)'}">${fmtD(yRet.netWorth, retYrIndex)}</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-faint);margin-top:6px">
+            First full year of retirement cash flows
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+  return card1 + card2;
 }
 
 function printThisYear() {
@@ -6126,7 +6147,7 @@ function renderInputs() {
       if (!rc.enabled || !projWith) return '';
       const convYears = projWith.filter(y => y.rothConv > 0);
       if (convYears.length === 0) return '';
-      const currentAge = p.age || 65;
+      const currentAge = p.currentAge || 65;
       const birthYear = new Date().getFullYear() - currentAge;
       const rows = convYears.map(y => {
         const convYear = birthYear + y.age;
