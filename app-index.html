@@ -3030,7 +3030,12 @@ function exportProjectionCSV() {
   const csv = header + '\n' + rows;
   const b = new Blob([csv], { type: 'text/csv' });
   const d = new Date().toISOString().slice(0,10);
-  const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `retiq-projection-${d}.csv`; a.click();
+  const file = new File([b], `retiq-projection-${d}.csv`, { type: 'text/csv' });
+  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+    navigator.share({ files: [file], title: 'RetIQ Projection' }).catch(function() {});
+  } else {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `retiq-projection-${d}.csv`; a.click();
+  }
 }
 function importData(evt) {
   if (!isPro()) { document.getElementById('buyBtn').click(); return; }
