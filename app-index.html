@@ -436,8 +436,6 @@ button:hover { opacity: 0.88; }
           <button class="header-overflow-item" onclick="state.tab='validation';render();document.getElementById('overflowMenu').style.display='none'">Validation</button>
           <button class="header-overflow-item" onclick="showInfoPage('security.html','Security');document.getElementById('overflowMenu').style.display='none'">&#128737; Security</button>
           <div style="border-top:1px solid var(--border);margin:2px 0"></div>
-          <button class="header-overflow-item" onclick="toggleTheme();document.getElementById('overflowMenu').style.display='none'">🌙 Toggle Theme</button>
-          <button class="header-overflow-item" onclick="shareRetIQ()">Share RetIQ</button>
         </div>
       </div>
     </div>
@@ -503,7 +501,8 @@ function showInfoPage(file, title) {
     + '<div style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:0" id="infoPageContent">'
     + '<p style="text-align:center;padding:40px;color:var(--text)">Loading...</p></div>';
   document.body.appendChild(overlay);
-  fetch(file).then(r => r.text()).then(html => {
+  const fileUrl = new URL(file, document.baseURI).href;
+  fetch(fileUrl).then(r => r.text()).then(html => {
     const iframe = document.createElement('iframe');
     iframe.style.cssText = 'width:100%;height:100%;border:none;background:var(--bg-base)';
     iframe.srcdoc = html.replace('</head>', '<style>.top-bar{display:none!important}</style></head>').replace('</body>', '<script>document.addEventListener("click",function(e){var a=e.target.closest("a[href^=\\"#\\"]");if(a){e.preventDefault();var t=document.querySelector(a.getAttribute("href"));if(t)t.scrollIntoView({behavior:"smooth"});}});<\/script></body>');

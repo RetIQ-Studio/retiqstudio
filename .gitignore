@@ -6,7 +6,8 @@ build/derived/
 
 # macOS build artifacts
 macos/App/RetirementIQ/app/
-macos/App/RetirementIQ.xcodeproj/xcuserdata/
-macos/App/*.xcodeproj/xcuserdata/
-macos/App/DerivedData/
+macos/App/RetirementIQ/RetirementIQ/RetirementIQ/app/
+**/xcuserdata/
 *.xcuserstate
+macos/App/DerivedData/
+macos/App/RetirementIQ_backup/
