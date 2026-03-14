@@ -1,4 +1,5 @@
 import Cocoa
+import WebKit
 
 class AppDelegate: NSObject, NSApplicationDelegate {
 
@@ -31,6 +32,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
         return true
+    }
+
+    // MARK: - JS Bridge
+
+    func callJS(_ js: String) {
+        guard let vc = window?.contentViewController as? ViewController else { return }
+        vc.webView.evaluateJavaScript(js, completionHandler: nil)
     }
 
     // MARK: - Menu Bar
@@ -178,11 +186,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Menu Actions
 
-    func callJS(_ js: String) {
-        guard let vc = window?.contentViewController as? ViewController else { return }
-        vc.webView.evaluateJavaScript(js, completionHandler: nil)
-    }
-
     @objc func menuNewPlan() {
         let alert = NSAlert()
         alert.messageText = "Start a New Plan?"
@@ -190,7 +193,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         alert.addButton(withTitle: "New Plan")
         alert.addButton(withTitle: "Cancel")
         if alert.runModal() == .alertFirstButtonReturn {
-            callJS("loadExample('clark');")
+            callJS("if(typeof resetToDefaults==='function'){resetToDefaults()}else{loadExample('clark')}")
         }
     }
 
