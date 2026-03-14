@@ -8494,7 +8494,7 @@ if (window.Capacitor && window.Capacitor.isNativePlatform()) {
 </script>
 
 <script>
-  if ('serviceWorker' in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform())) {
+  if ('serviceWorker' in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform()) && location.protocol !== 'file:') {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./service-worker.js').then((reg) => {
         // Check for waiting worker on page load (update installed while away)
