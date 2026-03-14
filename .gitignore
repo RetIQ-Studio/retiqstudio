@@ -3,3 +3,10 @@ node_modules/
 .claude/
 .wrangler/
 build/derived/
+
+# macOS build artifacts
+macos/App/RetirementIQ/app/
+macos/App/RetirementIQ.xcodeproj/xcuserdata/
+macos/App/*.xcodeproj/xcuserdata/
+macos/App/DerivedData/
+*.xcuserstate
