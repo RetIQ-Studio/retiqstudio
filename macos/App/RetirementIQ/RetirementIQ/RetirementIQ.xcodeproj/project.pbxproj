@@ -10,9 +10,22 @@
 		E179B9FF2F65F53A0076F0DE /* RetirementIQ.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RetirementIQ.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		E179BA8B2F671AC00076F0DE /* Exceptions for "RetirementIQ" folder in "RetirementIQ" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = E179B9FE2F65F53A0076F0DE /* RetirementIQ */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		E179BA012F65F53A0076F0DE /* RetirementIQ */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E179BA8B2F671AC00076F0DE /* Exceptions for "RetirementIQ" folder in "RetirementIQ" target */,
+			);
 			path = RetirementIQ;
 			sourceTree = "<group>";
 		};
