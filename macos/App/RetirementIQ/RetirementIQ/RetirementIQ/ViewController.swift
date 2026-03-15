@@ -12,7 +12,8 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
         config.userContentController.add(self, name: "savePlan")
         config.userContentController.add(self, name: "loadPlanRequest")
         config.userContentController.add(self, name: "printSummary")
-        
+        config.userContentController.add(self, name: "saveCSV")
+
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
         webView.uiDelegate = self
@@ -89,6 +90,60 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
                 window._origExportDashboardSummary();
                 window.open = origOpen;
             };
+
+            window.exportProjectionCSV = function() {
+                var p = state.params;
+                var proj = runProjection(p);
+                var curYear = new Date().getFullYear();
+                var allCols = [
+                    {head:'Age',key:'age',isCurrency:false},
+                    {head:'Year',key:'year',isCurrency:false},
+                    {head:'Earned Income',key:'earned',isCurrency:true},
+                    {head:'Employer Match',key:'employerMatch',isCurrency:true},
+                    {head:'Social Security',key:'ss',isCurrency:true},
+                    {head:'SSDI',key:'ssdi',isCurrency:true},
+                    {head:'Pension',key:'pension',isCurrency:true},
+                    {head:'Pension (Taxable)',key:'pensionTaxable',isCurrency:true},
+                    {head:'Other Income',key:'other',isCurrency:true},
+                    {head:'Expenses',key:'expenses',isCurrency:true},
+                    {head:'Federal Tax',key:'fedTax',isCurrency:true},
+                    {head:'State Tax',key:'stateTax',isCurrency:true},
+                    {head:'Cap Gains Tax',key:'cgTax',isCurrency:true},
+                    {head:'NIIT',key:'niitTax',isCurrency:true},
+                    {head:'Total Tax',key:'tax',isCurrency:true},
+                    {head:'Withdrawals',key:'withdrawal',isCurrency:true},
+                    {head:'RMD',key:'rmd',isCurrency:true},
+                    {head:'Roth Conversions',key:'rothConv',isCurrency:true},
+                    {head:'IRMAA Surcharge',key:'irmaa',isCurrency:true},
+                    {head:'Healthcare',key:'healthcare',isCurrency:true},
+                    {head:'ACA Subsidy',key:'acaSubsidy',isCurrency:true},
+                    {head:'ACA Benchmark',key:'acaBenchmark',isCurrency:true},
+                    {head:'Charity (QCD)',key:'qcd',isCurrency:true},
+                    {head:'Charity (Total)',key:'charityTotal',isCurrency:true},
+                    {head:'Capital Gains',key:'capGains',isCurrency:true},
+                    {head:'Cash Interest',key:'cashInterest',isCurrency:true},
+                    {head:'Income (MAGI)',key:'magi',isCurrency:true},
+                    {head:'Pre-Tax Balance',key:'preTax',isCurrency:true},
+                    {head:'Roth Balance',key:'roth',isCurrency:true},
+                    {head:'Cash/HYS Balance',key:'cash',isCurrency:true},
+                    {head:'Brokerage Balance',key:'taxableInv',isCurrency:true},
+                    {head:'Taxable Balance',key:'taxable',isCurrency:true},
+                    {head:'Net Worth',key:'netWorth',isCurrency:true}
+                ];
+                var alwaysShow = {age:1,year:1,netWorth:1,expenses:1};
+                var cols = allCols.filter(function(c){
+                    return alwaysShow[c.key] || proj.some(function(y){ return (y[c.key]||0)!==0; });
+                });
+                var header = cols.map(function(c){ return '"'+c.head+'"'; }).join(',');
+                var rows = proj.map(function(y){
+                    return cols.map(function(c){
+                        var v = y[c.key]||0;
+                        return c.isCurrency ? Math.round(showRealDollars ? deflate(v,y.year-curYear) : v) : v;
+                    }).join(',');
+                }).join('\\n');
+                var csv = header+'\\n'+rows;
+                window.webkit.messageHandlers.saveCSV.postMessage(csv);
+            };
                     })();
         """
         webView.evaluateJavaScript(overrideJS, completionHandler: { _, error in
@@ -135,6 +190,9 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
         }
         if message.name == "printSummary", let html = message.body as? String {
             DispatchQueue.main.async { self.printHTMLContent(html) }
+        }
+        if message.name == "saveCSV", let csv = message.body as? String {
+            DispatchQueue.main.async { self.saveCSVFile(csv) }
         }
     }
     
@@ -206,6 +264,26 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
         }
     }
     
+    func saveCSVFile(_ csv: String) {
+        let savePanel = NSSavePanel()
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let dateStr = dateFormatter.string(from: Date())
+        savePanel.nameFieldStringValue = "retiq-projection-\(dateStr).csv"
+        if #available(macOS 12.0, *) {
+            savePanel.allowedContentTypes = [.commaSeparatedText]
+        }
+        savePanel.begin { response in
+            if response == .OK, let url = savePanel.url {
+                do {
+                    try csv.write(to: url, atomically: true, encoding: .utf8)
+                } catch {
+                    print("CSV save failed: \(error)")
+                }
+            }
+        }
+    }
+
     func printCurrentView() {
         // Capture current page as HTML and open in Safari for printing
         webView.evaluateJavaScript("document.documentElement.outerHTML") { result, error in
