@@ -3,28 +3,28 @@ import WebKit
 import UniformTypeIdentifiers
 
 class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
-
+    
     var webView: WKWebView!
-
+    
     override func loadView() {
         let config = WKWebViewConfiguration()
         config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
         config.userContentController.add(self, name: "savePlan")
         config.userContentController.add(self, name: "loadPlanRequest")
         config.userContentController.add(self, name: "printSummary")
-
+        
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
         webView.uiDelegate = self
-
+        
         self.view = webView
     }
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         loadApp()
     }
-
+    
     func loadApp() {
         guard let bundlePath = Bundle.main.path(forResource: "index", ofType: "html") else {
             showError("Could not locate app bundle.")
@@ -34,17 +34,17 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
         let appDir = fileURL.deletingLastPathComponent()
         webView.loadFileURL(fileURL, allowingReadAccessTo: appDir)
     }
-
+    
     func showError(_ message: String) {
         let html = "<html><body style='font-family:system-ui;padding:40px'><h2>RetirementIQ</h2><p>\(message)</p></body></html>"
         webView.loadHTMLString(html, baseURL: nil)
     }
-
+    
     // MARK: - WKNavigationDelegate
-
+    
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         webView.evaluateJavaScript("document.body.style.webkitUserSelect = 'auto';", completionHandler: nil)
-
+        
         let overrideJS = """
         (function() {
             window._origExportHTML = window.exportHTML;
@@ -54,7 +54,7 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
                 var html = '<!DOCTYPE html>\\n' + document.documentElement.outerHTML.replace('</head>', dataBlock + '\\n</head>');
                 window.webkit.messageHandlers.savePlan.postMessage(html);
             };
-
+        
             var importEl = document.getElementById('importFile');
             if (importEl) {
                 importEl.addEventListener('click', function(e) {
@@ -63,13 +63,13 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
                     window.webkit.messageHandlers.loadPlanRequest.postMessage('');
                 }, true);
             }
-
+        
             window._retiqNav = function(tab) {
                             var ov = document.getElementById('infoPageOverlay');
                             if(ov) ov.remove();
                             if(tab) { state.tab = tab; render(); }
                         };
-
+        
             window._origExportDashboardSummary = window.exportDashboardSummary;
             window.exportDashboardSummary = function() {
                 var origOpen = window.open;
@@ -95,9 +95,9 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
             if let error = error { print("Override JS error: \(error)") }
         })
     }
-
+    
     // MARK: - WKUIDelegate
-
+    
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
                  for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         if navigationAction.targetFrame == nil, let url = navigationAction.request.url {
@@ -105,7 +105,7 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
         }
         return nil
     }
-
+    
     func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (Bool) -> Void) {
         let alert = NSAlert()
         alert.messageText = "RetirementIQ"
@@ -114,7 +114,7 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
         alert.addButton(withTitle: "Cancel")
         completionHandler(alert.runModal() == .alertFirstButtonReturn)
     }
-
+    
     func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
         let alert = NSAlert()
         alert.messageText = "RetirementIQ"
@@ -123,9 +123,9 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
         alert.runModal()
         completionHandler()
     }
-
+    
     // MARK: - WKScriptMessageHandler
-
+    
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         if message.name == "savePlan", let html = message.body as? String {
             DispatchQueue.main.async { self.saveHTMLFile(html) }
@@ -137,7 +137,7 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
             DispatchQueue.main.async { self.printHTMLContent(html) }
         }
     }
-
+    
     func saveHTMLFile(_ html: String) {
         let savePanel = NSSavePanel()
         let dateFormatter = DateFormatter()
@@ -155,7 +155,7 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
             }
         }
     }
-
+    
     func showOpenPanel() {
         let openPanel = NSOpenPanel()
         openPanel.allowedContentTypes = [.html, .json]
@@ -205,22 +205,24 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
             }
         }
     }
-
+    
     func printCurrentView() {
-        let printInfo = NSPrintInfo.shared
-        printInfo.horizontalPagination = .fit
-        printInfo.verticalPagination = .automatic
-        printInfo.isVerticallyCentered = false
-        printInfo.topMargin = 36
-        printInfo.bottomMargin = 36
-        printInfo.leftMargin = 36
-        printInfo.rightMargin = 36
-        let printOperation = webView.printOperation(with: printInfo)
-        printOperation.showsPrintPanel = true
-        printOperation.showsProgressPanel = true
-        printOperation.run()
+        // Capture current page as HTML and open in Safari for printing
+        webView.evaluateJavaScript("document.documentElement.outerHTML") { result, error in
+            guard let html = result as? String else { return }
+            let tempDir = FileManager.default.temporaryDirectory
+            let tempFile = tempDir.appendingPathComponent("retiq-print.html")
+            do {
+                try html.write(to: tempFile, atomically: true, encoding: .utf8)
+                DispatchQueue.main.async {
+                    NSWorkspace.shared.open(tempFile)
+                }
+            } catch {
+                print("❌ Print failed: \(error)")
+            }
+        }
     }
-
+    
     func printHTMLContent(_ html: String) {
         let tempDir = FileManager.default.temporaryDirectory
         let tempFile = tempDir.appendingPathComponent("retiq-summary.html")
