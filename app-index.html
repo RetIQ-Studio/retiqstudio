@@ -492,6 +492,7 @@ function toggleOverflowMenu() {
 
 function showInfoPage(file, title) {
   document.getElementById('overflowMenu').style.display = 'none';
+  const _old = document.getElementById('infoPageOverlay'); if (_old) _old.remove();
   const overlay = document.createElement('div');
   overlay.id = 'infoPageOverlay';
   overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:var(--bg-base);display:flex;flex-direction:column';
