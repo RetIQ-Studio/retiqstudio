@@ -6,7 +6,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow!
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        print("🚀 LAUNCH")
         let viewController = ViewController()
 
         window = NSWindow(
@@ -23,13 +22,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.center()
         window.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            print("🔍 Window visible: \(self.window.isVisible)")
-            print("🔍 Window frame: \(self.window.frame)")
-            print("🔍 Window screen: \(String(describing: self.window.screen))")
-        }
-
         buildMenuBar()
     }
 
@@ -41,23 +33,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
-    func dismissOverlayAndCallJS(_ js: String) {
-        callJS("const _ov=document.getElementById('infoPageOverlay');if(_ov)_ov.remove();" + js)
-    }
-
     func callJS(_ js: String) {
-        print("🔍 callJS called with: \(js)")
-        guard let vc = window?.contentViewController as? ViewController else {
-            print("❌ No ViewController found")
-            return
-        }
-        print("✅ ViewController found, evaluating JS")
-        vc.webView.evaluateJavaScript(js, completionHandler: { result, error in
-            if let error = error {
-                print("❌ JS error: \(error)")
-            } else {
-                print("✅ JS result: \(String(describing: result))")
-            }
+        guard let vc = window?.contentViewController as? ViewController else { return }
+        vc.webView.evaluateJavaScript(js, completionHandler: { _, error in
+            if let error = error { print("❌ JS error: \(error)") }
         })
     }
 
@@ -93,6 +72,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let exportSummary = NSMenuItem(title: "Export Summary PDF", action: #selector(menuExportSummary), keyEquivalent: "e")
         exportSummary.target = self
         fileMenu.addItem(exportSummary)
+        fileMenu.addItem(NSMenuItem.separator())
+        let printItem = NSMenuItem(title: "Print...", action: #selector(menuPrint), keyEquivalent: "p")
+        printItem.target = self
+        fileMenu.addItem(printItem)
 
         let viewMenuItem = NSMenuItem()
         mainMenu.addItem(viewMenuItem)
@@ -111,7 +94,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let inputs = NSMenuItem(title: "Inputs", action: #selector(menuTabInputs), keyEquivalent: "i")
         inputs.target = self
         viewMenu.addItem(inputs)
-        let projection = NSMenuItem(title: "Projection", action: #selector(menuTabProjection), keyEquivalent: "p")
+        let projection = NSMenuItem(title: "Projection", action: #selector(menuTabProjection), keyEquivalent: "j")
         projection.target = self
         viewMenu.addItem(projection)
         let monteCarlo = NSMenuItem(title: "Monte Carlo", action: #selector(menuTabMonteCarlo), keyEquivalent: "m")
@@ -121,7 +104,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let todaysDollars = NSMenuItem(title: "Today's Dollars", action: #selector(menuTodaysDollars), keyEquivalent: "t")
         todaysDollars.target = self
         viewMenu.addItem(todaysDollars)
-        let futureDollars = NSMenuItem(title: "Future Dollars", action: #selector(menuFutureDollars), keyEquivalent: "")
+        let futureDollars = NSMenuItem(title: "Future Dollars", action: #selector(menuFutureDollars), keyEquivalent: "f")
         futureDollars.target = self
         viewMenu.addItem(futureDollars)
         viewMenu.addItem(NSMenuItem.separator())
@@ -178,11 +161,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func menuNewPlan() {
         let alert = NSAlert()
         alert.messageText = "Start a New Plan?"
-        alert.informativeText = "This will clear your current plan. Make sure you've saved first."
+        alert.informativeText = "This will reset all fields to defaults. Save your current plan first if needed."
         alert.addButton(withTitle: "New Plan")
         alert.addButton(withTitle: "Cancel")
         if alert.runModal() == .alertFirstButtonReturn {
-            callJS("state.params=JSON.parse(JSON.stringify(DEMO_PARAMS));migrateParams();state.activeExample=null;state.importedPlanInfo=null;state.tab='dashboard';state.mcResults=null;saveState();render()")
+            callJS("window._newPlan()")
         }
     }
 
@@ -206,4 +189,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func menuSecurity() { callJS("showInfoPage('security.html','Security')") }
     @objc func menuValidation() { callJS("window._retiqNav('validation')") }
     @objc func menuWebsite() { NSWorkspace.shared.open(URL(string: "https://retirementiq.app")!) }
+
+    @objc func menuPrint() {
+        guard let vc = window?.contentViewController as? ViewController else { return }
+        vc.printCurrentView()
+    }
 }

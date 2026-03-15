@@ -206,6 +206,21 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
         }
     }
 
+    func printCurrentView() {
+        let printInfo = NSPrintInfo.shared
+        printInfo.horizontalPagination = .fit
+        printInfo.verticalPagination = .automatic
+        printInfo.isVerticallyCentered = false
+        printInfo.topMargin = 36
+        printInfo.bottomMargin = 36
+        printInfo.leftMargin = 36
+        printInfo.rightMargin = 36
+        let printOperation = webView.printOperation(with: printInfo)
+        printOperation.showsPrintPanel = true
+        printOperation.showsProgressPanel = true
+        printOperation.run()
+    }
+
     func printHTMLContent(_ html: String) {
         let tempDir = FileManager.default.temporaryDirectory
         let tempFile = tempDir.appendingPathComponent("retiq-summary.html")
