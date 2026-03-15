@@ -66,10 +66,10 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
             }
         
             window._retiqNav = function(tab) {
-                            var ov = document.getElementById('infoPageOverlay');
-                            if(ov) ov.remove();
-                            if(tab) { state.tab = tab; render(); }
-                        };
+                var ov = document.getElementById('infoPageOverlay');
+                if(ov) ov.remove();
+                if(tab) { state.tab = tab; render(); }
+            };
         
             window._origExportDashboardSummary = window.exportDashboardSummary;
             window.exportDashboardSummary = function() {
@@ -144,7 +144,7 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
                 var csv = header+'\\n'+rows;
                 window.webkit.messageHandlers.saveCSV.postMessage(csv);
             };
-                    })();
+        })();
         """
         webView.evaluateJavaScript(overrideJS, completionHandler: { _, error in
             if let error = error { print("Override JS error: \(error)") }
@@ -231,27 +231,31 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
                     let loadJS: String
                     if isJSON {
                         loadJS = """
-                        try {
-                            state.params = JSON.parse('\(escaped)');
-                            migrateParams();
-                            state.activeExample = null;
-                            state.importedPlanInfo = { filename: '\(filename)', date: '' };
-                            saveState(); render();
-                        } catch(err) { alert('Could not load file: ' + err.message); }
+                        (function() {
+                            try {
+                                state.params = JSON.parse('\(escaped)');
+                                migrateParams();
+                                state.activeExample = null;
+                                state.importedPlanInfo = { filename: '\(filename)', date: '' };
+                                saveState(); render();
+                            } catch(err) { alert('Could not load file: ' + err.message); }
+                        })();
                         """
                     } else {
                         loadJS = """
-                        try {
-                            var text = '\(escaped)';
-                            var dataMatch = text.match(/<script\\s+id="retiq-snapshot-data"\\s+type="application\\/json">([\\s\\S]*?)<\\/script>/);
-                            var jsonStr = dataMatch ? dataMatch[1] : null;
-                            if (jsonStr) { state.params = JSON.parse(jsonStr); }
-                            else { alert('Could not find saved data in this HTML file.'); return; }
-                            migrateParams();
-                            state.activeExample = null;
-                            state.importedPlanInfo = { filename: '\(filename)', date: '' };
-                            saveState(); render();
-                        } catch(err) { alert('Could not load file: ' + err.message); }
+                        (function() {
+                            try {
+                                var text = '\(escaped)';
+                                var dataMatch = text.match(/<script[^>]+id="retiq-snapshot-data"[^>]*>([\\s\\S]*?)<\\/script>/);
+                                var jsonStr = dataMatch ? dataMatch[1] : null;
+                                if (!jsonStr) { alert('Could not find saved data in this HTML file.'); return; }
+                                state.params = JSON.parse(jsonStr);
+                                migrateParams();
+                                state.activeExample = null;
+                                state.importedPlanInfo = { filename: '\(filename)', date: '' };
+                                saveState(); render();
+                            } catch(err) { alert('Could not load file: ' + err.message); }
+                        })();
                         """
                     }
                     self.webView.evaluateJavaScript(loadJS, completionHandler: { _, error in
@@ -285,7 +289,6 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
     }
 
     func printCurrentView() {
-        // Capture current page as HTML and open in Safari for printing
         webView.evaluateJavaScript("document.documentElement.outerHTML") { result, error in
             guard let html = result as? String else { return }
             let tempDir = FileManager.default.temporaryDirectory
