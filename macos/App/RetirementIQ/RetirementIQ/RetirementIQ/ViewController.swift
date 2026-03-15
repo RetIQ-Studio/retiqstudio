@@ -11,6 +11,7 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
         config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
         config.userContentController.add(self, name: "savePlan")
         config.userContentController.add(self, name: "loadPlanRequest")
+        config.userContentController.add(self, name: "printSummary")
 
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
@@ -64,11 +65,31 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
             }
 
             window._retiqNav = function(tab) {
-                var ov = document.getElementById('infoPageOverlay');
-                if(ov) ov.remove();
-                if(tab) { state.tab = tab; render(); }
+                            var ov = document.getElementById('infoPageOverlay');
+                            if(ov) ov.remove();
+                            if(tab) { state.tab = tab; render(); }
+                        };
+
+            window._origExportDashboardSummary = window.exportDashboardSummary;
+            window.exportDashboardSummary = function() {
+                var origOpen = window.open;
+                window.open = function(url, target) {
+                    return {
+                        document: {
+                            write: function(html) { window._pendingSummaryHTML = html; },
+                            close: function() {
+                                if(window._pendingSummaryHTML) {
+                                    window.webkit.messageHandlers.printSummary.postMessage(window._pendingSummaryHTML);
+                                    window._pendingSummaryHTML = null;
+                                }
+                            }
+                        }
+                    };
+                };
+                window._origExportDashboardSummary();
+                window.open = origOpen;
             };
-        })();
+                    })();
         """
         webView.evaluateJavaScript(overrideJS, completionHandler: { _, error in
             if let error = error { print("Override JS error: \(error)") }
@@ -111,6 +132,9 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
         }
         if message.name == "loadPlanRequest" {
             DispatchQueue.main.async { self.showOpenPanel() }
+        }
+        if message.name == "printSummary", let html = message.body as? String {
+            DispatchQueue.main.async { self.printHTMLContent(html) }
         }
     }
 
@@ -179,6 +203,17 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
                     print("Load failed: \(error)")
                 }
             }
+        }
+    }
+
+    func printHTMLContent(_ html: String) {
+        let tempDir = FileManager.default.temporaryDirectory
+        let tempFile = tempDir.appendingPathComponent("retiq-summary.html")
+        do {
+            try html.write(to: tempFile, atomically: true, encoding: .utf8)
+            NSWorkspace.shared.open(tempFile)
+        } catch {
+            print("Print failed: \(error)")
         }
     }
 }
