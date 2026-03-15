@@ -189,12 +189,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func menuSavePlan() { callJS("exportHTML()") }
     @objc func menuLoadPlan() { callJS("document.getElementById('importFile').click()") }
     @objc func menuExportSummary() { callJS("exportDashboardSummary()") }
-    @objc func menuSimpleMode() { callJS("setUIMode('essentials')") }
-    @objc func menuFullMode() { callJS("setUIMode('full')") }
-    @objc func menuTabDashboard() { dismissOverlayAndCallJS("state.tab='dashboard';render()") }
-    @objc func menuTabInputs() { dismissOverlayAndCallJS("state.tab='inputs';render()") }
-    @objc func menuTabProjection() { dismissOverlayAndCallJS("state.tab='projection';render()") }
-    @objc func menuTabMonteCarlo() { dismissOverlayAndCallJS("state.tab='montecarlo';render()") }
+    @objc func menuSimpleMode() { callJS("window._retiqNav();setUIMode('essentials')") }
+    @objc func menuFullMode() { callJS("window._retiqNav();setUIMode('full')") }
+    @objc func menuTabDashboard() { callJS("window._retiqNav('dashboard')") }
+    @objc func menuTabInputs() { callJS("window._retiqNav('inputs')") }
+    @objc func menuTabProjection() { callJS("window._retiqNav('projection')") }
+    @objc func menuTabMonteCarlo() { callJS("window._retiqNav('montecarlo')") }
     @objc func menuTodaysDollars() { callJS("showRealDollars=true;render()") }
     @objc func menuFutureDollars() { callJS("showRealDollars=false;render()") }
     @objc func menuToggleTheme() { callJS("toggleTheme()") }
@@ -204,6 +204,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func menuManual() { callJS("showInfoPage('manual.html','Manual')") }
     @objc func menuFeatures() { callJS("showInfoPage('features.html','Features')") }
     @objc func menuSecurity() { callJS("showInfoPage('security.html','Security')") }
-    @objc func menuValidation() { dismissOverlayAndCallJS("state.tab='validation';render()") }
+    @objc func menuValidation() { callJS("window._retiqNav('validation')") }
     @objc func menuWebsite() { NSWorkspace.shared.open(URL(string: "https://retirementiq.app")!) }
 }

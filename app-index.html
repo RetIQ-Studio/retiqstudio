@@ -7926,6 +7926,7 @@ function renderValidation() {
   const statusIcon = allPass ? '\u2705' : '\u274c';
 
   let html = `<div class="card" style="max-width:1100px;margin:0 auto">
+    <div style="margin-bottom:12px"><button onclick="state.tab='dashboard';render()" style="background:none;border:none;color:var(--blue);font-size:15px;cursor:pointer;padding:4px 0">\u2190 Dashboard</button></div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
       <span style="font-size:22px">${statusIcon}</span>
       <div>

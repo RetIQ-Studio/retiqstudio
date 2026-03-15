@@ -44,7 +44,6 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         webView.evaluateJavaScript("document.body.style.webkitUserSelect = 'auto';", completionHandler: nil)
 
-        // Override exportHTML for macOS native save panel
         let overrideJS = """
         (function() {
             window._origExportHTML = window.exportHTML;
@@ -55,7 +54,6 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
                 window.webkit.messageHandlers.savePlan.postMessage(html);
             };
 
-            // Override load plan for macOS native open panel
             var importEl = document.getElementById('importFile');
             if (importEl) {
                 importEl.addEventListener('click', function(e) {
@@ -64,10 +62,16 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
                     window.webkit.messageHandlers.loadPlanRequest.postMessage('');
                 }, true);
             }
+
+            window._retiqNav = function(tab) {
+                var ov = document.getElementById('infoPageOverlay');
+                if(ov) ov.remove();
+                if(tab) { state.tab = tab; render(); }
+            };
         })();
         """
         webView.evaluateJavaScript(overrideJS, completionHandler: { _, error in
-            if let error = error { print("Override JS error: \\(error)") }
+            if let error = error { print("Override JS error: \(error)") }
         })
     }
 
@@ -81,18 +85,32 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
         return nil
     }
 
+    func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (Bool) -> Void) {
+        let alert = NSAlert()
+        alert.messageText = "RetirementIQ"
+        alert.informativeText = message
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Cancel")
+        completionHandler(alert.runModal() == .alertFirstButtonReturn)
+    }
+
+    func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
+        let alert = NSAlert()
+        alert.messageText = "RetirementIQ"
+        alert.informativeText = message
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+        completionHandler()
+    }
+
     // MARK: - WKScriptMessageHandler
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         if message.name == "savePlan", let html = message.body as? String {
-            DispatchQueue.main.async {
-                self.saveHTMLFile(html)
-            }
+            DispatchQueue.main.async { self.saveHTMLFile(html) }
         }
         if message.name == "loadPlanRequest" {
-            DispatchQueue.main.async {
-                self.showOpenPanel()
-            }
+            DispatchQueue.main.async { self.showOpenPanel() }
         }
     }
 
@@ -144,8 +162,7 @@ class ViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKSc
                         try {
                             var text = '\(escaped)';
                             var dataMatch = text.match(/<script\\s+id="retiq-snapshot-data"\\s+type="application\\/json">([\\s\\S]*?)<\\/script>/);
-                            var legacyMatch = !dataMatch && text.match(/state\\.params\\s*=\\s*(\\{[\\s\\S]*?\\});\\s*\\}\\s*catch/);
-                            var jsonStr = dataMatch ? dataMatch[1] : legacyMatch ? legacyMatch[1] : null;
+                            var jsonStr = dataMatch ? dataMatch[1] : null;
                             if (jsonStr) { state.params = JSON.parse(jsonStr); }
                             else { alert('Could not find saved data in this HTML file.'); return; }
                             migrateParams();
