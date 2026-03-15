@@ -45,12 +45,11 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
 <body>
 <div class="wrap">
   <div class="top-bar">
-    <div><a href="./app/">&#8592; Back to RetIQ App</a> &middot; <a href="./manual.html">User Manual</a> &middot; <a href="./security.html">Security</a></div>
-    <button class="btn" onclick="window.print()">&#11015; Download PDF</button>
+    <div><a href="./manual.html">User Manual</a> &middot; <a href="./security.html">Security</a></div>
   </div>
 
   <h1>RetIQ Features</h1>
-  <p class="sub">Comprehensive retirement planning that runs entirely in your browser. No accounts, no cloud, no subscriptions.</p>
+  <p class="sub">Comprehensive retirement planning that runs entirely on your Mac. No accounts, no cloud, no subscriptions.</p>
 
   <div class="cat">
     <div class="cat-hdr"><span class="ic">&#128202;</span> Core Planning Engine</div>
@@ -159,23 +158,19 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
   <div class="cat">
     <div class="cat-hdr"><span class="ic">&#128190;</span> Data, Export &amp; Privacy</div>
     <div class="grid">
-      <div class="feat"><h3><span class="tag t6">Export</span> HTML Snapshot</h3>
-        <p>Export your entire plan as a self-contained HTML file with all inputs, charts, and projections. It opens in any browser without the app &mdash; perfect for archiving, printing, or sharing with a financial advisor.</p></div>
+      <div class="feat"><h3><span class="tag t6">Export</span> Save Plan</h3>
+        <p>Save your entire plan as a self-contained HTML file via File &rarr; Save Plan (&#8984;S). The native Save dialog lets you choose any location on your Mac. The file includes all inputs, charts, and projections and opens in any browser &mdash; perfect for archiving, printing, or sharing with a financial advisor.</p></div>
       <div class="feat"><h3><span class="tag t6">Export</span> CSV Projection Export</h3>
-        <p>Download the full year-by-year projection table as CSV for your own analysis in Excel or Google Sheets. Every column &mdash; income, taxes, withdrawals, Cash/HYS balance, Brokerage balance, Pre-Tax balance, Roth balance, RMDs, IRMAA, cash interest &mdash; is included.</p></div>
+        <p>Export the full year-by-year projection table as CSV via the native Save dialog. Open it in Excel, Numbers, or Google Sheets. Every column &mdash; income, taxes, withdrawals, Cash/HYS balance, Brokerage balance, Pre-Tax balance, Roth balance, RMDs, IRMAA, cash interest &mdash; is included.</p></div>
       <div class="feat"><h3><span class="tag t6">App</span> Projection Charts</h3>
         <p>Interactive charts with selectable categories &mdash; choose up to 3 at once from net worth, income, expenses, federal tax, state tax, withdrawals, RMDs, Roth conversions, IRMAA, pensions, healthcare, liabilities, LTC, charity, MAGI, cash interest, and individual account balances (Pre-Tax, Roth, Cash/HYS, Brokerage). Toggle the data table on and off.</p></div>
-      <div class="feat"><h3><span class="tag t6">App</span> PWA &mdash; Install &amp; Offline</h3>
-        <p>Install RetIQ as a standalone app on desktop or mobile. Works offline after installation. All data stays on your device and auto-saves between sessions.</p></div>
       <div class="feat"><h3><span class="tag t6">App</span> Privacy by Design</h3>
-        <p>Zero telemetry. No accounts. No cloud sync. Your financial data never leaves your browser. The entire application runs client-side JavaScript with no backend dependencies. A strict Content Security Policy is browser-enforced.</p></div>
+        <p>Zero telemetry. No accounts. No cloud sync. Your financial data never leaves your Mac. The entire application runs locally with no backend dependencies. App Sandbox ensures the app can only access files you explicitly choose.</p></div>
 
       <div class="feat"><h3><span class="tag t6">App</span> Automatic Regulatory Updates <span style="font-size:11px;color:#22c55e;font-weight:600">&bull; v4.0</span></h3>
-        <p>Tax brackets, Medicare premiums, Social Security parameters, contribution limits, and poverty guidelines are monitored weekly from official IRS, SSA, CMS, and HHS sources. When new figures are published, they're verified and delivered automatically on your next visit &mdash; no app reinstall needed. Embedded defaults serve as a fallback when offline.</p></div>
+        <p>Tax brackets, Medicare premiums, Social Security parameters, contribution limits, and poverty guidelines are monitored weekly from official IRS, SSA, CMS, and HHS sources. When new figures are published, they are verified and delivered automatically on your next launch &mdash; no app update needed. Embedded defaults serve as a fallback when offline.</p></div>
       <div class="feat"><h3><span class="tag t6">App</span> Verified Calculations</h3>
         <p>Every financial calculation is validated against authoritative sources: IRS publications, SSA actuarial tables, CMS Medicare data, SECURE 2.0 Act, and OBBB Act 2025. The embedded Validation tab displays 261 automated tests you can review and verify directly in the app. Regulatory data is live-updated between releases.</p></div>
-      <div class="feat"><h3><span class="tag t6">App</span> Share RetIQ</h3>
-        <p>A built-in share button uses your device's native share sheet (on mobile) or copies a link to your clipboard (on desktop). Help someone else plan their retirement &mdash; it's one click away.</p></div>
       <div class="feat"><h3><span class="tag t6">App</span> Validation Report</h3>
         <p>261 automated tests verify every calculation against authoritative sources &mdash; IRS publications, SSA tables, CMS Medicare data, SECURE Act 2.0 rules, and ACA subsidy tables. The full report is viewable inside the app under the Validation tab. Every test shows the expected value, actual result, source citation, and pass/fail status. 100% pass rate.</p></div>
       <div class="feat"><h3><span class="tag t1">Core</span> Configurable Withdrawal Order</h3>
@@ -187,17 +182,29 @@ h1{font-size:26px;font-weight:800;margin-bottom:4px}
     <div class="cat-hdr"><span class="ic">&#127912;</span> Design &amp; Accessibility</div>
     <div class="grid">
       <div class="feat"><h3><span class="tag t1">UI</span> Dark &amp; Light Themes</h3>
-        <p>Switch between dark and light themes with a single click. Your preference is saved automatically. Both themes are designed for extended reading of financial data.</p></div>
+        <p>Switch between dark and light themes with a single click or &#8984;&#8679;T. Your preference is saved automatically. Both themes are designed for extended reading of financial data.</p></div>
       <div class="feat"><h3><span class="tag t1">UI</span> Accessibility</h3>
         <p>Colorblind-friendly palette, responsive layout for mobile and desktop, interactive chart hover tooltips, and monospace projection tables for easy number scanning.</p></div>
       <div class="feat"><h3><span class="tag t1">UI</span> Contextual Help Tooltips</h3>
         <p>&#9432; icons next to key fields explain retirement jargon in plain language. Hover on desktop, tap on mobile. Covers account types, Social Security claiming, Roth conversion strategies, RMDs, Medicare surcharges, and withdrawal order.</p></div>
       <div class="feat"><h3><span class="tag t1">UI</span> Simple / Full Mode <span style="font-size:11px;color:#22c55e;font-weight:600">&bull; v3.0</span></h3>
-        <p>Two UI modes &mdash; one engine. <strong>Simple</strong> shows 7 streamlined input tabs with simplified fields for quick, clean planning. <strong>Full</strong> reveals all 14 tabs and every advanced feature. Toggle anytime from the header &mdash; switching modes never changes your numbers, it only controls which controls are visible. New users start in Simple; existing users get a one-time prompt to choose.</p></div>
+        <p>Two UI modes &mdash; one engine. <strong>Simple</strong> shows 7 streamlined input tabs with simplified fields for quick, clean planning. <strong>Full</strong> reveals all 14 tabs and every advanced feature. Toggle anytime from the header or via &#8984;1 / &#8984;2 &mdash; switching modes never changes your numbers, it only controls which controls are visible. New users start in Simple; existing users get a one-time prompt to choose.</p></div>
     </div>
   </div>
 
-  <div class="footer">RetIQ v4.0 &middot; retirementiq.app &middot; Not financial advice &middot; All computation runs locally in your browser</div>
+  <div class="cat">
+    <div class="cat-hdr"><span class="ic">&#128187;</span> Native Mac Experience</div>
+    <div class="grid">
+      <div class="feat"><h3><span class="tag t6">Mac</span> Native Mac App</h3>
+        <p>RetirementIQ runs as a native macOS application &mdash; no browser required. Launches instantly from your Dock or Applications folder. Distributed through the Mac App Store with App Sandbox for security. All data stays on your Mac.</p></div>
+      <div class="feat"><h3><span class="tag t6">Mac</span> Mac Menu Bar</h3>
+        <p>A full native menu bar with File, View, Examples, Window, and Help menus. Save and load plans via standard macOS dialogs (&#8984;S / &#8984;O). Switch views, toggle themes, load example families, and access documentation &mdash; all from the menu bar.</p></div>
+      <div class="feat"><h3><span class="tag t6">Mac</span> Keyboard Shortcuts</h3>
+        <p>Complete keyboard shortcut support: &#8984;N new plan, &#8984;S save, &#8984;O load, &#8984;E export summary, &#8984;P print, &#8984;D/I/J/M switch tabs, &#8984;1/2 toggle mode, &#8984;T/F toggle dollars view, and &#8984;&#8679;T toggle theme. Every major action is one keystroke away.</p></div>
+    </div>
+  </div>
+
+  <div class="footer">RetIQ v4.0 &middot; retirementiq.app &middot; Not financial advice &middot; All computation runs locally on your Mac</div>
 </div>
 </body>
 </html>
