@@ -2518,6 +2518,18 @@ let state = {
 };
 // Store demo defaults for reset
 const DEMO_PARAMS = JSON.parse(JSON.stringify(state.params));
+window._newPlan = function() {
+  var mode = state.params.uiMode || 'full';
+  state.params = JSON.parse(JSON.stringify(DEMO_PARAMS));
+  state.params.uiMode = mode;
+  migrateParams();
+  state.activeExample = null;
+  state.importedPlanInfo = null;
+  state.inputTab = 'personal';
+  state.mcResults = null;
+  saveState();
+  window._retiqNav ? window._retiqNav('inputs') : (state.tab='inputs',render());
+};
 
 // ── Example Plans ────────────────────────────────────────────────────
 const clarkParams = {
